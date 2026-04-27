@@ -1,0 +1,81 @@
+import '../../domain/entities/asset_detail.dart';
+
+class AssetDetailModel extends AssetDetail {
+  const AssetDetailModel({
+    required super.assetId,
+    required super.isActive,
+    required super.isCondemned,
+    required super.isLoan,
+    required super.isDemo,
+    required super.hasServicePlan,
+    super.equipmentType,
+    super.model,
+    super.manufacturer,
+    super.serialNumber,
+    super.barcode,
+    super.hospital,
+    super.hospitalGroup,
+    super.location,
+    super.condition,
+    super.notes,
+    super.softwareVersion,
+    super.accessories,
+    super.risk,
+    super.assetType,
+    super.moduletype,
+    super.hours,
+    super.nextServiceDate,
+    super.lastServiceDate,
+    super.warrantyDateStart,
+    super.warrantyEndDate,
+    super.warrantyPeriod,
+    super.servicePlanStartDate,
+    super.servicePlanExpDate,
+    super.servicePlanValue,
+    super.manufactureDate,
+    super.deliverDate,
+    super.commissionDate,
+  });
+
+  factory AssetDetailModel.fromJson(Map<String, dynamic> j) =>
+      AssetDetailModel(
+        assetId: j['asset_id'] as int,
+        equipmentType: j['equipment_type'] as String?,
+        model: j['model'] as String?,
+        manufacturer: j['manufacturer'] as String?,
+        serialNumber: j['serial_number'] as String?,
+        barcode: j['barcode'] as String?,
+        hospital: j['hospital'] as String?,
+        hospitalGroup: j['hospital_group'] as String?,
+        location: j['location'] as String?,
+        condition: j['condition'] as String?,
+        notes: j['notes'] as String?,
+        softwareVersion: j['software_version'] as String?,
+        accessories: j['accessories'] as String?,
+        isActive: j['is_active'] as bool? ?? false,
+        isCondemned: j['is_condemned'] as bool? ?? false,
+        isLoan: j['is_loan'] as bool? ?? false,
+        isDemo: j['is_demo'] as bool? ?? false,
+        risk: j['risk'] as int?,
+        assetType: j['asset_type'] as int?,
+        moduletype: j['moduletype'] as int?,
+        hours: j['hours'] as int?,
+        nextServiceDate: _parseDate(j['next_service_date']),
+        lastServiceDate: _parseDate(j['last_service_date']),
+        warrantyDateStart: _parseDate(j['warranty_date_start']),
+        warrantyEndDate: _parseDate(j['warranty_end_date']),
+        warrantyPeriod: j['warranty_period'] as int?,
+        hasServicePlan: j['has_service_plan'] as bool? ?? false,
+        servicePlanStartDate: _parseDate(j['service_plan_start_date']),
+        servicePlanExpDate: _parseDate(j['service_plan_exp_date']),
+        servicePlanValue: (j['service_plan_value'] as num?)?.toDouble(),
+        manufactureDate: _parseDate(j['manufacture_date']),
+        deliverDate: _parseDate(j['deliver_date']),
+        commissionDate: _parseDate(j['commission_date']),
+      );
+
+  static DateTime? _parseDate(dynamic v) {
+    if (v == null || v is! String) return null;
+    return DateTime.tryParse(v);
+  }
+}
