@@ -53,7 +53,7 @@ dependencies:
   intl: ^0.20.2
 
   # Charts (donut/pie for dashboard stats)
-  fl_chart: ^0.69.0
+  fl_chart: ^1.2.0    # was ^0.69.0
 
   # Local database — plain sqflite now; swap openDatabase call for
   # sqflite_sqlcipher once Android Keystore key derivation is wired up.
