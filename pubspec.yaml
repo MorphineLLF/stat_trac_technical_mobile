@@ -37,7 +37,7 @@ dependencies:
   dio: ^5.7.0
 
   # Secure token storage (Android Keystore-backed)
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^10.0.0
 
   # Biometric / device-PIN unlock
   local_auth: ^2.3.0
