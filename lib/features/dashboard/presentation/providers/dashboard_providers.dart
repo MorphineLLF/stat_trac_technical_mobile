@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../database/database_helper.dart';
@@ -29,7 +28,7 @@ class DashboardStats {
 /// Returns null if no sync has completed yet this session.
 @riverpod
 DateTime? lastSyncedAt(Ref ref) {
-  final syncState = ref.watch(syncNotifierProvider);
+  final syncState = ref.watch(syncProvider);
   return switch (syncState) {
     SyncComplete(:final lastSyncedAt) => lastSyncedAt,
     SyncError(:final lastSyncedAt) => lastSyncedAt,

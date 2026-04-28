@@ -19,15 +19,31 @@ final _hospitalsProvider = FutureProvider.autoDispose<List<String>>(
   dependencies: [_assetDataSourceProvider],
 );
 
-final _selectedHospitalProvider = StateProvider<String?>(
-  (ref) => null,
+final _selectedHospitalProvider = NotifierProvider<
+    _SelectedHospitalNotifier, String?>(
+  _SelectedHospitalNotifier.new,
   dependencies: [],
+  isAutoDispose: true,
 );
 
-final _assetSearchQueryProvider = StateProvider<String>(
-  (ref) => '',
+final class _SelectedHospitalNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void select(String? hospital) => state = hospital;
+}
+
+final _assetSearchQueryProvider = NotifierProvider<
+    _AssetSearchQueryNotifier, String>(
+  _AssetSearchQueryNotifier.new,
   dependencies: [],
+  isAutoDispose: true,
 );
+
+final class _AssetSearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void update(String query) => state = query;
+}
 
 final _assetSearchResultsProvider =
     FutureProvider.autoDispose.family<List<Asset>, String>(
@@ -75,7 +91,7 @@ class _AssetPickerDialog extends ConsumerWidget {
               title: selectedHospital ?? 'Select Hospital',
               showBack: selectedHospital != null,
               onBack: () =>
-                  ref.read(_selectedHospitalProvider.notifier).state = null,
+                  ref.read(_selectedHospitalProvider.notifier).select(null),
               onClose: () => Navigator.of(context).pop(),
             ),
             const Divider(height: 1),
@@ -156,8 +172,7 @@ class _HospitalPage extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyLarge),
                 trailing: const Icon(Icons.chevron_right, size: 18),
                 onTap: () =>
-                    ref.read(_selectedHospitalProvider.notifier).state =
-                        hospitals[i],
+                    ref.read(_selectedHospitalProvider.notifier).select(hospitals[i]),
               ),
             ),
     );
@@ -216,7 +231,7 @@ class _AssetPageState extends ConsumerState<_AssetPage> {
               isDense: true,
             ),
             onChanged: (v) =>
-                ref.read(_assetSearchQueryProvider.notifier).state = v.trim(),
+                ref.read(_assetSearchQueryProvider.notifier).update(v.trim()),
           ),
         ),
         const Divider(height: 1),
@@ -325,7 +340,7 @@ class _SyncEmptyState extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSyncing = ref.watch(syncNotifierProvider) is SyncInProgress;
+    final isSyncing = ref.watch(syncProvider) is SyncInProgress;
 
     return Center(
       child: Padding(
@@ -357,7 +372,7 @@ class _SyncEmptyState extends ConsumerWidget {
               onPressed: isSyncing
                   ? null
                   : () =>
-                      ref.read(syncNotifierProvider.notifier).triggerSync(),
+                      ref.read(syncProvider.notifier).triggerSync(),
             ),
             if (showProvisional && onProvisional != null) ...[
               const SizedBox(height: 12),

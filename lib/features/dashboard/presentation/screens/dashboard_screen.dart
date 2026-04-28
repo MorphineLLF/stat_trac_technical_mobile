@@ -43,10 +43,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final lastSynced = ref.watch(lastSyncedAtProvider);
-    final syncState = ref.watch(syncNotifierProvider);
+    final syncState = ref.watch(syncProvider);
     final isSyncing = syncState is SyncInProgress;
 
-    ref.listen(syncNotifierProvider, (_, next) {
+    ref.listen(syncProvider, (_, next) {
       if (next is SyncError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -57,7 +57,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       }
     });
-    final authState = ref.watch(authNotifierProvider);
+    final authState = ref.watch(authProvider);
     final userName = authState is AuthAuthenticated ? authState.user.name : '';
 
     return Scaffold(
@@ -70,12 +70,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             tooltip: 'Sync now',
             onPressed: isSyncing
                 ? null
-                : () => ref.read(syncNotifierProvider.notifier).triggerSync(),
+                : () => ref.read(syncProvider.notifier).triggerSync(),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
-            onPressed: () => ref.read(authNotifierProvider.notifier).logout(),
+            onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
         ],
       ),

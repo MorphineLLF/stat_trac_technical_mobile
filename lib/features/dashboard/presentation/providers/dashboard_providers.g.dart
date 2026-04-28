@@ -6,46 +6,100 @@ part of 'dashboard_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$lastSyncedAtHash() => r'23378c9fd8d1f90604eaaf9cf72b2e950aaa2103';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Exposes the last successful sync timestamp for the "Last synced" display.
+/// Returns null if no sync has completed yet this session.
+
+@ProviderFor(lastSyncedAt)
+final lastSyncedAtProvider = LastSyncedAtProvider._();
 
 /// Exposes the last successful sync timestamp for the "Last synced" display.
 /// Returns null if no sync has completed yet this session.
-///
-/// Copied from [lastSyncedAt].
-@ProviderFor(lastSyncedAt)
-final lastSyncedAtProvider = AutoDisposeProvider<DateTime?>.internal(
-  lastSyncedAt,
-  name: r'lastSyncedAtProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$lastSyncedAtHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LastSyncedAtRef = AutoDisposeProviderRef<DateTime?>;
-String _$dashboardStatsHash() => r'e87fff22e5dc3a5efc815af57e19dc990810f91a';
+final class LastSyncedAtProvider
+    extends $FunctionalProvider<DateTime?, DateTime?, DateTime?>
+    with $Provider<DateTime?> {
+  /// Exposes the last successful sync timestamp for the "Last synced" display.
+  /// Returns null if no sync has completed yet this session.
+  LastSyncedAtProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lastSyncedAtProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$lastSyncedAtHash();
+
+  @$internal
+  @override
+  $ProviderElement<DateTime?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DateTime? create(Ref ref) {
+    return lastSyncedAt(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime?>(value),
+    );
+  }
+}
+
+String _$lastSyncedAtHash() => r'23378c9fd8d1f90604eaaf9cf72b2e950aaa2103';
 
 /// Active WO counts for the dashboard donut chart and KPI row.
 /// Active = not completed / reviewed / closed / cancelled.
-///
-/// Copied from [dashboardStats].
-@ProviderFor(dashboardStats)
-final dashboardStatsProvider =
-    AutoDisposeFutureProvider<DashboardStats>.internal(
-      dashboardStats,
-      name: r'dashboardStatsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$dashboardStatsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef DashboardStatsRef = AutoDisposeFutureProviderRef<DashboardStats>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+@ProviderFor(dashboardStats)
+final dashboardStatsProvider = DashboardStatsProvider._();
+
+/// Active WO counts for the dashboard donut chart and KPI row.
+/// Active = not completed / reviewed / closed / cancelled.
+
+final class DashboardStatsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<DashboardStats>,
+          DashboardStats,
+          FutureOr<DashboardStats>
+        >
+    with $FutureModifier<DashboardStats>, $FutureProvider<DashboardStats> {
+  /// Active WO counts for the dashboard donut chart and KPI row.
+  /// Active = not completed / reviewed / closed / cancelled.
+  DashboardStatsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'dashboardStatsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$dashboardStatsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<DashboardStats> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<DashboardStats> create(Ref ref) {
+    return dashboardStats(ref);
+  }
+}
+
+String _$dashboardStatsHash() => r'e87fff22e5dc3a5efc815af57e19dc990810f91a';

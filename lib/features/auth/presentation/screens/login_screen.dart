@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authNotifierProvider.notifier).login(
+    await ref.read(authProvider.notifier).login(
           _usernameController.text.trim(),
           _passwordController.text,
         );
@@ -34,12 +34,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authNotifierProvider);
+    final authState = ref.watch(authProvider);
     final isLoading = authState is AuthInitial;
     final errorMessage =
         authState is AuthUnauthenticated ? authState.errorMessage : null;
 
-    ref.listen<AuthState>(authNotifierProvider, (_, next) {
+    ref.listen<AuthState>(authProvider, (_, next) {
       if (next is AuthAuthenticated) {
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }

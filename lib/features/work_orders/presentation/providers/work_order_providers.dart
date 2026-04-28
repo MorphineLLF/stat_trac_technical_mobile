@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../database/database_helper.dart';
@@ -44,7 +43,10 @@ class TodaysWorkOrders extends _$TodaysWorkOrders {
   Future<List<WorkOrder>> build() =>
       ref.watch(workOrderRepositoryProvider).getTodaysWorkOrders();
 
-  Future<void> refresh() => ref.refresh(todaysWorkOrdersProvider.future);
+  Future<void> refresh() {
+    ref.invalidateSelf();
+    return future;
+  }
 }
 
 // ── WO detail ────────────────────────────────────────────────────────────────
