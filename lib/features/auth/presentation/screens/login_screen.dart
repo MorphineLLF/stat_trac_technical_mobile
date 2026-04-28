@@ -15,20 +15,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _dbNameController = TextEditingController();
   bool _obscurePassword = true;
+  bool _showDbNameField = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStoredDbName();
+  }
+
+  Future<void> _checkStoredDbName() async {
+    final stored =
+        await ref.read(authLocalDataSourceProvider).readDbName();
+    if (mounted) {
+      setState(() => _showDbNameField = stored == null);
+    }
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _dbNameController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final String dbName;
+    if (_showDbNameField) {
+      dbName = _dbNameController.text.trim();
+    } else {
+      dbName =
+          await ref.read(authLocalDataSourceProvider).readDbName() ?? '';
+    }
+
     await ref.read(authProvider.notifier).login(
           _usernameController.text.trim(),
           _passwordController.text,
+          dbName,
         );
   }
 
@@ -60,6 +87,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 48),
                   _Logo(),
                   const SizedBox(height: 48),
+                  if (_showDbNameField) ...[
+                    TextFormField(
+                      controller: _dbNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Database Name',
+                        prefixIcon: Icon(Icons.dns_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   TextFormField(
                     controller: _usernameController,
                     decoration: const InputDecoration(

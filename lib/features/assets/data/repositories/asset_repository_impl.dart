@@ -1,5 +1,3 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../domain/entities/asset.dart';
 import '../../domain/entities/asset_detail.dart';
 import '../../domain/repositories/asset_repository.dart';
@@ -16,22 +14,29 @@ class AssetRepositoryImpl implements AssetRepository {
   final AssetLocalDataSource _local;
   final AssetRemoteDataSource _remote;
 
-  static const _syncKey = 'assets_last_synced';
-
   // Hard cap prevents an infinite loop if the server never returns < 500 records.
   static const _maxSyncPages = 200;
 
   @override
-  Future<void> syncAssets() async {
+  Future<({int rowCount, int pageCount, List<int> removedIds})>
+      syncAssets() async {
     var page = 1;
+    var totalRows = 0;
+    final serverIds = <int>{};
+
     while (page <= _maxSyncPages) {
       final batch = await _remote.getAssets(page: page, pageSize: 500);
+      for (final a in batch) {
+        if (a.assetId != null) serverIds.add(a.assetId!);
+      }
       await _local.upsertAll(batch);
+      totalRows += batch.length;
       if (batch.length < 500) break;
       page++;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_syncKey, DateTime.now().toIso8601String());
+
+    final removedIds = await _local.deleteNotIn(serverIds);
+    return (rowCount: totalRows, pageCount: page, removedIds: removedIds);
   }
 
   @override

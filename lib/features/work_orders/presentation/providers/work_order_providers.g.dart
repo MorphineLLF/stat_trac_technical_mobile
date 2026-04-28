@@ -265,7 +265,7 @@ final class TodaysWorkOrdersProvider
   TodaysWorkOrders create() => TodaysWorkOrders();
 }
 
-String _$todaysWorkOrdersHash() => r'b9e7de1c405e702b82fac7f34506cad76513f5be';
+String _$todaysWorkOrdersHash() => r'2dbcb2e3da1fb14283b03e26166d777c89168151';
 
 abstract class _$TodaysWorkOrders extends $AsyncNotifier<List<WorkOrder>> {
   FutureOr<List<WorkOrder>> build();

@@ -59,10 +59,10 @@ class AuthNotifier extends _$AuthNotifier {
     state = user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
   }
 
-  Future<void> login(String username, String password) async {
+  Future<void> login(String username, String password, String dbName) async {
     state = const AuthInitial();
     try {
-      await ref.read(authRepositoryProvider).login(username, password);
+      await ref.read(authRepositoryProvider).login(username, password, dbName);
       final user = await ref.read(authRepositoryProvider).getCurrentUser();
       state = AuthAuthenticated(user ?? _unknownUser);
     } on Exception catch (e) {

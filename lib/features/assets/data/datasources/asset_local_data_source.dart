@@ -49,6 +49,11 @@ abstract interface class AssetLocalDataSource {
     String? hospital,
     String? location,
   });
+
+  /// Delete non-provisional local records whose asset_id is not in [serverIds].
+  /// Executes deletes in chunks of 900 to stay under SQLite's 999-variable limit.
+  /// Returns the list of asset_id values that were deleted.
+  Future<List<int>> deleteNotIn(Set<int> serverIds);
 }
 
 class AssetLocalDataSourceImpl implements AssetLocalDataSource {
@@ -215,5 +220,26 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
     );
     final id = await db.insert(_table, draft.toMap());
     return AssetModel.fromMap({...draft.toMap(), 'id': id});
+  }
+
+  @override
+  Future<List<int>> deleteNotIn(Set<int> serverIds) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      'SELECT asset_id FROM $_table WHERE is_provisional = 0 AND asset_id IS NOT NULL',
+    );
+    final localIds = rows.map((r) => r['asset_id'] as int).toSet();
+    final orphans = localIds.difference(serverIds).toList();
+    if (orphans.isEmpty) return [];
+
+    for (var i = 0; i < orphans.length; i += 900) {
+      final chunk = orphans.sublist(i, (i + 900).clamp(0, orphans.length));
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await db.rawDelete(
+        'DELETE FROM $_table WHERE asset_id IN ($placeholders) AND is_provisional = 0',
+        chunk,
+      );
+    }
+    return orphans;
   }
 }

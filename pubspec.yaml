@@ -69,6 +69,9 @@ dependencies:
   # Offline sync kit
   offline_sync_kit: ^1.5.3
 
+  # Connectivity detection (skip sync when offline)
+  connectivity_plus: ^6.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

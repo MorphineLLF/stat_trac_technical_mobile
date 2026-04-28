@@ -55,7 +55,7 @@ final class LastSyncedAtProvider
   }
 }
 
-String _$lastSyncedAtHash() => r'23378c9fd8d1f90604eaaf9cf72b2e950aaa2103';
+String _$lastSyncedAtHash() => r'a55ef5c067d8b7e18a498598d9fd09e2461c460f';
 
 /// Active WO counts for the dashboard donut chart and KPI row.
 /// Active = not completed / reviewed / closed / cancelled.

@@ -20,8 +20,31 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
   int _navIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncProvider.notifier).triggerSync();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(syncProvider.notifier).triggerSync();
+    }
+  }
 
   void _onNavTap(int index) {
     if (index == 1) {
@@ -42,15 +65,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lastSynced = ref.watch(lastSyncedAtProvider);
     final syncState = ref.watch(syncProvider);
     final isSyncing = syncState is SyncInProgress;
+    final badgeCount =
+        ref.watch(unresolvedSyncErrorCountProvider).asData?.value ?? 0;
 
     ref.listen(syncProvider, (_, next) {
       if (next is SyncError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sync failed: ${next.message}'),
+            content: Text(next.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 8),
           ),
@@ -64,13 +88,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       appBar: AppBar(
         title: Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
         actions: [
-          _LastSyncedLabel(lastSynced: lastSynced, isSyncing: isSyncing),
-          IconButton(
-            icon: const Icon(Icons.sync),
-            tooltip: 'Sync now',
-            onPressed: isSyncing
-                ? null
-                : () => ref.read(syncProvider.notifier).triggerSync(),
+          _SyncStatusLabel(syncState: syncState),
+          Badge(
+            isLabelVisible: badgeCount > 0,
+            label: Text('$badgeCount'),
+            child: IconButton(
+              icon: const Icon(Icons.sync),
+              tooltip: 'Sync now',
+              onPressed: isSyncing
+                  ? null
+                  : () => ref.read(syncProvider.notifier).triggerSync(),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -539,45 +567,67 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-// ── AppBar: last synced label ─────────────────────────────────────────────────
+// ── AppBar: sync status label ─────────────────────────────────────────────────
 
-class _LastSyncedLabel extends StatelessWidget {
-  const _LastSyncedLabel({required this.lastSynced, required this.isSyncing});
-  final DateTime? lastSynced;
-  final bool isSyncing;
+class _SyncStatusLabel extends StatelessWidget {
+  const _SyncStatusLabel({required this.syncState});
+  final SyncState syncState;
 
   @override
   Widget build(BuildContext context) {
-    if (isSyncing) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12),
-        child: Center(
-          child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
+    return switch (syncState) {
+      SyncInProgress() => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Center(
+            child: SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white),
+            ),
           ),
         ),
-      );
-    }
-
-    final label = lastSynced == null
-        ? 'Not synced'
-        : 'Last synced: ${DateFormat('dd MMM yyyy HH:mm').format(lastSynced!)}';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: lastSynced == null
-                ? Colors.white60
-                : const Color(0xFF4CAF50),
+      SyncComplete(:final lastSyncedAt) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline,
+                  size: 14, color: Color(0xFF4CAF50)),
+              const SizedBox(width: 4),
+              Text(
+                DateFormat('dd MMM HH:mm').format(lastSyncedAt),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF4CAF50)),
+              ),
+            ],
           ),
         ),
-      ),
-    );
+      SyncError(:final lastSyncedAt) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline,
+                  size: 14, color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 4),
+              Text(
+                lastSyncedAt != null
+                    ? 'Sync failed · ${DateFormat('dd MMM HH:mm').format(lastSyncedAt)}'
+                    : 'Sync failed',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ),
+        ),
+      _ => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'Not synced',
+            style: TextStyle(fontSize: 12, color: Colors.white60),
+          ),
+        ),
+    };
   }
 }

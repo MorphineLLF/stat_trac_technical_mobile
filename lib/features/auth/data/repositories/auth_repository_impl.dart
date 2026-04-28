@@ -15,10 +15,11 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _local;
 
   @override
-  Future<AuthToken> login(String username, String password) async {
-    final result = await _remote.login(username, password);
+  Future<AuthToken> login(String username, String password, String dbName) async {
+    final result = await _remote.login(username, password, dbName);
     await _local.saveToken(result.token);
     await _local.saveUser(result.user);
+    await _local.saveDbName(dbName);
     return result.token;
   }
 
@@ -30,6 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
     await _local.clearToken();
     await _local.clearUser();
+    await _local.clearDbName();
   }
 
   @override

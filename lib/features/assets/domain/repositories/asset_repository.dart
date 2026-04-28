@@ -3,7 +3,8 @@ import '../entities/asset_detail.dart';
 
 abstract interface class AssetRepository {
   /// Paginated sync from Horse API → local SQLite.
-  Future<void> syncAssets();
+  /// Returns the total row count, page count, and any asset_ids deleted locally.
+  Future<({int rowCount, int pageCount, List<int> removedIds})> syncAssets();
 
   /// All local assets, optionally filtered by hospital.
   Future<List<Asset>> getAssets({String? hospital});

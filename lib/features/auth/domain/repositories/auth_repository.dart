@@ -3,7 +3,7 @@ import '../entities/user.dart';
 
 abstract interface class AuthRepository {
   /// Authenticates with the Horse REST API and persists tokens locally.
-  Future<AuthToken> login(String username, String password);
+  Future<AuthToken> login(String username, String password, String dbName);
 
   /// Clears local tokens and invalidates the session server-side.
   Future<void> logout();

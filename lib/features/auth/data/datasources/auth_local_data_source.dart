@@ -12,6 +12,9 @@ abstract interface class AuthLocalDataSource {
   Future<void> saveUser(UserModel user);
   Future<UserModel?> readUser();
   Future<void> clearUser();
+  Future<void> saveDbName(String dbName);
+  Future<String?> readDbName();
+  Future<void> clearDbName();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -19,8 +22,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   final FlutterSecureStorage _storage;
 
-  static const _tokenKey = 'auth_token';
-  static const _userKey  = 'auth_user';
+  static const _tokenKey  = 'auth_token';
+  static const _userKey   = 'auth_user';
+  static const _dbNameKey = 'db_name';
 
   @override
   Future<void> saveToken(AuthTokenModel token) async {
@@ -54,5 +58,20 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> clearUser() async {
     await _storage.delete(key: _userKey);
+  }
+
+  @override
+  Future<void> saveDbName(String dbName) async {
+    await _storage.write(key: _dbNameKey, value: dbName);
+  }
+
+  @override
+  Future<String?> readDbName() async {
+    return _storage.read(key: _dbNameKey);
+  }
+
+  @override
+  Future<void> clearDbName() async {
+    await _storage.delete(key: _dbNameKey);
   }
 }

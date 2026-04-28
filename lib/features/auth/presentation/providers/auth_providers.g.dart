@@ -54,7 +54,7 @@ final class SecureStorageProvider
   }
 }
 
-String _$secureStorageHash() => r'39b6a2355a8398a2c25bb6e7dd3111ede1fc9c9b';
+String _$secureStorageHash() => r'273dc403a965c1f24962aaf4d40776611a26f8b8';
 
 @ProviderFor(authLocalDataSource)
 final authLocalDataSourceProvider = AuthLocalDataSourceProvider._();
@@ -225,7 +225,7 @@ final class AuthNotifierProvider
   }
 }
 
-String _$authNotifierHash() => r'7dd8d8759105fb86caefe72a40cfe254c9589ffa';
+String _$authNotifierHash() => r'e8f477a8ea3b7ec6dfb45608a93138f05a35f3b2';
 
 abstract class _$AuthNotifier extends $Notifier<AuthState> {
   AuthState build();

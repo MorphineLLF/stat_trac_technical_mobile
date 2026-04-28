@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../models/auth_token_model.dart';
 import '../models/user_model.dart';
 
@@ -9,6 +8,7 @@ abstract interface class AuthRemoteDataSource {
   Future<({AuthTokenModel token, UserModel user})> login(
     String username,
     String password,
+    String dbName,
   );
 
   Future<void> logout(String accessToken);
@@ -25,6 +25,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<({AuthTokenModel token, UserModel user})> login(
     String username,
     String password,
+    String dbName,
   ) async {
     final info = await PackageInfo.fromPlatform();
     final response = await _dio.post<Map<String, dynamic>>(
@@ -32,7 +33,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {
         'username': username,
         'password': password,
-        'db': AppConfig.dbName,
+        'db': dbName,
         'app_version': info.version,
         'device_os': 'Android',
       },

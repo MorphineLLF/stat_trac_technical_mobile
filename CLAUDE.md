@@ -38,7 +38,8 @@ Key sections:
 ## Tech Stack
 
 - **Frontend:** Flutter/Dart, Android-first (min API 28), tablet-optimised
-- **State management:** Riverpod with code-generated providers
+- **State management:** Riverpod 3 with code-generated providers (`riverpod_annotation ^4`, `riverpod_generator ^4`)
+- **Connectivity:** `connectivity_plus ^6` — used in sync notifier to skip sync when offline
 - **Local database:** SQLite via sqflite (offline-first); SQLCipher encryption to be wired once Android Keystore key derivation is implemented — swap `openDatabase` for `sqflite_sqlcipher` in `database_helper.dart`
 - **Backend API:** Delphi Horse REST API, JWT auth
 - **Server database:** PostgreSQL (master Stat Trac)
@@ -201,19 +202,19 @@ Work in this order. Each phase builds on the previous.
 
 ## What Has Been Built
 
-### Auth module — complete scaffold
+### Auth module — complete scaffold + DB name first-login field ✅
 - `lib/features/auth/domain/entities/` — `User`, `AuthToken`, `UserRole`
-- `lib/features/auth/domain/repositories/auth_repository.dart` — abstract interface
+- `lib/features/auth/domain/repositories/auth_repository.dart` — abstract interface; `login()` accepts `(username, password, dbName)`
 - `lib/features/auth/data/models/` — `UserModel`, `AuthTokenModel` (JSON DTOs)
-- `lib/features/auth/data/datasources/auth_remote_data_source.dart` — Dio (login/logout/refresh)
-- `lib/features/auth/data/datasources/auth_local_data_source.dart` — FlutterSecureStorage (token persistence)
-- `lib/features/auth/data/repositories/auth_repository_impl.dart`
-- `lib/features/auth/presentation/providers/auth_providers.dart` + `.g.dart` — `@riverpod` infra + `AuthNotifier`
+- `lib/features/auth/data/datasources/auth_remote_data_source.dart` — Dio (login/logout/refresh); `login()` sends `db` from `dbName` param (not hardcoded)
+- `lib/features/auth/data/datasources/auth_local_data_source.dart` — FlutterSecureStorage: token + user + db_name (`saveDbName` / `readDbName` / `clearDbName`)
+- `lib/features/auth/data/repositories/auth_repository_impl.dart` — saves `db_name` on login; clears `db_name` on logout
+- `lib/features/auth/presentation/providers/auth_providers.dart` + `.g.dart` — `@riverpod` infra + `AuthNotifier`; `login()` accepts `dbName`
 - `lib/features/auth/presentation/providers/auth_state.dart` — sealed `AuthInitial / AuthAuthenticated / AuthUnauthenticated`
-- `lib/features/auth/presentation/screens/login_screen.dart` — username/password form, error banner, loading state
+- `lib/features/auth/presentation/screens/login_screen.dart` — DB Name field shown on first login only (hidden once `db_name` stored); username/password form; error banner; loading state
 
-### Dashboard — complete scaffold
-- `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — AppBar with green "Last synced" label, sync/logout actions; single-screen layout (no tabs)
+### Dashboard — complete ✅
+- `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (spinner / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
 - **Top row** — two side-by-side `_TaskCountCard` tiles: "Pending Work Orders" (brandTeal) and "Pending PM Work Orders" (dark green); count + label with tinted bg/border
 - **Donut chart** — `fl_chart` `PieChart`, Overdue (brandError) / Pending (amber) / WIP (brandTeal) sections with legend + percentages; grey ring when total = 0
@@ -221,21 +222,25 @@ Work in this order. Each phase builds on the previous.
 - **Quick actions grid** — 2×2 `_QuickActionTile` grid, all brandTeal: Worklist (→ `WorkOrderListScreen`), Create Work Order, Create PM Order, Create Certificate (last three show "coming soon")
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; non-Home tabs show "coming soon" snackbar and keep Home selected
 
-### Sync engine — skeleton only
+### Sync engine — asset sync complete ✅
 - `lib/sync/sync_state.dart` — sealed `SyncIdle / SyncInProgress / SyncComplete / SyncError`
-- `lib/sync/sync_notifier.dart` + `.g.dart` — `@riverpod` `SyncNotifier` with `triggerSync()`; TODO stub pending DB + API layers
-- `lib/sync/sync_service.dart` — abstract `SyncService` interface (`sync()`, `enqueueBinaryUpload()`)
+- `lib/sync/sync_notifier.dart` + `.g.dart` — `SyncNotifier.triggerSync()`: connectivity check → purge old errors → asset sync → `POST /sync/log` → mark resolved / log error; `unresolvedSyncErrorCountProvider`; `_friendlySyncError(e)`
+- `lib/sync/sync_error_log_data_source.dart` — `SyncErrorLogDataSourceImpl`: `logError`, `markResolved`, `unresolvedCount`, `purgeOldResolved`
+- `lib/sync/sync_remote_data_source.dart` — `SyncRemoteDataSourceImpl`: `POST /sync/log` (failures silently swallowed)
+- `lib/sync/sync_service.dart` — abstract `SyncService` interface (`sync()`, `enqueueBinaryUpload()`) — WO sync pending
 - `lib/sync/change_log_entry.dart` — `ChangeLogEntry` domain model + `ChangeOperation` enum
 
 ### Database foundation
-- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 3**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
-- `lib/database/migrations/migration_001_work_orders.dart` — §5.1 tables + `change_log`; all `CREATE TABLE IF NOT EXISTS` (idempotent)
-- `lib/database/migrations/migration_002_assets.dart` — `assets` table with `server_id`, `is_provisional`, `account_id/account_name`, `department`, `condition`; `IF NOT EXISTS` idempotent
+- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 5**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
+- `lib/database/migrations/migration_001_work_orders.dart` — §5.1 tables + `change_log`
+- `lib/database/migrations/migration_002_assets.dart` — original `assets` table (superseded by migration_003)
+- `lib/database/migrations/migration_003_assets_v2.dart` — rebuilds `assets` with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue)
+- `lib/database/migrations/migration_004_sync_error_log.dart` — `sync_error_log` table
 
 ### Assets — domain + data + picker widget (read-only so far)
 - `lib/features/assets/domain/entities/asset.dart` — `Asset` entity; `isProvisional`, `displayName` getter
 - `lib/features/assets/data/models/asset_model.dart` — `AssetModel extends Asset` with `fromMap`/`toMap`
-- `lib/features/assets/data/datasources/asset_local_data_source.dart` — `AccountSummary`, interface + impl; `getAccounts()` (DISTINCT account_id/name), `searchAssets(query, {accountId})`, `getAssetById`, `createProvisional`
+- `lib/features/assets/data/datasources/asset_local_data_source.dart` — interface + impl; `upsertAll`, `getAssets`, `searchAssets`, `getAssetById`, `getAssetByBarcode`, `getHospitals`, `getStats`, `createProvisional`, `deleteNotIn(serverIds)` (chunks of 900)
 - `lib/features/assets/presentation/widgets/asset_picker_dialog.dart` — **two-step picker**: page 1 selects hospital (account), page 2 shows filtered equipment with search; scoped Riverpod providers with `dependencies:` declarations; provisional asset bottom-sheet form; empty-state sync prompt
 
 **Provisional asset rules** (add to DB migration notes):
@@ -362,17 +367,24 @@ All table and column names are PascalCase and must be double-quoted in SQL.
 
 ## Known TODOs (Phase 1)
 
+### Sync engine (asset sync complete ✅ — WO sync pending)
+- `work_order_repository_impl.dart` — implement `syncFromRemote()` with since-cursor pagination
+- `sync_service.dart` — implement concrete `SyncServiceImpl` for work order push/pull once Horse API WO sync endpoints exist
+
+### Auth
+- `auth_providers.dart` — replace `_unknownUser` placeholder with real user from login response (already in `response.data['user']`)
+- `auth_repository_impl.dart` — implement `getCurrentUser()` once `/auth/me` endpoint is in spec §6
+
+### Work orders
 - `work_order_repository_impl.dart` — inject real current user ID from auth state (currently hardcoded `0`)
 - `wo_local_data_source.dart` — inject real device ID (currently hardcoded `'device'`)
-- `sync_notifier.dart` — implement real sync once DB + API layers are complete
-- `sync_notifier.dart` — add structured error logging on sync failure: log timestamp, operation, table/endpoint, error message, and stack trace to a local `sync_error_log` table; surface persistent failures in the UI (e.g. banner or badge on the sync icon)
 - `work_order_repository_impl.dart` — implement `syncFromRemote()` with since-cursor
-- `auth_repository_impl.dart` — implement `getCurrentUser()` once `/auth/me` endpoint is in spec §6
-- `auth_providers.dart` — replace `_unknownUser` placeholder with real user from login response
+
+### Infrastructure
 - `database_helper.dart` — swap `openDatabase` for `sqflite_sqlcipher` once Android Keystore key derivation is wired
-- `auth_repository_impl.dart` — remove dev login bypass (`user`/`user`) once Horse API server is live
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
+- `android/build.gradle.kts` — remove `isar_flutter_libs` AGP 8.x namespace patch once `offline_sync_kit` upgrades past `isar_flutter_libs 3.1.0+1`
 
 ## Sync Error Logging (requirement)
 
