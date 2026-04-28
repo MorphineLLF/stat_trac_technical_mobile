@@ -53,7 +53,7 @@ dependencies:
   intl: ^0.20.2
 
   # Charts (donut/pie for dashboard stats)
-  fl_chart: ^1.2.0    # was ^0.69.0
+  fl_chart: ^1.2.0
 
   # Local database — plain sqflite now; swap openDatabase call for
   # sqflite_sqlcipher once Android Keystore key derivation is wired up.
@@ -61,7 +61,7 @@ dependencies:
   path: ^1.9.1
 
   # Barcode scanning
-  mobile_scanner: ^7.2.0    # was ^6.0.2
+  mobile_scanner: ^7.2.0
 
   # Sync timestamp persistence
   shared_preferences: ^2.3.2
