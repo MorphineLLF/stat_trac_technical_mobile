@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../models/auth_token_model.dart';
 import '../models/user_model.dart';
 
@@ -31,6 +32,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {
         'username': username,
         'password': password,
+        'db': AppConfig.dbName,
         'app_version': info.version,
         'device_os': 'Android',
       },
