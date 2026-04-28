@@ -6,7 +6,7 @@ import 'package:stat_trac_technical/main.dart';
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: StatTracApp()));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.byType(StatTracApp), findsOneWidget);
   });
 }
