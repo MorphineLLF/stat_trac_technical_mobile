@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stat_trac_technical/features/assets/data/datasources/asset_local_data_source.dart';
 import 'package:stat_trac_technical/features/assets/data/datasources/asset_remote_data_source.dart';
 import 'package:stat_trac_technical/features/assets/data/models/asset_model.dart';
@@ -29,10 +28,12 @@ void main() {
   late AssetRepositoryImpl repo;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
     mockLocal = MockAssetLocal();
     mockRemote = MockAssetRemote();
     repo = AssetRepositoryImpl(local: mockLocal, remote: mockRemote);
+
+    when(() => mockLocal.upsertAll(any())).thenAnswer((_) async {});
+    when(() => mockLocal.deleteNotIn(any())).thenAnswer((_) async => []);
   });
 
   group('syncAssets', () {
@@ -40,13 +41,14 @@ void main() {
       final batch = List.generate(3, _makeModel);
       when(() => mockRemote.getAssets(page: 1, pageSize: 500))
           .thenAnswer((_) async => batch);
-      when(() => mockLocal.upsertAll(any())).thenAnswer((_) async {});
 
-      await repo.syncAssets();
+      final result = await repo.syncAssets();
 
+      expect(result.rowCount, 3);
+      expect(result.pageCount, 1);
+      expect(result.removedIds, isEmpty);
       verify(() => mockRemote.getAssets(page: 1, pageSize: 500)).called(1);
       verify(() => mockLocal.upsertAll(batch)).called(1);
-      // Only 1 page because batch.length (3) < 500.
       verifyNever(() => mockRemote.getAssets(page: 2, pageSize: 500));
     });
 
@@ -58,13 +60,26 @@ void main() {
           .thenAnswer((_) async => fullBatch);
       when(() => mockRemote.getAssets(page: 2, pageSize: 500))
           .thenAnswer((_) async => lastBatch);
-      when(() => mockLocal.upsertAll(any())).thenAnswer((_) async {});
 
-      await repo.syncAssets();
+      final result = await repo.syncAssets();
 
+      expect(result.rowCount, 510);
+      expect(result.pageCount, 2);
       verify(() => mockRemote.getAssets(page: 1, pageSize: 500)).called(1);
       verify(() => mockRemote.getAssets(page: 2, pageSize: 500)).called(1);
       verifyNever(() => mockRemote.getAssets(page: 3, pageSize: 500));
+    });
+
+    test('includes removed IDs returned by deleteNotIn', () async {
+      final batch = List.generate(3, _makeModel);
+      when(() => mockRemote.getAssets(page: 1, pageSize: 500))
+          .thenAnswer((_) async => batch);
+      when(() => mockLocal.deleteNotIn(any()))
+          .thenAnswer((_) async => [99, 100]);
+
+      final result = await repo.syncAssets();
+
+      expect(result.removedIds, [99, 100]);
     });
 
     test('rethrows remote exceptions', () async {
@@ -74,16 +89,17 @@ void main() {
       await expectLater(repo.syncAssets(), throwsA(isA<Exception>()));
     });
 
-    test('writes assets_last_synced timestamp on success', () async {
-      final batch = List.generate(2, _makeModel);
+    test('passes collected server IDs to deleteNotIn', () async {
+      final batch = [_makeModel(1), _makeModel(2), _makeModel(3)];
       when(() => mockRemote.getAssets(page: 1, pageSize: 500))
           .thenAnswer((_) async => batch);
-      when(() => mockLocal.upsertAll(any())).thenAnswer((_) async {});
 
       await repo.syncAssets();
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('assets_last_synced'), isNotNull);
+      final captured = verify(() => mockLocal.deleteNotIn(captureAny()))
+          .captured
+          .first as Set<int>;
+      expect(captured, {1, 2, 3});
     });
   });
 
