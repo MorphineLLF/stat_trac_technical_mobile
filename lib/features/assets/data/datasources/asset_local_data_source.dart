@@ -50,6 +50,9 @@ abstract interface class AssetLocalDataSource {
     String? location,
   });
 
+  /// Fetch current synced records for a set of asset_ids (used for change detection).
+  Future<List<AssetModel>> getByAssetIds(Set<int> ids);
+
   /// Delete non-provisional local records whose asset_id is not in [serverIds].
   /// Executes deletes in chunks of 900 to stay under SQLite's 999-variable limit.
   /// Returns the list of asset_id values that were deleted.
@@ -220,6 +223,18 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
     );
     final id = await db.insert(_table, draft.toMap());
     return AssetModel.fromMap({...draft.toMap(), 'id': id});
+  }
+
+  @override
+  Future<List<AssetModel>> getByAssetIds(Set<int> ids) async {
+    if (ids.isEmpty) return [];
+    final db = await _db.database;
+    final placeholders = ids.map((_) => '?').join(', ');
+    final rows = await db.rawQuery(
+      'SELECT * FROM $_table WHERE asset_id IN ($placeholders) AND is_provisional = 0',
+      ids.toList(),
+    );
+    return rows.map(AssetModel.fromMap).toList();
   }
 
   @override

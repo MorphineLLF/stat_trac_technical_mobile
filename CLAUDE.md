@@ -224,7 +224,7 @@ Work in this order. Each phase builds on the previous.
 
 ### Sync engine — asset sync complete ✅
 - `lib/sync/sync_state.dart` — sealed `SyncIdle / SyncInProgress / SyncComplete / SyncError`
-- `lib/sync/sync_notifier.dart` + `.g.dart` — `SyncNotifier.triggerSync()`: connectivity check → purge old errors → asset sync → `POST /sync/log` → mark resolved / log error; `unresolvedSyncErrorCountProvider`; `_friendlySyncError(e)`
+- `lib/sync/sync_notifier.dart` + `.g.dart` — `SyncNotifier.triggerSync()`: connectivity check → purge old errors → asset sync (with field-change detection) → `POST /sync/log` → mark resolved / log error; `unresolvedSyncErrorCountProvider`; `_friendlySyncError(e)`; `_buildSyncMessage` includes removed IDs and field-change summary
 - `lib/sync/sync_error_log_data_source.dart` — `SyncErrorLogDataSourceImpl`: `logError`, `markResolved`, `unresolvedCount`, `purgeOldResolved`
 - `lib/sync/sync_remote_data_source.dart` — `SyncRemoteDataSourceImpl`: `POST /sync/log` (failures silently swallowed)
 - `lib/sync/sync_service.dart` — abstract `SyncService` interface (`sync()`, `enqueueBinaryUpload()`) — WO sync pending
@@ -240,7 +240,7 @@ Work in this order. Each phase builds on the previous.
 ### Assets — domain + data + picker widget (read-only so far)
 - `lib/features/assets/domain/entities/asset.dart` — `Asset` entity; `isProvisional`, `displayName` getter
 - `lib/features/assets/data/models/asset_model.dart` — `AssetModel extends Asset` with `fromMap`/`toMap`
-- `lib/features/assets/data/datasources/asset_local_data_source.dart` — interface + impl; `upsertAll`, `getAssets`, `searchAssets`, `getAssetById`, `getAssetByBarcode`, `getHospitals`, `getStats`, `createProvisional`, `deleteNotIn(serverIds)` (chunks of 900)
+- `lib/features/assets/data/datasources/asset_local_data_source.dart` — interface + impl; `upsertAll`, `getAssets`, `searchAssets`, `getAssetById`, `getAssetByBarcode`, `getHospitals`, `getStats`, `createProvisional`, `getByAssetIds(ids)` (pre-upsert fetch for change detection), `deleteNotIn(serverIds)` (chunks of 900)
 - `lib/features/assets/presentation/widgets/asset_picker_dialog.dart` — **two-step picker**: page 1 selects hospital (account), page 2 shows filtered equipment with search; scoped Riverpod providers with `dependencies:` declarations; provisional asset bottom-sheet form; empty-state sync prompt
 
 **Provisional asset rules** (add to DB migration notes):

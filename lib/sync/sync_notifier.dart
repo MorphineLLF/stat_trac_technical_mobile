@@ -64,7 +64,7 @@ class SyncNotifier extends _$SyncNotifier {
       final result = await ref.read(assetRepositoryProvider).syncAssets();
 
       final message = _buildSyncMessage(
-          result.rowCount, result.pageCount, result.removedIds);
+          result.rowCount, result.pageCount, result.removedIds, result.changes);
       await syncRemote.postSyncLog(
         entity: 'assets',
         rowCount: result.rowCount,
@@ -99,11 +99,32 @@ Future<int> unresolvedSyncErrorCount(Ref ref) =>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-String _buildSyncMessage(int rowCount, int pageCount, List<int> removedIds) {
+String _buildSyncMessage(
+  int rowCount,
+  int pageCount,
+  List<int> removedIds,
+  List<({int assetId, List<String> fields})> changes,
+) {
   final pages = '$pageCount page${pageCount != 1 ? 's' : ''}';
-  final base = 'Synced $rowCount asset${rowCount != 1 ? 's' : ''} in $pages';
-  if (removedIds.isEmpty) return base;
-  return '$base, removed ${removedIds.length} deleted (IDs: ${removedIds.join(', ')})';
+  final buf = StringBuffer(
+      'Synced $rowCount asset${rowCount != 1 ? 's' : ''} in $pages');
+  if (removedIds.isNotEmpty) {
+    buf.write(
+        ', removed ${removedIds.length} deleted (IDs: ${removedIds.join(', ')})');
+  }
+  if (changes.isNotEmpty) {
+    final fieldCounts = <String, int>{};
+    for (final c in changes) {
+      for (final f in c.fields) {
+        fieldCounts[f] = (fieldCounts[f] ?? 0) + 1;
+      }
+    }
+    final summary =
+        fieldCounts.entries.map((e) => '${e.key} ×${e.value}').join(', ');
+    buf.write(
+        ', ${changes.length} record${changes.length != 1 ? 's' : ''} changed ($summary)');
+  }
+  return buf.toString();
 }
 
 String _friendlySyncError(Exception e) {

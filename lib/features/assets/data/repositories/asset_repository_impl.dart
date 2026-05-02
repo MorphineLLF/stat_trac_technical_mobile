@@ -3,6 +3,7 @@ import '../../domain/entities/asset_detail.dart';
 import '../../domain/repositories/asset_repository.dart';
 import '../datasources/asset_local_data_source.dart';
 import '../datasources/asset_remote_data_source.dart';
+import '../models/asset_model.dart';
 
 class AssetRepositoryImpl implements AssetRepository {
   AssetRepositoryImpl({
@@ -18,14 +19,39 @@ class AssetRepositoryImpl implements AssetRepository {
   static const _maxSyncPages = 200;
 
   @override
-  Future<({int rowCount, int pageCount, List<int> removedIds})>
-      syncAssets() async {
+  Future<({
+    int rowCount,
+    int pageCount,
+    List<int> removedIds,
+    List<({int assetId, List<String> fields})> changes,
+  })> syncAssets() async {
     var page = 1;
     var totalRows = 0;
     final serverIds = <int>{};
+    final allChanges = <({int assetId, List<String> fields})>[];
 
     while (page <= _maxSyncPages) {
       final batch = await _remote.getAssets(page: page, pageSize: 500);
+
+      // Detect field-level changes against current local state.
+      final batchIds = batch
+          .where((a) => a.assetId != null)
+          .map((a) => a.assetId!)
+          .toSet();
+      if (batchIds.isNotEmpty) {
+        final existing = await _local.getByAssetIds(batchIds);
+        final existingMap = {for (final e in existing) e.assetId!: e};
+        for (final incoming in batch) {
+          if (incoming.assetId == null) continue;
+          final current = existingMap[incoming.assetId];
+          if (current == null) continue; // new record, not a change
+          final changed = _diffAsset(current, incoming);
+          if (changed.isNotEmpty) {
+            allChanges.add((assetId: incoming.assetId!, fields: changed));
+          }
+        }
+      }
+
       for (final a in batch) {
         if (a.assetId != null) serverIds.add(a.assetId!);
       }
@@ -36,7 +62,27 @@ class AssetRepositoryImpl implements AssetRepository {
     }
 
     final removedIds = await _local.deleteNotIn(serverIds);
-    return (rowCount: totalRows, pageCount: page, removedIds: removedIds);
+    return (
+      rowCount: totalRows,
+      pageCount: page,
+      removedIds: removedIds,
+      changes: allChanges,
+    );
+  }
+
+  static List<String> _diffAsset(AssetModel current, AssetModel incoming) {
+    final changed = <String>[];
+    if (current.serialNumber != incoming.serialNumber) changed.add('serial_number');
+    if (current.hospital != incoming.hospital) changed.add('hospital');
+    if (current.manufacturer != incoming.manufacturer) changed.add('manufacturer');
+    if (current.model != incoming.model) changed.add('model');
+    if (current.equipmentType != incoming.equipmentType) changed.add('equipment_type');
+    if (current.barcode != incoming.barcode) changed.add('barcode');
+    if (current.location != incoming.location) changed.add('location');
+    if (current.condition != incoming.condition) changed.add('condition');
+    if (current.isActive != incoming.isActive) changed.add('is_active');
+    if (current.isCondemned != incoming.isCondemned) changed.add('is_condemned');
+    return changed;
   }
 
   @override

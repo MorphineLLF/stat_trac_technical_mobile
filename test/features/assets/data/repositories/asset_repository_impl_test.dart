@@ -34,6 +34,7 @@ void main() {
 
     when(() => mockLocal.upsertAll(any())).thenAnswer((_) async {});
     when(() => mockLocal.deleteNotIn(any())).thenAnswer((_) async => []);
+    when(() => mockLocal.getByAssetIds(any())).thenAnswer((_) async => []);
   });
 
   group('syncAssets', () {
