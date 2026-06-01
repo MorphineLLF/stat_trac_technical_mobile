@@ -25,6 +25,14 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
   // Map from item id → mutable output state
   final Map<int, _OutputState> _states = {};
 
+  @override
+  void didUpdateWidget(CertTestGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.templateNameId != widget.templateNameId) {
+      _states.clear();
+    }
+  }
+
   void _notify(List<TestTemplateItem> items) {
     final outputs = items.map((item) {
       final s = _states[item.id] ?? _OutputState();
@@ -170,6 +178,7 @@ class _TestItemRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: TextFormField(
+                  key: ValueKey(state.actualValue),
                   initialValue: state.actualValue,
                   decoration: const InputDecoration(
                     hintText: 'Actual',
