@@ -63,13 +63,13 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
       },
     );
     final data =
-        (response.data['data'] as List).cast<Map<String, dynamic>>();
+        ((response.data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
     return data.map((j) {
       final cert = TestCertificateModel.fromJson(j);
       final rawOutputs =
           (j['outputs'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       final outputs = rawOutputs
-          .map((o) => TestOutputModel.fromJson(o))
+          .map((o) => TestOutputModel.fromJson(o, certificateId: 0))
           .toList();
       return (cert, outputs);
     }).toList();

@@ -215,6 +215,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
 
   @override
   Future<int?> insertCertificateFromServer(TestCertificateModel cert) async {
+    if (cert.serverId == null) return null;
     final db = await _db.database;
     final existing = await db.query(
       'test_certificates',
@@ -232,9 +233,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
     final db = await _db.database;
     final batch = db.batch();
     for (final o in outputs) {
-      final map = o.toMap();
-      map['certificate_id'] = localCertId;
-      batch.insert('test_outputs', map);
+      batch.insert('test_outputs', {...o.toMap(), 'certificate_id': localCertId});
     }
     await batch.commit(noResult: true);
   }
