@@ -299,7 +299,7 @@ class _StatsCard extends StatelessWidget {
 
   static const _colorOverdue = brandError;
   static const _colorPending = Color(0xFFF57F17);
-  static const _colorWip = brandTeal;
+  static const _colorPendingCerts = Color(0xFF00838F);
   static const _colorEmpty = Color(0xFFDDE3EA);
 
   @override
@@ -328,10 +328,10 @@ class _StatsCard extends StatelessWidget {
                 radius: 22,
                 title: '',
               ),
-            if (stats.wip > 0)
+            if (stats.pendingCerts > 0)
               PieChartSectionData(
-                value: stats.wip.toDouble(),
-                color: _colorWip,
+                value: stats.pendingCerts.toDouble(),
+                color: _colorPendingCerts,
                 radius: 22,
                 title: '',
               ),
@@ -371,9 +371,9 @@ class _StatsCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   _ChartLegend(
-                    color: _colorWip,
-                    label: 'Work in Progress',
-                    pct: stats.wipPct,
+                    color: _colorPendingCerts,
+                    label: 'Certs to sync',
+                    pct: stats.pendingCertsPct,
                   ),
                 ],
               ),
@@ -440,8 +440,10 @@ class _KpiRow extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child:
-              _KpiTile(label: 'WIP', count: stats.wip, color: brandTeal),
+          child: _KpiTile(
+              label: 'Certs to sync',
+              count: stats.pendingCerts,
+              color: Color(0xFF00838F)),
         ),
       ],
     );
