@@ -59,16 +59,18 @@ class TestCertificateModel extends TestCertificate {
   factory TestCertificateModel.fromJson(Map<String, dynamic> j) {
     final testDateStr = j['test_date'] as String?;
     final nextServiceStr = j['next_service'] as String?;
+    final testDate = testDateStr != null ? DateTime.tryParse(testDateStr) : null;
+    final nextService = nextServiceStr != null ? DateTime.tryParse(nextServiceStr) : null;
     return TestCertificateModel(
       id: 0,
-      serverId: j['id'] as int,
+      serverId: j['id'] as int?,
       assetId: j['asset_id'] as int?,
-      testDate: testDateStr != null ? DateTime.tryParse(testDateStr) : null,
+      testDate: testDate,
       certType: j['cert_type'] as int? ?? 1,
       templateNameId: j['template_name_id'] as int?,
       technician: j['technician'] as String?,
       technicianId: j['technician_id'] as int?,
-      nextService: nextServiceStr != null ? DateTime.tryParse(nextServiceStr) : null,
+      nextService: nextService,
       woNumber: j['wo_number'] as int?,
       jobcardNo: j['jobcard_no'] as String?,
       docNo: j['doc_no'] as String?,
@@ -76,9 +78,7 @@ class TestCertificateModel extends TestCertificate {
       serviceType: j['service_type'] as String?,
       clientName: j['client_name'] as String?,
       syncStatus: 'synced',
-      createdAt: testDateStr != null
-          ? (DateTime.tryParse(testDateStr) ?? DateTime.now())
-          : DateTime.now(),
+      createdAt: testDate ?? DateTime.now(),
     );
   }
 

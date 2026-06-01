@@ -33,6 +33,7 @@ class TestOutputModel extends TestOutput {
       TestOutputModel(
         id: 0,
         certificateId: certificateId,
+        // assetId not included in GET /certificates/history output payload
         descriptionId: j['description_id'] as String?,
         description: j['description'] as String?,
         expectedValue: j['expected_value'] as String?,
