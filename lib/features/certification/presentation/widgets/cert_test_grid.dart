@@ -28,6 +28,9 @@ class CertTestGrid extends ConsumerStatefulWidget {
 
 class _CertTestGridState extends ConsumerState<CertTestGrid> {
   final Map<int, _OutputState> _states = {};
+  // Cached item list so _notify always works on current data, not a
+  // stale closure reference from a previous build.
+  List<TestTemplateItem> _items = [];
   int _completedCount = 0;
 
   @override
@@ -35,6 +38,7 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.templateNameId != widget.templateNameId) {
       _states.clear();
+      _items = [];
     }
   }
 
@@ -45,8 +49,8 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
     return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
   }
 
-  void _notify(List<TestTemplateItem> items) {
-    final outputs = items.map((item) {
+  void _notify() {
+    final outputs = _items.map((item) {
       final s = _states[item.id] ?? _OutputState();
       return TestOutput(
         id: 0,
@@ -64,14 +68,13 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
     }).toList();
     widget.onOutputsChanged(outputs);
 
-    final completed = items.where((item) {
+    final completed = _items.where((item) {
       final s = _states[item.id] ?? _OutputState();
       return _isComplete(item, s);
     }).length;
 
     setState(() => _completedCount = completed);
-
-    widget.onValidityChanged(completed == items.length);
+    widget.onValidityChanged(completed == _items.length);
   }
 
   @override
@@ -96,7 +99,8 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           sections.putIfAbsent(section, () => []).add(item);
         }
 
-        // Initialise state for any new items
+        // Cache items and initialise state for any new entries
+        _items = items;
         for (final item in items) {
           _states.putIfAbsent(item.id, () => _OutputState());
         }
@@ -118,7 +122,7 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
                         state: _states[item.id]!,
                         onChanged: (s) {
                           setState(() => _states[item.id] = s);
-                          _notify(items);
+                          _notify();
                         },
                       ),
                   ],
@@ -150,7 +154,7 @@ class _ProgressBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = total - completed;
     final allDone = remaining == 0;
-    final color = allDone ? Colors.green[700]! : brandError;
+    final color = allDone ? Colors.green[700]! : const Color(0xFFF57F17);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
