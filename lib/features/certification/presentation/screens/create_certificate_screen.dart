@@ -39,8 +39,8 @@ class _CreateCertificateScreenState
 
   void _goToStep(int step) => setState(() => _step = step);
 
-  // Saves cert + outputs without signatures, then advances to signature step.
-  Future<void> _saveAndProceedToSign() async {
+  // Saves cert + outputs to local SQLite (no signatures yet).
+  Future<void> _saveCertificate() async {
     if (_saving) return;
     setState(() => _saving = true);
     try {
@@ -58,7 +58,11 @@ class _CreateCertificateScreenState
           .read(certificateRepositoryProvider)
           .issueCertificate(cert: cert, outputs: _outputs);
       setState(() => _savedCertId = certId);
-      _goToStep(4);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Certificate data saved to device')),
+        );
+      }
     } finally {
       setState(() => _saving = false);
     }
@@ -137,16 +141,35 @@ class _CreateCertificateScreenState
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: FilledButton(
-                    onPressed: _saving ? null : _saveAndProceedToSign,
-                    child: _saving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Proceed to Sign'),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_savedCertId == null)
+                        FilledButton(
+                          onPressed: _saving ? null : _saveCertificate,
+                          child: _saving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : const Text('Save'),
+                        )
+                      else ...[
+                        Text(
+                          'Saved to device ✓',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.green[700]),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () => _goToStep(4),
+                          child: const Text('Sign Certificate'),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
