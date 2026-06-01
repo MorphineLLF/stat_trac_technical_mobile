@@ -144,6 +144,10 @@ class _TestItemRow extends StatelessWidget {
   final ValueChanged<_OutputState> onChanged;
 
   bool get _noActualRequired => item.noActualRequired;
+  bool get _noExpectedValue {
+    final v = item.expectedValue?.trim();
+    return v == null || v.isEmpty || v == '-';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +166,10 @@ class _TestItemRow extends StatelessWidget {
           Row(
             children: [
               Expanded(flex: 3, child: Text('Test Description', style: labelStyle)),
-              const SizedBox(width: 8),
-              Expanded(flex: 2, child: Text('Test Value', style: labelStyle, textAlign: TextAlign.center)),
+              if (!_noExpectedValue) ...[
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: Text('Test Value', style: labelStyle, textAlign: TextAlign.center)),
+              ],
               if (!_noActualRequired) ...[
                 const SizedBox(width: 8),
                 Expanded(flex: 2, child: Text('Actual', style: labelStyle, textAlign: TextAlign.center)),
@@ -179,15 +185,17 @@ class _TestItemRow extends StatelessWidget {
                 child: Text(item.description ?? '',
                     style: Theme.of(context).textTheme.bodyMedium),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  item.expectedValue ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
+              if (!_noExpectedValue) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    item.expectedValue!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
+              ],
               if (!_noActualRequired) ...[
                 const SizedBox(width: 8),
                 Expanded(
