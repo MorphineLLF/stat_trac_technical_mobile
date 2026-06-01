@@ -76,12 +76,9 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           sections.putIfAbsent(section, () => []).add(item);
         }
 
-        // Initialise state for any new items — pre-populate notes from template
+        // Initialise state for any new items
         for (final item in items) {
-          _states.putIfAbsent(
-            item.id,
-            () => _OutputState()..notes = item.notes,
-          );
+          _states.putIfAbsent(item.id, () => _OutputState());
         }
 
         return ListView(
@@ -264,7 +261,20 @@ class _TestItemRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          // Notes field
+          // Template note (read-only reference from TestTempNotes)
+          if (item.notes != null && item.notes!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                item.notes!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: brandGrey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          // Technician's own notes
           TextFormField(
             key: ValueKey('notes_${item.id}'),
             initialValue: state.notes,
