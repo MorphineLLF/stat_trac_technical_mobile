@@ -9,6 +9,7 @@ import '../models/test_template_name_model.dart';
 import '../models/test_template_item_model.dart';
 import '../models/test_certificate_model.dart';
 import '../models/test_output_model.dart';
+import '../models/certificate_summary.dart';
 
 abstract interface class CertLocalDataSource {
   Future<List<TestTemplateName>> getTemplatesByType(CertType type);
@@ -26,6 +27,8 @@ abstract interface class CertLocalDataSource {
     List<int>? clientSignature,
     String? clientName,
   );
+  Future<List<CertificateSummary>> getCertificates();
+  Future<CertificateSummary?> getCertificateById(int id);
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -152,5 +155,37 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       where: 'id = ?',
       whereArgs: [certId],
     );
+  }
+
+  static const _certSummarySelect = '''
+    SELECT
+      tc.id,
+      tc.cert_type,
+      tc.sync_status,
+      tc.created_at,
+      tn.test_template_cert_name AS cert_name,
+      a.equipment_type
+    FROM test_certificates tc
+    LEFT JOIN test_template_names tn ON tn.id = tc.template_name_id
+    LEFT JOIN assets a ON a.asset_id = tc.asset_id
+  ''';
+
+  @override
+  Future<List<CertificateSummary>> getCertificates() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      '$_certSummarySelect ORDER BY tc.created_at DESC',
+    );
+    return rows.map(CertificateSummary.fromMap).toList();
+  }
+
+  @override
+  Future<CertificateSummary?> getCertificateById(int id) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      '$_certSummarySelect WHERE tc.id = ?',
+      [id],
+    );
+    return rows.isEmpty ? null : CertificateSummary.fromMap(rows.first);
   }
 }
