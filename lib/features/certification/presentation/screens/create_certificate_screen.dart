@@ -30,6 +30,7 @@ class _CreateCertificateScreenState
   List<TestOutput> _outputs = [];
   int? _savedCertId;
   bool _saving = false;
+  bool _allActualsValid = false;
 
   void _pickAsset() async {
     final dataSource = ref.read(certAssetLocalDataSourceProvider);
@@ -139,6 +140,8 @@ class _CreateCertificateScreenState
                     templateNameId: _selectedTemplate!.id,
                     assetId: _selectedAsset!.assetId ?? 0,
                     onOutputsChanged: (outputs) => _outputs = outputs,
+                    onValidityChanged: (valid) =>
+                        setState(() => _allActualsValid = valid),
                   ),
                 ),
                 Padding(
@@ -146,9 +149,22 @@ class _CreateCertificateScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (!_allActualsValid && _savedCertId == null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'All actual values are required before saving.',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       if (_savedCertId == null)
                         FilledButton(
-                          onPressed: _saving ? null : _saveCertificate,
+                          onPressed: _saving || !_allActualsValid
+                              ? null
+                              : _saveCertificate,
                           child: _saving
                               ? const SizedBox(
                                   width: 20,

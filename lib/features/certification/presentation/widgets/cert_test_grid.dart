@@ -13,10 +13,14 @@ class CertTestGrid extends ConsumerStatefulWidget {
     required this.templateNameId,
     required this.assetId,
     required this.onOutputsChanged,
+    required this.onValidityChanged,
   });
   final int templateNameId;
   final int assetId;
   final ValueChanged<List<TestOutput>> onOutputsChanged;
+  /// Called whenever validation state changes — true when all required actual
+  /// values are filled in.
+  final ValueChanged<bool> onValidityChanged;
 
   @override
   ConsumerState<CertTestGrid> createState() => _CertTestGridState();
@@ -52,6 +56,13 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
       );
     }).toList();
     widget.onOutputsChanged(outputs);
+
+    final isValid = items.every((item) {
+      if (item.noActualRequired) return true;
+      final s = _states[item.id] ?? _OutputState();
+      return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
+    });
+    widget.onValidityChanged(isValid);
   }
 
   @override
