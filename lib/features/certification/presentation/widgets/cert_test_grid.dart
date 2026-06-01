@@ -308,6 +308,8 @@ class _TestItemRow extends StatelessWidget {
                       hintText: 'Actual',
                       isDense: true,
                     ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
                     inputFormatters: [LengthLimitingTextInputFormatter(15)],
                     onChanged: (v) {
                       onChanged(_OutputState()
