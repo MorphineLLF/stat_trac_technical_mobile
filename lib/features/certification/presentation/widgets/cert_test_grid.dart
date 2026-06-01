@@ -166,7 +166,7 @@ class _ProgressBanner extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Icon(
-              allDone ? Icons.check_circle_outline : Icons.pending_outlined,
+              allDone ? Icons.task_alt : Icons.checklist,
               size: 18,
               color: color,
             ),
