@@ -80,6 +80,7 @@ class SyncNotifier extends _$SyncNotifier {
       final message = _buildSyncMessage(
           result.rowCount, result.pageCount, result.removedIds, result.changes);
       await syncRemote.postSyncLog(
+        operation: 'sync_assets',
         entity: 'assets',
         rowCount: result.rowCount,
         status: 'success',
@@ -94,6 +95,13 @@ class SyncNotifier extends _$SyncNotifier {
         entityTable: 'assets',
         errorMessage: e.toString(),
         stackTrace: st.toString(),
+      );
+      await syncRemote.postSyncLog(
+        operation: 'sync_assets',
+        entity: 'assets',
+        rowCount: 0,
+        status: 'error',
+        message: e.toString(),
       );
       state = SyncError(
         message: _friendlySyncError(e),
@@ -114,6 +122,13 @@ class SyncNotifier extends _$SyncNotifier {
         errorMessage: e.toString(),
         stackTrace: st.toString(),
       );
+      await syncRemote.postSyncLog(
+        operation: 'sync_templates',
+        entity: 'test_template_names',
+        rowCount: 0,
+        status: 'error',
+        message: e.toString(),
+      );
     }
 
     state = const SyncInProgress(progress: 0.80, message: 'Uploading certificates...');
@@ -128,6 +143,13 @@ class SyncNotifier extends _$SyncNotifier {
         entityTable: 'test_certificates',
         errorMessage: e.toString(),
         stackTrace: st.toString(),
+      );
+      await syncRemote.postSyncLog(
+        operation: 'push_certificates',
+        entity: 'test_certificates',
+        rowCount: 0,
+        status: 'error',
+        message: e.toString(),
       );
     }
 
@@ -151,6 +173,13 @@ class SyncNotifier extends _$SyncNotifier {
           entityTable: 'test_certificates',
           errorMessage: e.toString(),
           stackTrace: st.toString(),
+        );
+        await syncRemote.postSyncLog(
+          operation: 'pull_certificates',
+          entity: 'test_certificates',
+          rowCount: 0,
+          status: 'error',
+          message: e.toString(),
         );
       }
     }

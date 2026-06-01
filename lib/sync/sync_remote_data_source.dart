@@ -4,6 +4,7 @@ abstract interface class SyncRemoteDataSource {
   /// POST /sync/log — records a sync cycle result in the server AppSyncLog.
   /// Failures are silently swallowed so they never break a sync cycle.
   Future<void> postSyncLog({
+    required String operation,
     required String entity,
     required int rowCount,
     required String status,
@@ -17,6 +18,7 @@ class SyncRemoteDataSourceImpl implements SyncRemoteDataSource {
 
   @override
   Future<void> postSyncLog({
+    required String operation,
     required String entity,
     required int rowCount,
     required String status,
@@ -26,6 +28,7 @@ class SyncRemoteDataSourceImpl implements SyncRemoteDataSource {
       await _dio.post<void>(
         '/sync/log',
         data: {
+          'operation': operation,
           'entity': entity,
           'row_count': rowCount,
           'status': status,
