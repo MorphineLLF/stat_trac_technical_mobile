@@ -9,6 +9,7 @@ import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/auth/presentation/providers/auth_state.dart';
 import '../features/certification/presentation/providers/certificate_providers.dart';
 import 'sync_error_log_data_source.dart';
+export 'sync_error_log_data_source.dart' show SyncErrorEntry;
 import 'sync_remote_data_source.dart';
 import 'sync_state.dart';
 
@@ -164,6 +165,10 @@ class SyncNotifier extends _$SyncNotifier {
 @riverpod
 Future<int> unresolvedSyncErrorCount(Ref ref) =>
     ref.watch(syncErrorLogDataSourceProvider).unresolvedCount();
+
+@riverpod
+Future<List<SyncErrorEntry>> unresolvedSyncErrors(Ref ref) =>
+    ref.watch(syncErrorLogDataSourceProvider).getUnresolvedErrors();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

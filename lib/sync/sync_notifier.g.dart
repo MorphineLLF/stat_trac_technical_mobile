@@ -137,7 +137,7 @@ final class SyncNotifierProvider
   }
 }
 
-String _$syncNotifierHash() => r'9908cae1d20954b70d5036217552502b2dc8be30';
+String _$syncNotifierHash() => r'5f75d7f0e23a263ba1dd97e89ea86378a86dd4ea';
 
 abstract class _$SyncNotifier extends $Notifier<SyncState> {
   SyncState build();
@@ -190,3 +190,45 @@ final class UnresolvedSyncErrorCountProvider
 
 String _$unresolvedSyncErrorCountHash() =>
     r'977ae39aacd5d9655d84f0bf12acbc699356a5f8';
+
+@ProviderFor(unresolvedSyncErrors)
+final unresolvedSyncErrorsProvider = UnresolvedSyncErrorsProvider._();
+
+final class UnresolvedSyncErrorsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<SyncErrorEntry>>,
+          List<SyncErrorEntry>,
+          FutureOr<List<SyncErrorEntry>>
+        >
+    with
+        $FutureModifier<List<SyncErrorEntry>>,
+        $FutureProvider<List<SyncErrorEntry>> {
+  UnresolvedSyncErrorsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'unresolvedSyncErrorsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$unresolvedSyncErrorsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<SyncErrorEntry>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<SyncErrorEntry>> create(Ref ref) {
+    return unresolvedSyncErrors(ref);
+  }
+}
+
+String _$unresolvedSyncErrorsHash() =>
+    r'7ff9a519f53dc6e37dcd825fae1b0048f123ec1a';
