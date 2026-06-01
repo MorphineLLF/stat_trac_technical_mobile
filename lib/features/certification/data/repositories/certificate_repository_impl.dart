@@ -148,4 +148,18 @@ class CertificateRepositoryImpl implements CertificateRepository {
       }
     }
   }
+
+  @override
+  Future<void> pullCertificatesFromRemote(int technicianId) async {
+    final afterId = await local.getMaxServerId();
+    final records =
+        await remote.fetchCertificateHistory(technicianId, afterId);
+
+    for (final (cert, outputs) in records) {
+      final localId = await local.insertCertificateFromServer(cert);
+      if (localId != null && outputs.isNotEmpty) {
+        await local.insertOutputsForCert(localId, outputs);
+      }
+    }
+  }
 }

@@ -18,4 +18,8 @@ abstract class CertificateRepository {
     String? clientName,
   );
   Future<void> syncTemplatesFromRemote();
+
+  /// Pulls certs and their outputs from the server for the given technician
+  /// that are not yet stored locally. Uses MAX(server_id) as the cursor.
+  Future<void> pullCertificatesFromRemote(int technicianId);
 }
