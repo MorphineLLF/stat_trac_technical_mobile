@@ -6,6 +6,7 @@ import '../api/dio_client.dart';
 import '../database/database_helper.dart';
 import '../features/assets/presentation/providers/asset_providers.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
+import '../features/certification/presentation/providers/certificate_providers.dart';
 import 'sync_error_log_data_source.dart';
 import 'sync_remote_data_source.dart';
 import 'sync_state.dart';
@@ -73,8 +74,6 @@ class SyncNotifier extends _$SyncNotifier {
       );
 
       await errorLog.markResolved('sync_assets');
-      state = SyncComplete(DateTime.now());
-      ref.invalidate(unresolvedSyncErrorCountProvider);
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'sync_assets',
@@ -87,7 +86,24 @@ class SyncNotifier extends _$SyncNotifier {
         lastSyncedAt: previousSuccess,
       );
       ref.invalidate(unresolvedSyncErrorCountProvider);
+      return;
     }
+
+    // Template sync — errors are logged but do not block the overall sync.
+    try {
+      await ref.read(certificateRepositoryProvider).syncTemplatesFromRemote();
+      await errorLog.markResolved('sync_templates');
+    } on Exception catch (e, st) {
+      await errorLog.logError(
+        operation: 'sync_templates',
+        entityTable: 'test_template_names',
+        errorMessage: e.toString(),
+        stackTrace: st.toString(),
+      );
+    }
+
+    state = SyncComplete(DateTime.now());
+    ref.invalidate(unresolvedSyncErrorCountProvider);
   }
 }
 
