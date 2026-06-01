@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../domain/entities/test_certificate.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
@@ -65,6 +67,46 @@ class CertificateRepositoryImpl implements CertificateRepository {
 
     await local.saveOutputs(outputModels);
     return certId;
+  }
+
+  @override
+  Future<int> pushPendingCertificates() async {
+    final pending = await local.getPendingSyncCertificates();
+    var pushed = 0;
+    for (final cert in pending) {
+      final outputs = await local.getOutputsByCertId(cert.id);
+      final payload = {
+        'asset_id': cert.assetId,
+        'cert_type': cert.certType,
+        'template_name_id': cert.templateNameId,
+        'technician': cert.technician,
+        'technician_id': cert.technicianId,
+        'test_date': cert.testDate?.toIso8601String().substring(0, 10),
+        'doc_no': cert.docNo,
+        'tech_signature': cert.techSignature != null
+            ? base64Encode(cert.techSignature!)
+            : null,
+        'client_signature': cert.clientSignature != null
+            ? base64Encode(cert.clientSignature!)
+            : null,
+        'client_name': cert.clientName,
+        'outputs': outputs
+            .map((o) => {
+                  'description_id': o.descriptionId,
+                  'description': o.description,
+                  'expected_value': o.expectedValue,
+                  'actual_value': o.actualValue,
+                  'pass': o.pass,
+                  'fail': o.fail,
+                  'na': o.na,
+                })
+            .toList(),
+      };
+      final serverId = await remote.pushCertificate(payload);
+      await local.markSynced(cert.id, serverId);
+      pushed++;
+    }
+    return pushed;
   }
 
   @override

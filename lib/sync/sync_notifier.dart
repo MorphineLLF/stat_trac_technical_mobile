@@ -102,6 +102,20 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
+    // Push pending certificates to the server.
+    try {
+      final pushed =
+          await ref.read(certificateRepositoryProvider).pushPendingCertificates();
+      if (pushed > 0) await errorLog.markResolved('push_certificates');
+    } on Exception catch (e, st) {
+      await errorLog.logError(
+        operation: 'push_certificates',
+        entityTable: 'test_certificates',
+        errorMessage: e.toString(),
+        stackTrace: st.toString(),
+      );
+    }
+
     state = SyncComplete(DateTime.now());
     ref.invalidate(unresolvedSyncErrorCountProvider);
   }

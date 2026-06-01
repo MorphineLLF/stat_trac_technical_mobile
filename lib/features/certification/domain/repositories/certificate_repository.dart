@@ -10,6 +10,7 @@ abstract class CertificateRepository {
     required TestCertificate cert,
     required List<TestOutput> outputs,
   });
+  Future<int> pushPendingCertificates();
   Future<void> updateSignatures(
     int certId,
     List<int> techSignature,

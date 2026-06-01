@@ -4,6 +4,7 @@ import '../../../../database/database_helper.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_certificate.dart';
+import '../../domain/entities/test_output.dart';
 import '../models/test_template_name_model.dart';
 import '../models/test_template_item_model.dart';
 import '../models/test_certificate_model.dart';
@@ -17,6 +18,7 @@ abstract interface class CertLocalDataSource {
   Future<int> saveCertificate(TestCertificateModel cert);
   Future<void> saveOutputs(List<TestOutputModel> outputs);
   Future<List<TestCertificate>> getPendingSyncCertificates();
+  Future<List<TestOutput>> getOutputsByCertId(int certId);
   Future<void> markSynced(int certificateId, int serverId);
   Future<void> updateSignatures(
     int certId,
@@ -97,6 +99,17 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       batch.insert('test_outputs', o.toMap());
     }
     await batch.commit(noResult: true);
+  }
+
+  @override
+  Future<List<TestOutput>> getOutputsByCertId(int certId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'test_outputs',
+      where: 'certificate_id = ?',
+      whereArgs: [certId],
+    );
+    return rows.map(TestOutputModel.fromMap).toList();
   }
 
   @override
