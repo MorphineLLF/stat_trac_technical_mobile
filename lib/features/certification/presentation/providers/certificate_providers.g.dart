@@ -193,7 +193,7 @@ final class CertRemoteDataSourceProvider
 }
 
 String _$certRemoteDataSourceHash() =>
-    r'76c211276189ef8c26e57503b1784261b2437525';
+    r'c94f52784869aaae558e75e63a14379801c0a321';
 
 @ProviderFor(certificateRepository)
 final certificateRepositoryProvider = CertificateRepositoryProvider._();

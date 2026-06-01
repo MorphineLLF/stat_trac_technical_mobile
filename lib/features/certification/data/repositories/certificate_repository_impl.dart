@@ -69,6 +69,18 @@ class CertificateRepositoryImpl implements CertificateRepository {
 
   @override
   Future<void> syncTemplatesFromRemote() async {
-    // Remote stubs return [] — no-op until Horse API is ready.
+    for (final typeInt in [1, 2, 3]) {
+      final templates = await remote.fetchTemplates(typeInt);
+      if (templates.isEmpty) continue;
+
+      await local.upsertTemplates(templates);
+
+      for (final template in templates) {
+        final items = await remote.fetchTemplateItems(template.id);
+        if (items.isNotEmpty) {
+          await local.upsertTemplateItems(items);
+        }
+      }
+    }
   }
 }

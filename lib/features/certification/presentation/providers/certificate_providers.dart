@@ -1,7 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../api/auth_interceptor.dart';
+import '../../../../api/dio_client.dart';
 import '../../../../database/database_helper.dart';
 import '../../../assets/data/datasources/asset_local_data_source.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/cert_local_data_source.dart';
 import '../../data/datasources/cert_remote_data_source.dart';
 import '../../data/repositories/certificate_repository_impl.dart';
@@ -23,8 +26,12 @@ CertLocalDataSource certLocalDataSource(Ref ref) =>
     CertLocalDataSourceImpl(ref.watch(certDatabaseHelperProvider));
 
 @riverpod
-CertRemoteDataSource certRemoteDataSource(Ref ref) =>
-    CertRemoteDataSourceImpl();
+CertRemoteDataSource certRemoteDataSource(Ref ref) {
+  final authLocal = ref.watch(authLocalDataSourceProvider);
+  final authRemote = ref.watch(authRemoteDataSourceProvider);
+  final interceptor = AuthInterceptor(local: authLocal, remote: authRemote);
+  return CertRemoteDataSourceImpl(buildDioClient(interceptor));
+}
 
 @riverpod
 CertificateRepository certificateRepository(Ref ref) =>
