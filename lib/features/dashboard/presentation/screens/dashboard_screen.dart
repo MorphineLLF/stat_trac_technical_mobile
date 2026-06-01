@@ -592,24 +592,39 @@ class _SyncStatusLabel extends StatelessWidget {
             child: SizedBox(
               width: 38,
               height: 38,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: progress > 0 ? progress : null,
-                    strokeWidth: 3,
-                    color: Colors.white,
-                    backgroundColor: Colors.white24,
-                  ),
-                  Text(
-                    '${(progress * 100).round()}%',
-                    style: const TextStyle(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: progress),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                builder: (_, p, _) => Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer ring — actual progress, animates between pages.
+                    CircularProgressIndicator(
+                      value: p,
+                      strokeWidth: 3,
                       color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                      backgroundColor: Colors.white24,
                     ),
-                  ),
-                ],
+                    // Inner ring — always spinning so it's clear we're not frozen.
+                    SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        color: Colors.white38,
+                      ),
+                    ),
+                    Text(
+                      '${(p * 100).round()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
