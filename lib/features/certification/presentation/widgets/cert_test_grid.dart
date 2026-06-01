@@ -101,25 +101,31 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           _states.putIfAbsent(item.id, () => _OutputState());
         }
 
-        return ListView(
+        return Column(
           children: [
             _ProgressBanner(
               completed: _completedCount,
               total: items.length,
             ),
-            for (final entry in sections.entries) ...[
-              _SectionHeader(title: entry.key),
-              for (final item in entry.value)
-                _TestItemRow(
-                  item: item,
-                  state: _states[item.id]!,
-                  onChanged: (s) {
-                    setState(() => _states[item.id] = s);
-                    _notify(items);
-                  },
-                ),
-            ],
-            const SizedBox(height: 24),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final entry in sections.entries) ...[
+                    _SectionHeader(title: entry.key),
+                    for (final item in entry.value)
+                      _TestItemRow(
+                        item: item,
+                        state: _states[item.id]!,
+                        onChanged: (s) {
+                          setState(() => _states[item.id] = s);
+                          _notify(items);
+                        },
+                      ),
+                  ],
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
           ],
         );
       },
@@ -155,30 +161,47 @@ class _ProgressBanner extends StatelessWidget {
         border: Border.all(color: color.withAlpha(80)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            allDone ? Icons.check_circle_outline : Icons.pending_outlined,
-            size: 18,
-            color: color,
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              allDone ? Icons.check_circle_outline : Icons.pending_outlined,
+              size: 18,
+              color: color,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              allDone
-                  ? 'All $total tests completed'
-                  : '$remaining of $total remaining',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  allDone
+                      ? 'All $total tests completed'
+                      : '$remaining of $total tests remaining',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Select Pass, Fail or N/A for each test.'
+                  ' Enter actual value where required.',
+                  style: TextStyle(color: color, fontSize: 11),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             '$completed / $total',
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
           ),
         ],
