@@ -61,6 +61,7 @@ class SyncNotifier extends _$SyncNotifier {
 
     // Purge stale resolved error rows on each sync cycle.
     await errorLog.purgeOldResolved();
+    ref.invalidate(unresolvedSyncErrorCountProvider);
 
     try {
       final result = await ref.read(assetRepositoryProvider).syncAssets();

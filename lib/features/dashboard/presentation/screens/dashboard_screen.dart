@@ -480,7 +480,7 @@ class _QuickActionsGrid extends StatelessWidget {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 2.2,
+      childAspectRatio: 1.8,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
@@ -552,12 +552,12 @@ class _QuickActionTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withAlpha(60)),
           ),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(height: 8),
+              Icon(icon, size: 24, color: color),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: Theme.of(context)
