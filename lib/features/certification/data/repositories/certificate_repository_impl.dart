@@ -156,9 +156,13 @@ class CertificateRepositoryImpl implements CertificateRepository {
         await remote.fetchCertificateHistory(technicianId, afterId);
 
     for (final (cert, outputs) in records) {
-      final localId = await local.insertCertificateFromServer(cert);
-      if (localId != null && outputs.isNotEmpty) {
-        await local.insertOutputsForCert(localId, outputs);
+      try {
+        final localId = await local.insertCertificateFromServer(cert);
+        if (localId != null && outputs.isNotEmpty) {
+          await local.insertOutputsForCert(localId, outputs);
+        }
+      } catch (_) {
+        // Skip this record; it will be retried on the next pull cycle.
       }
     }
   }
