@@ -480,7 +480,7 @@ class _QuickActionsGrid extends StatelessWidget {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.4,
+      childAspectRatio: 2.2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
