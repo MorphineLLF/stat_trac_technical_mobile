@@ -29,6 +29,21 @@ abstract interface class CertLocalDataSource {
   );
   Future<List<CertificateSummary>> getCertificates();
   Future<CertificateSummary?> getCertificateById(int id);
+
+  /// Returns the highest server_id stored locally (0 if none).
+  /// Used as the after_id cursor for GET /certificates/history.
+  Future<int> getMaxServerId();
+
+  /// Inserts a server-sourced cert if it is not already in local SQLite
+  /// (checked by server_id). Returns the new local autoincrement id, or
+  /// null if the cert was skipped because it already exists.
+  Future<int?> insertCertificateFromServer(TestCertificateModel cert);
+
+  /// Bulk-inserts outputs for a cert that was just inserted by
+  /// insertCertificateFromServer. certificateId in each model is ignored —
+  /// localCertId is used instead.
+  Future<void> insertOutputsForCert(
+      int localCertId, List<TestOutputModel> outputs);
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -187,5 +202,40 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       [id],
     );
     return rows.isEmpty ? null : CertificateSummary.fromMap(rows.first);
+  }
+
+  @override
+  Future<int> getMaxServerId() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      'SELECT MAX(server_id) AS max_id FROM test_certificates',
+    );
+    return (result.first['max_id'] as int?) ?? 0;
+  }
+
+  @override
+  Future<int?> insertCertificateFromServer(TestCertificateModel cert) async {
+    final db = await _db.database;
+    final existing = await db.query(
+      'test_certificates',
+      columns: ['id'],
+      where: 'server_id = ?',
+      whereArgs: [cert.serverId],
+    );
+    if (existing.isNotEmpty) return null; // already have this cert
+    return db.insert('test_certificates', cert.toMap());
+  }
+
+  @override
+  Future<void> insertOutputsForCert(
+      int localCertId, List<TestOutputModel> outputs) async {
+    final db = await _db.database;
+    final batch = db.batch();
+    for (final o in outputs) {
+      final map = o.toMap();
+      map['certificate_id'] = localCertId;
+      batch.insert('test_outputs', map);
+    }
+    await batch.commit(noResult: true);
   }
 }
