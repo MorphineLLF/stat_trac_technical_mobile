@@ -80,5 +80,11 @@ class SyncErrorLogDataSourceImpl implements SyncErrorLogDataSource {
       'DELETE FROM $_table WHERE resolved = 1 AND occurred_at < ?',
       [cutoff],
     );
+    // Remove duplicate unresolved rows per operation — keep only the latest.
+    // Cleans up rows accumulated before the one-row-per-operation rule.
+    await db.rawDelete(
+      'DELETE FROM $_table WHERE resolved = 0 AND id NOT IN '
+      '(SELECT MAX(id) FROM $_table WHERE resolved = 0 GROUP BY operation)',
+    );
   }
 }
