@@ -174,27 +174,28 @@ class _TestItemRow extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  key: ValueKey(item.id),
-                  initialValue: state.actualValue,
-                  enabled: !_noActualRequired,
-                  decoration: InputDecoration(
-                    hintText: _noActualRequired ? 'N/A' : 'Actual',
-                    isDense: true,
+              if (!_noActualRequired) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    key: ValueKey(item.id),
+                    initialValue: state.actualValue,
+                    decoration: const InputDecoration(
+                      hintText: 'Actual',
+                      isDense: true,
+                    ),
+                    onChanged: (v) {
+                      onChanged(_OutputState()
+                        ..actualValue = v
+                        ..notes = state.notes
+                        ..pass = state.pass
+                        ..fail = state.fail
+                        ..na = state.na);
+                    },
                   ),
-                  onChanged: (v) {
-                    onChanged(_OutputState()
-                      ..actualValue = v
-                      ..notes = state.notes
-                      ..pass = state.pass
-                      ..fail = state.fail
-                      ..na = state.na);
-                  },
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
