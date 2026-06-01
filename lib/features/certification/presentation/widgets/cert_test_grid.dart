@@ -140,6 +140,8 @@ class _TestItemRow extends StatelessWidget {
   final _OutputState state;
   final ValueChanged<_OutputState> onChanged;
 
+  bool get _noActualRequired => item.expectedValue?.trim() == '-';
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -147,6 +149,7 @@ class _TestItemRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Description + expected + actual row
           Row(
             children: [
               Expanded(
@@ -178,74 +181,88 @@ class _TestItemRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  key: ValueKey(state.actualValue),
+                  key: ValueKey(item.id),
                   initialValue: state.actualValue,
-                  decoration: const InputDecoration(
-                    hintText: 'Actual',
+                  enabled: !_noActualRequired,
+                  decoration: InputDecoration(
+                    hintText: _noActualRequired ? 'N/A' : 'Actual',
                     isDense: true,
                   ),
                   onChanged: (v) {
-                    final s = _OutputState()
+                    onChanged(_OutputState()
                       ..actualValue = v
                       ..notes = state.notes
                       ..pass = state.pass
                       ..fail = state.fail
-                      ..na = state.na;
-                    onChanged(s);
+                      ..na = state.na);
                   },
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          // Pass / Fail / N/A chips — left-aligned
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               _ResultChip(
-                label: 'P',
+                label: 'Pass',
                 color: Colors.green,
                 selected: state.pass,
-                onTap: () {
-                  final s = _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = !state.pass
-                    ..fail = false
-                    ..na = false;
-                  onChanged(s);
-                },
+                onTap: () => onChanged(_OutputState()
+                  ..actualValue = state.actualValue
+                  ..notes = state.notes
+                  ..pass = !state.pass
+                  ..fail = false
+                  ..na = false),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               _ResultChip(
-                label: 'F',
+                label: 'Fail',
                 color: brandError,
                 selected: state.fail,
-                onTap: () {
-                  final s = _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = false
-                    ..fail = !state.fail
-                    ..na = false;
-                  onChanged(s);
-                },
+                onTap: () => onChanged(_OutputState()
+                  ..actualValue = state.actualValue
+                  ..notes = state.notes
+                  ..pass = false
+                  ..fail = !state.fail
+                  ..na = false),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               _ResultChip(
                 label: 'N/A',
                 color: brandGrey,
                 selected: state.na,
-                onTap: () {
-                  final s = _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = false
-                    ..fail = false
-                    ..na = !state.na;
-                  onChanged(s);
-                },
+                onTap: () => onChanged(_OutputState()
+                  ..actualValue = state.actualValue
+                  ..notes = state.notes
+                  ..pass = false
+                  ..fail = false
+                  ..na = !state.na),
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          // Notes field
+          TextFormField(
+            key: ValueKey('notes_${item.id}'),
+            initialValue: state.notes,
+            decoration: const InputDecoration(
+              hintText: 'Notes',
+              isDense: true,
+            ),
+            maxLines: 2,
+            minLines: 1,
+            style: const TextStyle(fontSize: 13),
+            onChanged: (v) {
+              onChanged(_OutputState()
+                ..actualValue = state.actualValue
+                ..notes = v
+                ..pass = state.pass
+                ..fail = state.fail
+                ..na = state.na);
+            },
+          ),
+          const SizedBox(height: 8),
           const Divider(height: 1),
         ],
       ),
