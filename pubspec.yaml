@@ -72,6 +72,9 @@ dependencies:
   # Connectivity detection (skip sync when offline)
   connectivity_plus: ^6.1.4
 
+  # Signature capture (technician + customer signatures)
+  signature: ^5.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
