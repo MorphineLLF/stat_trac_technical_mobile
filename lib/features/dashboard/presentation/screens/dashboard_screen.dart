@@ -9,6 +9,7 @@ import '../../../../../sync/sync_state.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../assets/presentation/screens/asset_list_screen.dart';
+import '../../../certification/presentation/screens/create_certificate_screen.dart';
 import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
 import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
@@ -499,10 +500,11 @@ class _QuickActionsGrid extends StatelessWidget {
           label: 'Create PM Order',
           color: brandTeal,
         ),
-        const _QuickActionTile(
+        _QuickActionTile(
           icon: Icons.verified_outlined,
           label: 'Create Certificate',
           color: brandTeal,
+          destination: (_) => const CreateCertificateScreen(),
         ),
       ],
     );
