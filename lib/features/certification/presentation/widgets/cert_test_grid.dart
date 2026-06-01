@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -207,6 +208,7 @@ class _TestItemRow extends StatelessWidget {
                       hintText: 'Actual',
                       isDense: true,
                     ),
+                    inputFormatters: [LengthLimitingTextInputFormatter(15)],
                     onChanged: (v) {
                       onChanged(_OutputState()
                         ..actualValue = v
@@ -273,6 +275,7 @@ class _TestItemRow extends StatelessWidget {
             maxLines: 2,
             minLines: 1,
             style: const TextStyle(fontSize: 13),
+            inputFormatters: [LengthLimitingTextInputFormatter(30)],
             onChanged: (v) {
               onChanged(_OutputState()
                 ..actualValue = state.actualValue
