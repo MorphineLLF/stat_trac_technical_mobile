@@ -56,6 +56,32 @@ class TestCertificateModel extends TestCertificate {
         createdAt: DateTime.parse(m['created_at'] as String),
       );
 
+  factory TestCertificateModel.fromJson(Map<String, dynamic> j) {
+    final testDateStr = j['test_date'] as String?;
+    final nextServiceStr = j['next_service'] as String?;
+    return TestCertificateModel(
+      id: 0,
+      serverId: j['id'] as int,
+      assetId: j['asset_id'] as int?,
+      testDate: testDateStr != null ? DateTime.tryParse(testDateStr) : null,
+      certType: j['cert_type'] as int? ?? 1,
+      templateNameId: j['template_name_id'] as int?,
+      technician: j['technician'] as String?,
+      technicianId: j['technician_id'] as int?,
+      nextService: nextServiceStr != null ? DateTime.tryParse(nextServiceStr) : null,
+      woNumber: j['wo_number'] as int?,
+      jobcardNo: j['jobcard_no'] as String?,
+      docNo: j['doc_no'] as String?,
+      serviceInterval: j['service_interval'] as String?,
+      serviceType: j['service_type'] as String?,
+      clientName: j['client_name'] as String?,
+      syncStatus: 'synced',
+      createdAt: testDateStr != null
+          ? (DateTime.tryParse(testDateStr) ?? DateTime.now())
+          : DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toMap() => {
         if (id != 0) 'id': id,
         'server_id': serverId,
