@@ -170,10 +170,7 @@ class _TestItemRow extends StatelessWidget {
                 flex: 2,
                 child: Text(
                   item.expectedValue ?? '',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: brandGrey),
+                  style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -227,18 +224,20 @@ class _TestItemRow extends StatelessWidget {
                   ..fail = !state.fail
                   ..na = false),
               ),
-              const SizedBox(width: 6),
-              _ResultChip(
-                label: 'N/A',
-                color: brandGrey,
-                selected: state.na,
-                onTap: () => onChanged(_OutputState()
-                  ..actualValue = state.actualValue
-                  ..notes = state.notes
-                  ..pass = false
-                  ..fail = false
-                  ..na = !state.na),
-              ),
+              if (!_noActualRequired) ...[
+                const SizedBox(width: 6),
+                _ResultChip(
+                  label: 'N/A',
+                  color: brandGrey,
+                  selected: state.na,
+                  onTap: () => onChanged(_OutputState()
+                    ..actualValue = state.actualValue
+                    ..notes = state.notes
+                    ..pass = false
+                    ..fail = false
+                    ..na = !state.na),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
