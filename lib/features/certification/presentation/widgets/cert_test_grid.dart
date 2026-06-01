@@ -29,7 +29,6 @@ class CertTestGrid extends ConsumerStatefulWidget {
 class _CertTestGridState extends ConsumerState<CertTestGrid> {
   final Map<int, _OutputState> _states = {};
   int _completedCount = 0;
-  int _totalCount = 0;
 
   @override
   void didUpdateWidget(CertTestGrid oldWidget) {
@@ -70,10 +69,7 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
       return _isComplete(item, s);
     }).length;
 
-    setState(() {
-      _completedCount = completed;
-      _totalCount = items.length;
-    });
+    setState(() => _completedCount = completed);
 
     widget.onValidityChanged(completed == items.length);
   }
