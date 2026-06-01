@@ -10,6 +10,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../assets/presentation/screens/asset_list_screen.dart';
 import '../../../certification/presentation/screens/create_certificate_screen.dart';
+import '../../../certification/presentation/screens/certificate_list_screen.dart';
 import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
 import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
@@ -505,6 +506,12 @@ class _QuickActionsGrid extends StatelessWidget {
           label: 'Create Certificate',
           color: brandTeal,
           destination: (_) => const CreateCertificateScreen(),
+        ),
+        _QuickActionTile(
+          icon: Icons.workspace_premium_outlined,
+          label: 'View Certificates',
+          color: brandTeal,
+          destination: (_) => const CertificateListScreen(),
         ),
       ],
     );
