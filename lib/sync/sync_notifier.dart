@@ -104,9 +104,8 @@ class SyncNotifier extends _$SyncNotifier {
 
     // Push pending certificates to the server.
     try {
-      final pushed =
-          await ref.read(certificateRepositoryProvider).pushPendingCertificates();
-      if (pushed > 0) await errorLog.markResolved('push_certificates');
+      await ref.read(certificateRepositoryProvider).pushPendingCertificates();
+      await errorLog.markResolved('push_certificates');
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'push_certificates',

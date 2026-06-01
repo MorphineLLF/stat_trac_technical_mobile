@@ -51,19 +51,21 @@ class CertificateRepositoryImpl implements CertificateRepository {
     );
     final certId = await local.saveCertificate(certModel);
 
-    final outputModels = outputs.map((o) => TestOutputModel(
-          id: 0,
-          certificateId: certId,
-          assetId: o.assetId,
-          descriptionId: o.descriptionId,
-          description: o.description,
-          expectedValue: o.expectedValue,
-          actualValue: o.actualValue,
-          notes: o.notes,
-          pass: o.pass,
-          fail: o.fail,
-          na: o.na,
-        )).toList();
+    final outputModels = outputs
+        .map((o) => TestOutputModel(
+              id: 0,
+              certificateId: certId,
+              assetId: o.assetId,
+              descriptionId: o.descriptionId,
+              description: o.description,
+              expectedValue: o.expectedValue,
+              actualValue: o.actualValue,
+              notes: o.notes,
+              pass: o.pass,
+              fail: o.fail,
+              na: o.na,
+            ))
+        .toList();
 
     await local.saveOutputs(outputModels);
     return certId;
@@ -74,39 +76,47 @@ class CertificateRepositoryImpl implements CertificateRepository {
     final pending = await local.getPendingSyncCertificates();
     var pushed = 0;
     for (final cert in pending) {
-      final outputs = await local.getOutputsByCertId(cert.id);
-      final payload = {
-        'asset_id': cert.assetId,
-        'cert_type': cert.certType,
-        'template_name_id': cert.templateNameId,
-        'technician': cert.technician,
-        'technician_id': cert.technicianId,
-        'test_date': cert.testDate?.toIso8601String().substring(0, 10),
-        'doc_no': cert.docNo,
-        'tech_signature': cert.techSignature != null
-            ? base64Encode(cert.techSignature!)
-            : null,
-        'client_signature': cert.clientSignature != null
-            ? base64Encode(cert.clientSignature!)
-            : null,
-        'client_name': cert.clientName,
-        'outputs': outputs
-            .map((o) => {
-                  'description_id': o.descriptionId,
-                  'description': o.description,
-                  'expected_value': o.expectedValue,
-                  'actual_value': o.actualValue,
-                  'pass': o.pass,
-                  'fail': o.fail,
-                  'na': o.na,
-                })
-            .toList(),
-      };
-      final serverId = await remote.pushCertificate(payload);
-      await local.markSynced(cert.id, serverId);
-      pushed++;
+      try {
+        await _pushSingleCertificate(cert);
+        pushed++;
+      } catch (_) {
+        // Cert stays pending and retries on next sync cycle.
+      }
     }
     return pushed;
+  }
+
+  Future<void> _pushSingleCertificate(TestCertificate cert) async {
+    final outputs = await local.getOutputsByCertId(cert.id);
+    final payload = {
+      'asset_id': cert.assetId,
+      'cert_type': cert.certType,
+      'template_name_id': cert.templateNameId,
+      'technician': cert.technician,
+      'technician_id': cert.technicianId,
+      'test_date': cert.testDate?.toIso8601String().substring(0, 10),
+      'doc_no': cert.docNo,
+      'tech_signature': cert.techSignature != null
+          ? base64Encode(cert.techSignature!)
+          : null,
+      'client_signature': cert.clientSignature != null
+          ? base64Encode(cert.clientSignature!)
+          : null,
+      'client_name': cert.clientName,
+      'outputs': outputs
+          .map((o) => {
+                'description_id': o.descriptionId,
+                'description': o.description,
+                'expected_value': o.expectedValue,
+                'actual_value': o.actualValue,
+                'pass': o.pass,
+                'fail': o.fail,
+                'na': o.na,
+              })
+          .toList(),
+    };
+    final serverId = await remote.pushCertificate(payload);
+    await local.markSynced(cert.id, serverId);
   }
 
   @override
@@ -127,9 +137,13 @@ class CertificateRepositoryImpl implements CertificateRepository {
       await local.upsertTemplates(templates);
 
       for (final template in templates) {
-        final items = await remote.fetchTemplateItems(template.id);
-        if (items.isNotEmpty) {
-          await local.upsertTemplateItems(items);
+        try {
+          final items = await remote.fetchTemplateItems(template.id);
+          if (items.isNotEmpty) {
+            await local.upsertTemplateItems(items);
+          }
+        } catch (_) {
+          // Skip items for this template and continue with the next.
         }
       }
     }
