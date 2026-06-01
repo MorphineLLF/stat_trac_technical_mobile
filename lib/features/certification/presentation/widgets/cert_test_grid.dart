@@ -75,13 +75,17 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           sections.putIfAbsent(section, () => []).add(item);
         }
 
-        // Initialise state for any new items
+        // Initialise state for any new items — pre-populate notes from template
         for (final item in items) {
-          _states.putIfAbsent(item.id, () => _OutputState());
+          _states.putIfAbsent(
+            item.id,
+            () => _OutputState()..notes = item.notes,
+          );
         }
 
         return ListView(
           children: [
+            const _ColumnHeadings(),
             for (final entry in sections.entries) ...[
               _SectionHeader(title: entry.key),
               for (final item in entry.value)
@@ -108,6 +112,34 @@ class _OutputState {
   bool pass = false;
   bool fail = false;
   bool na = false;
+}
+
+class _ColumnHeadings extends StatelessWidget {
+  const _ColumnHeadings();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context)
+        .textTheme
+        .labelSmall
+        ?.copyWith(color: brandGrey, fontWeight: FontWeight.w600);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text('Test Description', style: style)),
+          const SizedBox(width: 8),
+          Expanded(
+              flex: 2,
+              child: Text('Test Value', style: style, textAlign: TextAlign.center)),
+          const SizedBox(width: 8),
+          Expanded(
+              flex: 2,
+              child: Text('Actual', style: style, textAlign: TextAlign.center)),
+        ],
+      ),
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -154,16 +186,8 @@ class _TestItemRow extends StatelessWidget {
             children: [
               Expanded(
                 flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.description ?? '',
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    if (item.notes != null)
-                      Text(item.notes!,
-                          style: TextStyle(color: brandGrey, fontSize: 12)),
-                  ],
-                ),
+                child: Text(item.description ?? '',
+                    style: Theme.of(context).textTheme.bodyMedium),
               ),
               const SizedBox(width: 8),
               Expanded(
