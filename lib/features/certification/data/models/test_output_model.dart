@@ -29,6 +29,20 @@ class TestOutputModel extends TestOutput {
         na: (m['na'] as int? ?? 0) == 1,
       );
 
+  factory TestOutputModel.fromJson(Map<String, dynamic> j, {int certificateId = 0}) =>
+      TestOutputModel(
+        id: 0,
+        certificateId: certificateId,
+        descriptionId: j['description_id'] as String?,
+        description: j['description'] as String?,
+        expectedValue: j['expected_value'] as String?,
+        actualValue: j['actual_value'] as String?,
+        notes: j['notes'] as String?,
+        pass: j['pass'] as bool? ?? false,
+        fail: j['fail'] as bool? ?? false,
+        na: j['na'] as bool? ?? false,
+      );
+
   Map<String, dynamic> toMap() => {
         if (id != 0) 'id': id,
         'certificate_id': certificateId,
