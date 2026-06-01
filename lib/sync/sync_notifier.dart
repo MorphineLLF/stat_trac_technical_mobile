@@ -44,7 +44,7 @@ class SyncNotifier extends _$SyncNotifier {
       _ => null,
     };
 
-    state = const SyncInProgress();
+    state = const SyncInProgress(progress: 0.0, message: 'Starting sync...');
 
     // Connectivity check — return silently if offline.
     final connectivity = await Connectivity().checkConnectivity();
@@ -63,8 +63,18 @@ class SyncNotifier extends _$SyncNotifier {
     await errorLog.purgeOldResolved();
     ref.invalidate(unresolvedSyncErrorCountProvider);
 
+    state = const SyncInProgress(progress: 0.05, message: 'Syncing assets...');
+
     try {
-      final result = await ref.read(assetRepositoryProvider).syncAssets();
+      final result = await ref.read(assetRepositoryProvider).syncAssets(
+        onPage: (page) {
+          final p = (0.05 + page * 0.05).clamp(0.05, 0.60);
+          state = SyncInProgress(
+            progress: p,
+            message: 'Syncing assets (page $page)...',
+          );
+        },
+      );
 
       final message = _buildSyncMessage(
           result.rowCount, result.pageCount, result.removedIds, result.changes);
@@ -76,6 +86,7 @@ class SyncNotifier extends _$SyncNotifier {
       );
 
       await errorLog.markResolved('sync_assets');
+      state = const SyncInProgress(progress: 0.65, message: 'Syncing templates...');
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'sync_assets',
@@ -104,6 +115,8 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
+    state = const SyncInProgress(progress: 0.80, message: 'Uploading certificates...');
+
     // Push pending certificates to the server.
     try {
       await ref.read(certificateRepositoryProvider).pushPendingCertificates();
@@ -116,6 +129,8 @@ class SyncNotifier extends _$SyncNotifier {
         stackTrace: st.toString(),
       );
     }
+
+    state = const SyncInProgress(progress: 0.90, message: 'Downloading certificates...');
 
     // Pull certificates from the server for this technician.
     final authState = ref.read(authProvider);

@@ -585,14 +585,32 @@ class _SyncStatusLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (syncState) {
-      SyncInProgress() => const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Center(
+      SyncInProgress(:final progress, :final message) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Tooltip(
+            message: message,
             child: SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white),
+              width: 38,
+              height: 38,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: progress > 0 ? progress : null,
+                    strokeWidth: 3,
+                    color: Colors.white,
+                    backgroundColor: Colors.white24,
+                  ),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -11,7 +11,9 @@ class SyncIdle extends SyncState {
 
 @immutable
 class SyncInProgress extends SyncState {
-  const SyncInProgress();
+  const SyncInProgress({this.progress = 0.0, this.message = ''});
+  final double progress; // 0.0 – 1.0
+  final String message;
 }
 
 @immutable

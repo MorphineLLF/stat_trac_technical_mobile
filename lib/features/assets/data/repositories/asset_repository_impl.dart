@@ -24,7 +24,7 @@ class AssetRepositoryImpl implements AssetRepository {
     int pageCount,
     List<int> removedIds,
     List<({int assetId, List<String> fields})> changes,
-  })> syncAssets() async {
+  })> syncAssets({void Function(int page)? onPage}) async {
     var page = 1;
     var totalRows = 0;
     final serverIds = <int>{};
@@ -57,6 +57,7 @@ class AssetRepositoryImpl implements AssetRepository {
       }
       await _local.upsertAll(batch);
       totalRows += batch.length;
+      onPage?.call(page);
       if (batch.length < 500) break;
       page++;
     }

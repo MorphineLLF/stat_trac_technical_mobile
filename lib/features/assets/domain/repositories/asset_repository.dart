@@ -9,7 +9,7 @@ abstract interface class AssetRepository {
     int pageCount,
     List<int> removedIds,
     List<({int assetId, List<String> fields})> changes,
-  })> syncAssets();
+  })> syncAssets({void Function(int page)? onPage});
 
   /// All local assets, optionally filtered by hospital.
   Future<List<Asset>> getAssets({String? hospital});
