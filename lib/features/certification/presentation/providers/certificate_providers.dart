@@ -7,7 +7,9 @@ import '../../../assets/data/datasources/asset_local_data_source.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/cert_local_data_source.dart';
 import '../../data/datasources/cert_remote_data_source.dart';
+import '../../data/models/certificate_summary.dart';
 import '../../data/repositories/certificate_repository_impl.dart';
+import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../../domain/repositories/certificate_repository.dart';
@@ -47,3 +49,15 @@ Future<List<TestTemplateName>> templatesByType(Ref ref, CertType type) =>
 @riverpod
 Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
     ref.watch(certificateRepositoryProvider).getTemplateItems(templateNameId);
+
+@riverpod
+Future<List<CertificateSummary>> certificateList(Ref ref) =>
+    ref.watch(certLocalDataSourceProvider).getCertificates();
+
+@riverpod
+Future<CertificateSummary?> certificateSummary(Ref ref, int id) =>
+    ref.watch(certLocalDataSourceProvider).getCertificateById(id);
+
+@riverpod
+Future<List<TestOutput>> certOutputs(Ref ref, int certId) =>
+    ref.watch(certLocalDataSourceProvider).getOutputsByCertId(certId);

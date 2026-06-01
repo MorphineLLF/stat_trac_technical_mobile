@@ -396,3 +396,197 @@ final class TemplateItemsFamily extends $Family
   @override
   String toString() => r'templateItemsProvider';
 }
+
+@ProviderFor(certificateList)
+final certificateListProvider = CertificateListProvider._();
+
+final class CertificateListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<CertificateSummary>>,
+          List<CertificateSummary>,
+          FutureOr<List<CertificateSummary>>
+        >
+    with
+        $FutureModifier<List<CertificateSummary>>,
+        $FutureProvider<List<CertificateSummary>> {
+  CertificateListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'certificateListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$certificateListHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<CertificateSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<CertificateSummary>> create(Ref ref) {
+    return certificateList(ref);
+  }
+}
+
+String _$certificateListHash() => r'673ef84d5894871eeb59d42e82531b400eef9f4f';
+
+@ProviderFor(certificateSummary)
+final certificateSummaryProvider = CertificateSummaryFamily._();
+
+final class CertificateSummaryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<CertificateSummary?>,
+          CertificateSummary?,
+          FutureOr<CertificateSummary?>
+        >
+    with
+        $FutureModifier<CertificateSummary?>,
+        $FutureProvider<CertificateSummary?> {
+  CertificateSummaryProvider._({
+    required CertificateSummaryFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'certificateSummaryProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$certificateSummaryHash();
+
+  @override
+  String toString() {
+    return r'certificateSummaryProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<CertificateSummary?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<CertificateSummary?> create(Ref ref) {
+    final argument = this.argument as int;
+    return certificateSummary(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CertificateSummaryProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$certificateSummaryHash() =>
+    r'c02b0da13d0ec6479b991c18ded7493f8a8d4531';
+
+final class CertificateSummaryFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<CertificateSummary?>, int> {
+  CertificateSummaryFamily._()
+    : super(
+        retry: null,
+        name: r'certificateSummaryProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  CertificateSummaryProvider call(int id) =>
+      CertificateSummaryProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'certificateSummaryProvider';
+}
+
+@ProviderFor(certOutputs)
+final certOutputsProvider = CertOutputsFamily._();
+
+final class CertOutputsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<TestOutput>>,
+          List<TestOutput>,
+          FutureOr<List<TestOutput>>
+        >
+    with $FutureModifier<List<TestOutput>>, $FutureProvider<List<TestOutput>> {
+  CertOutputsProvider._({
+    required CertOutputsFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'certOutputsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$certOutputsHash();
+
+  @override
+  String toString() {
+    return r'certOutputsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<TestOutput>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<TestOutput>> create(Ref ref) {
+    final argument = this.argument as int;
+    return certOutputs(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CertOutputsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$certOutputsHash() => r'db1ad17811c4ca06afa31e92120191f45f30670a';
+
+final class CertOutputsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<TestOutput>>, int> {
+  CertOutputsFamily._()
+    : super(
+        retry: null,
+        name: r'certOutputsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  CertOutputsProvider call(int certId) =>
+      CertOutputsProvider._(argument: certId, from: this);
+
+  @override
+  String toString() => r'certOutputsProvider';
+}
