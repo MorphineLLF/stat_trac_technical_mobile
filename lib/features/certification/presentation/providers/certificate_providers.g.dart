@@ -51,6 +51,54 @@ final class CertDatabaseHelperProvider
 String _$certDatabaseHelperHash() =>
     r'1c4f04cc7ead4081ae71e9e3629a53b59a299ffc';
 
+@ProviderFor(certAssetLocalDataSource)
+final certAssetLocalDataSourceProvider = CertAssetLocalDataSourceProvider._();
+
+final class CertAssetLocalDataSourceProvider
+    extends
+        $FunctionalProvider<
+          AssetLocalDataSource,
+          AssetLocalDataSource,
+          AssetLocalDataSource
+        >
+    with $Provider<AssetLocalDataSource> {
+  CertAssetLocalDataSourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'certAssetLocalDataSourceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$certAssetLocalDataSourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<AssetLocalDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AssetLocalDataSource create(Ref ref) {
+    return certAssetLocalDataSource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AssetLocalDataSource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AssetLocalDataSource>(value),
+    );
+  }
+}
+
+String _$certAssetLocalDataSourceHash() =>
+    r'2bd25646923ad63f4f81ebc7692e36f9a47d4fab';
+
 @ProviderFor(certLocalDataSource)
 final certLocalDataSourceProvider = CertLocalDataSourceProvider._();
 

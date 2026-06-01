@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../database/database_helper.dart';
+import '../../../assets/data/datasources/asset_local_data_source.dart';
 import '../../data/datasources/cert_local_data_source.dart';
 import '../../data/datasources/cert_remote_data_source.dart';
 import '../../data/repositories/certificate_repository_impl.dart';
@@ -12,6 +13,10 @@ part 'certificate_providers.g.dart';
 
 @riverpod
 DatabaseHelper certDatabaseHelper(Ref ref) => DatabaseHelper.instance;
+
+@riverpod
+AssetLocalDataSource certAssetLocalDataSource(Ref ref) =>
+    AssetLocalDataSourceImpl(ref.watch(certDatabaseHelperProvider));
 
 @riverpod
 CertLocalDataSource certLocalDataSource(Ref ref) =>

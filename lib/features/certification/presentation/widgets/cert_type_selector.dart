@@ -14,10 +14,7 @@ class CertTypeSelector extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            'Select Certificate Type',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          child: Text('Select Certificate Type', style: Theme.of(context).textTheme.titleLarge),
         ),
         _TypeTile(
           icon: Icons.science_outlined,

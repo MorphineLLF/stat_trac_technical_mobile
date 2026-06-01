@@ -6,11 +6,7 @@ import '../../domain/entities/test_template_name.dart';
 import '../providers/certificate_providers.dart';
 
 class CertTemplatePicker extends ConsumerWidget {
-  const CertTemplatePicker({
-    super.key,
-    required this.certType,
-    required this.onSelected,
-  });
+  const CertTemplatePicker({super.key, required this.certType, required this.onSelected});
   final CertType certType;
   final ValueChanged<TestTemplateName> onSelected;
 
@@ -23,10 +19,7 @@ class CertTemplatePicker extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            'Select Template',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          child: Text('Select Template', style: Theme.of(context).textTheme.titleLarge),
         ),
         Expanded(
           child: templatesAsync.when(
@@ -59,8 +52,7 @@ class _TemplateTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ListTile(
         leading: const Icon(Icons.description_outlined, color: brandTeal),
-        title: Text(template.displayName,
-            style: Theme.of(context).textTheme.titleMedium),
+        title: Text(template.displayName, style: Theme.of(context).textTheme.titleMedium),
         subtitle: template.docNo != null ? Text('Doc: ${template.docNo}') : null,
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
@@ -80,15 +72,9 @@ class _EmptyTemplates extends StatelessWidget {
         children: [
           Icon(Icons.cloud_download_outlined, size: 64, color: brandGrey),
           const SizedBox(height: 16),
-          Text(
-            'No templates loaded',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('No templates loaded', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(
-            'Sync to download certificate templates',
-            style: TextStyle(color: brandGrey),
-          ),
+          Text('Sync to download certificate templates', style: TextStyle(color: brandGrey)),
         ],
       ),
     );

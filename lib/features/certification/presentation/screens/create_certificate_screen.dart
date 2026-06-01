@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../assets/domain/entities/asset.dart';
 import '../../../assets/presentation/widgets/asset_picker_dialog.dart';
-import '../../../work_orders/presentation/providers/work_order_providers.dart';
 import '../../domain/entities/test_certificate.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_name.dart';
@@ -31,7 +30,7 @@ class _CreateCertificateScreenState
   List<TestOutput> _outputs = [];
 
   void _pickAsset() async {
-    final dataSource = ref.read(assetLocalDataSourceProvider);
+    final dataSource = ref.read(certAssetLocalDataSourceProvider);
     final asset = await showAssetPicker(context, dataSource);
     if (asset != null) setState(() => _selectedAsset = asset);
   }
@@ -72,6 +71,7 @@ class _CreateCertificateScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Certificate'),
+        automaticallyImplyLeading: _step != 0,
         leading: _step == 0
             ? null
             : BackButton(onPressed: () => _goToStep(_step - 1)),
