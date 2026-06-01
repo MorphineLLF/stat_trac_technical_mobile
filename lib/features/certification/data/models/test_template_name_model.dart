@@ -26,6 +26,18 @@ class TestTemplateNameModel extends TestTemplateName {
             : null,
       );
 
+  factory TestTemplateNameModel.fromJson(Map<String, dynamic> j) =>
+      TestTemplateNameModel(
+        id: j['id'] as int,
+        certType: TestTemplateName.typeFromInt(j['type'] as int?),
+        templateName: j['name'] as String?,
+        certName: j['cert_name'] as String?,
+        customerSigRequired: j['customer_sig_required'] as bool? ?? false,
+        docNo: j['doc_no'] as String?,
+        note: j['note'] as String?,
+        lastSyncedAt: DateTime.now(),
+      );
+
   Map<String, dynamic> toMap() => {
         'id': id,
         'test_template_name': templateName,

@@ -22,6 +22,17 @@ class TestTemplateItemModel extends TestTemplateItem {
         expectedValue: m['expected_value'] as String?,
       );
 
+  factory TestTemplateItemModel.fromJson(Map<String, dynamic> j) =>
+      TestTemplateItemModel(
+        id: j['id'] as int,
+        certificateNameId: j['certificate_name_id'] as int,
+        descriptionId: j['description_id'] as String?,
+        descriptionNo: j['description_no'] as int?,
+        description: j['description'] as String?,
+        notes: j['notes'] as String?,
+        expectedValue: j['expected_value'] as String?,
+      );
+
   Map<String, dynamic> toMap() => {
         'id': id,
         'certificate_name_id': certificateNameId,
