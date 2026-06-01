@@ -10,5 +10,11 @@ abstract class CertificateRepository {
     required TestCertificate cert,
     required List<TestOutput> outputs,
   });
+  Future<void> updateSignatures(
+    int certId,
+    List<int> techSignature,
+    List<int>? clientSignature,
+    String? clientName,
+  );
   Future<void> syncTemplatesFromRemote();
 }

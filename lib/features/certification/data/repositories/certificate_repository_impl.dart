@@ -68,6 +68,15 @@ class CertificateRepositoryImpl implements CertificateRepository {
   }
 
   @override
+  Future<void> updateSignatures(
+    int certId,
+    List<int> techSignature,
+    List<int>? clientSignature,
+    String? clientName,
+  ) =>
+      local.updateSignatures(certId, techSignature, clientSignature, clientName);
+
+  @override
   Future<void> syncTemplatesFromRemote() async {
     for (final typeInt in [1, 2, 3]) {
       final templates = await remote.fetchTemplates(typeInt);

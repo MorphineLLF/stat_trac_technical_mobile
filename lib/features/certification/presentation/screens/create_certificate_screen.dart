@@ -28,6 +28,8 @@ class _CreateCertificateScreenState
   Asset? _selectedAsset;
   TestTemplateName? _selectedTemplate;
   List<TestOutput> _outputs = [];
+  int? _savedCertId;
+  bool _saving = false;
 
   void _pickAsset() async {
     final dataSource = ref.read(certAssetLocalDataSourceProvider);
@@ -37,24 +39,39 @@ class _CreateCertificateScreenState
 
   void _goToStep(int step) => setState(() => _step = step);
 
-  Future<void> _issueWithSignature(SignatureResult sig) async {
-    final cert = TestCertificate(
-      id: 0,
-      certType: TestTemplateName.typeToInt(_selectedType!),
-      syncStatus: 'pending',
-      createdAt: DateTime.now(),
-      assetId: _selectedAsset?.assetId,
-      testDate: DateTime.now(),
-      templateNameId: _selectedTemplate?.id,
-      docNo: _selectedTemplate?.docNo,
-      techSignature: sig.techSignatureBytes.toList(),
-      clientSignature: sig.clientSignatureBytes?.toList(),
-      clientName: sig.clientName,
-    );
+  // Saves cert + outputs without signatures, then advances to signature step.
+  Future<void> _saveAndProceedToSign() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final cert = TestCertificate(
+        id: 0,
+        certType: TestTemplateName.typeToInt(_selectedType!),
+        syncStatus: 'pending',
+        createdAt: DateTime.now(),
+        assetId: _selectedAsset?.assetId,
+        testDate: DateTime.now(),
+        templateNameId: _selectedTemplate?.id,
+        docNo: _selectedTemplate?.docNo,
+      );
+      final certId = await ref
+          .read(certificateRepositoryProvider)
+          .issueCertificate(cert: cert, outputs: _outputs);
+      setState(() => _savedCertId = certId);
+      _goToStep(4);
+    } finally {
+      setState(() => _saving = false);
+    }
+  }
 
-    await ref
-        .read(certificateRepositoryProvider)
-        .issueCertificate(cert: cert, outputs: _outputs);
+  // Updates the saved cert record with signatures.
+  Future<void> _completeWithSignature(SignatureResult sig) async {
+    await ref.read(certificateRepositoryProvider).updateSignatures(
+          _savedCertId!,
+          sig.techSignatureBytes.toList(),
+          sig.clientSignatureBytes?.toList(),
+          sig.clientName,
+        );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,8 +139,14 @@ class _CreateCertificateScreenState
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: FilledButton(
-                    onPressed: () => _goToStep(4),
-                    child: const Text('Proceed to Sign'),
+                    onPressed: _saving ? null : _saveAndProceedToSign,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Proceed to Sign'),
                   ),
                 ),
               ],
@@ -135,7 +158,7 @@ class _CreateCertificateScreenState
           if (_selectedTemplate != null)
             CertSignatureStep(
               requiresCustomerSig: _selectedTemplate!.customerSigRequired,
-              onSigned: _issueWithSignature,
+              onSigned: _completeWithSignature,
             )
           else
             const SizedBox.shrink(),

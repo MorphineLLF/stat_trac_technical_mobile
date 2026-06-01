@@ -18,6 +18,12 @@ abstract interface class CertLocalDataSource {
   Future<void> saveOutputs(List<TestOutputModel> outputs);
   Future<List<TestCertificate>> getPendingSyncCertificates();
   Future<void> markSynced(int certificateId, int serverId);
+  Future<void> updateSignatures(
+    int certId,
+    List<int> techSignature,
+    List<int>? clientSignature,
+    String? clientName,
+  );
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -112,6 +118,26 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       {'sync_status': 'synced', 'server_id': serverId},
       where: 'id = ?',
       whereArgs: [certificateId],
+    );
+  }
+
+  @override
+  Future<void> updateSignatures(
+    int certId,
+    List<int> techSignature,
+    List<int>? clientSignature,
+    String? clientName,
+  ) async {
+    final db = await _db.database;
+    await db.update(
+      'test_certificates',
+      {
+        'tech_signature': techSignature,
+        'client_signature': clientSignature,
+        'client_name': clientName,
+      },
+      where: 'id = ?',
+      whereArgs: [certId],
     );
   }
 }
