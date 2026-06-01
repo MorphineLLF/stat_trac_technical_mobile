@@ -140,7 +140,7 @@ class _TestItemRow extends StatelessWidget {
   final _OutputState state;
   final ValueChanged<_OutputState> onChanged;
 
-  bool get _noActualRequired => item.expectedValue?.trim() == '-';
+  bool get _noActualRequired => item.noActualRequired;
 
   @override
   Widget build(BuildContext context) {

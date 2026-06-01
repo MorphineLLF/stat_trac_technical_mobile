@@ -10,6 +10,7 @@ class TestTemplateItem {
     this.description,
     this.notes,
     this.expectedValue,
+    this.actualValueTemplate,
   });
 
   final int id;
@@ -19,4 +20,9 @@ class TestTemplateItem {
   final String? description;     // test item label
   final String? notes;
   final String? expectedValue;
+  /// `TestTempActualValue` from the server template. Value '-' means no actual
+  /// reading is required for this test item.
+  final String? actualValueTemplate;
+
+  bool get noActualRequired => actualValueTemplate?.trim() == '-';
 }

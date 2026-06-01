@@ -9,6 +9,7 @@ class TestTemplateItemModel extends TestTemplateItem {
     super.description,
     super.notes,
     super.expectedValue,
+    super.actualValueTemplate,
   });
 
   factory TestTemplateItemModel.fromMap(Map<String, dynamic> m) =>
@@ -20,6 +21,7 @@ class TestTemplateItemModel extends TestTemplateItem {
         description: m['description'] as String?,
         notes: m['notes'] as String?,
         expectedValue: m['expected_value'] as String?,
+        actualValueTemplate: m['actual_value_template'] as String?,
       );
 
   factory TestTemplateItemModel.fromJson(Map<String, dynamic> j) =>
@@ -31,6 +33,7 @@ class TestTemplateItemModel extends TestTemplateItem {
         description: j['description'] as String?,
         notes: j['notes'] as String?,
         expectedValue: j['expected_value'] as String?,
+        actualValueTemplate: j['actual_value_template'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -41,5 +44,6 @@ class TestTemplateItemModel extends TestTemplateItem {
         'description': description,
         'notes': notes,
         'expected_value': expectedValue,
+        'actual_value_template': actualValueTemplate,
       };
 }
