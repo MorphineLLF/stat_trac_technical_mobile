@@ -92,10 +92,11 @@ class _CreateCertificateScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Certificate'),
-        automaticallyImplyLeading: _step != 0,
-        leading: _step == 0
-            ? null
-            : BackButton(onPressed: () => _goToStep(_step - 1)),
+        leading: BackButton(
+          onPressed: _step == 0
+              ? () => Navigator.of(context).pop()
+              : () => _goToStep(_step - 1),
+        ),
       ),
       body: IndexedStack(
         index: _step,
