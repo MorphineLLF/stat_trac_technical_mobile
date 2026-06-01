@@ -62,6 +62,10 @@ Future<List<WorkOrderStatusHistory>> workOrderStatusHistory(
   return local.getStatusHistory(workOrderId);
 }
 
+@riverpod
+Future<List<WorkOrder>> workOrdersByAssetId(Ref ref, int assetId) =>
+    ref.watch(woLocalDataSourceProvider).getByAssetId(assetId);
+
 // ── Status transition ─────────────────────────────────────────────────────────
 
 @riverpod

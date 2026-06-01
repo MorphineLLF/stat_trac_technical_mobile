@@ -147,16 +147,17 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 5** — tables below
+- **Current DB version: 7** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
-| Migration | Tables |
-|---|---|
-| 001 | `work_orders`, `work_order_status_history`, `work_order_photos`, `work_order_signatures`, `change_log` |
-| 002 | `assets` (original — superseded by 003) |
-| 003 | `assets` rebuilt with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue) |
-| 004 | `sync_error_log` |
-| 005 | `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs` |
+| Migration | DB version | Tables / changes |
+|---|---|---|
+| 001 | 1 | `work_orders`, `work_order_status_history`, `work_order_photos`, `work_order_signatures`, `change_log` |
+| 002 | 2 | `assets` (original — superseded by 003) |
+| 003 | 3 | `assets` rebuilt with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue) |
+| 004 | 4 | `sync_error_log` |
+| 005 → v6 | 6 | `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs` |
+| 007 → v7 | 7 | `test_template_items` — adds `actual_value_template TEXT` column (maps `TestTempActualValue`; value `'-'` means no actual reading required, exposed via `noActualRequired` getter on `TestTemplateItem`) |
 
 ## API
 
@@ -433,7 +434,7 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 
 **SQLite tables (migration_005):** `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs`
 
-**Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface
+**Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface. `TestTemplateItem` has `actualValueTemplate` (maps `TestTempActualValue`) and `noActualRequired` getter — returns `true` when the server value is `'-'`, hiding the Actual field in the test grid.
 
 **Data layer:**
 - `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`

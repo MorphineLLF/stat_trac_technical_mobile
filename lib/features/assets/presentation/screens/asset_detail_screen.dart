@@ -6,6 +6,10 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../domain/entities/asset.dart';
 import '../../domain/entities/asset_detail.dart';
 import '../providers/asset_providers.dart';
+import '../../../work_orders/domain/entities/work_order.dart';
+import '../../../work_orders/domain/entities/work_order_enums.dart';
+import '../../../work_orders/presentation/providers/work_order_providers.dart';
+import '../../../work_orders/presentation/screens/work_order_detail_screen.dart';
 
 class AssetDetailScreen extends ConsumerWidget {
   const AssetDetailScreen({
@@ -22,7 +26,7 @@ class AssetDetailScreen extends ConsumerWidget {
     final detailAsync = ref.watch(assetDetailProvider(assetId));
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: Text(
@@ -35,6 +39,7 @@ class AssetDetailScreen extends ConsumerWidget {
               Tab(text: 'Overview'),
               Tab(text: 'Service'),
               Tab(text: 'Warranty'),
+              Tab(text: 'History'),
             ],
           ),
         ),
@@ -151,6 +156,7 @@ class _TabBody extends StatelessWidget {
         _OverviewTab(detail: detail),
         _ServiceTab(detail: detail),
         _WarrantyTab(detail: detail),
+        _HistoryTab(assetId: detail.assetId),
       ],
     );
   }
@@ -362,7 +368,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-const int _kTabCount = 3;
+const int _kTabCount = 4;
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -407,6 +413,170 @@ class _OfflineBody extends StatelessWidget {
         _kTabCount,
         (_) => const Center(
           child: Text('Connect to view full details'),
+        ),
+      ),
+    );
+  }
+}
+
+// ── History tab ───────────────────────────────────────────────────────────────
+
+class _HistoryTab extends ConsumerWidget {
+  const _HistoryTab({required this.assetId});
+  final int assetId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wosAsync = ref.watch(workOrdersByAssetIdProvider(assetId));
+
+    return wosAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('Error: $e',
+            style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      ),
+      data: (wos) => wos.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.history,
+                      size: 40, color: brandGrey.withAlpha(100)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No work orders recorded for this asset.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: wos.length,
+              itemBuilder: (_, i) => _WoHistoryTile(wo: wos[i]),
+            ),
+    );
+  }
+}
+
+// ── WO history tile ───────────────────────────────────────────────────────────
+
+Color _woStatusColor(WoStatus status) => switch (status) {
+      WoStatus.completed ||
+      WoStatus.closed ||
+      WoStatus.reviewed =>
+        brandGreen,
+      WoStatus.inProgress ||
+      WoStatus.onSite ||
+      WoStatus.enRoute ||
+      WoStatus.accepted =>
+        brandTeal,
+      WoStatus.paused ||
+      WoStatus.awaitingParts =>
+        const Color(0xFFF57F17),
+      _ => brandGrey,
+    };
+
+String _woStatusLabel(WoStatus s) => switch (s) {
+      WoStatus.created => 'Created',
+      WoStatus.assigned => 'Assigned',
+      WoStatus.accepted => 'Accepted',
+      WoStatus.enRoute => 'En Route',
+      WoStatus.onSite => 'On Site',
+      WoStatus.inProgress => 'In Progress',
+      WoStatus.paused => 'Paused',
+      WoStatus.awaitingParts => 'Awaiting Parts',
+      WoStatus.completed => 'Completed',
+      WoStatus.reviewed => 'Reviewed',
+      WoStatus.closed => 'Closed',
+      WoStatus.cancelled => 'Cancelled',
+      WoStatus.rejected => 'Rejected',
+    };
+
+class _WoHistoryTile extends StatelessWidget {
+  const _WoHistoryTile({required this.wo});
+  final WorkOrder wo;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final statusColor = _woStatusColor(wo.status);
+    final date = wo.completedAt ?? wo.createdAt;
+    final dateLabel = wo.completedAt != null ? 'Completed' : 'Created';
+
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => WorkOrderDetailScreen(workOrderId: wo.id),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    wo.woNumber,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _WoChip(wo.type.value, brandTeal),
+                const SizedBox(width: 4),
+                _WoChip(wo.priority.value, brandGrey),
+                const SizedBox(width: 4),
+                _WoChip(_woStatusLabel(wo.status), statusColor),
+              ],
+            ),
+            if (wo.symptomDescription != null &&
+                wo.symptomDescription!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                wo.symptomDescription!,
+                style: tt.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              '$dateLabel: ${DateFormat('dd MMM yyyy').format(date)}',
+              style: tt.bodySmall?.copyWith(color: brandGrey),
+            ),
+            const Divider(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WoChip extends StatelessWidget {
+  const _WoChip(this.label, this.color);
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: color.withAlpha(160)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: color,
+          letterSpacing: 0.2,
         ),
       ),
     );

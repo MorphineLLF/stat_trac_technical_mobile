@@ -439,6 +439,82 @@ final class WorkOrderStatusHistoryFamily extends $Family
   String toString() => r'workOrderStatusHistoryProvider';
 }
 
+@ProviderFor(workOrdersByAssetId)
+final workOrdersByAssetIdProvider = WorkOrdersByAssetIdFamily._();
+
+final class WorkOrdersByAssetIdProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<WorkOrder>>,
+          List<WorkOrder>,
+          FutureOr<List<WorkOrder>>
+        >
+    with $FutureModifier<List<WorkOrder>>, $FutureProvider<List<WorkOrder>> {
+  WorkOrdersByAssetIdProvider._({
+    required WorkOrdersByAssetIdFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'workOrdersByAssetIdProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$workOrdersByAssetIdHash();
+
+  @override
+  String toString() {
+    return r'workOrdersByAssetIdProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<WorkOrder>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<WorkOrder>> create(Ref ref) {
+    final argument = this.argument as int;
+    return workOrdersByAssetId(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkOrdersByAssetIdProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$workOrdersByAssetIdHash() =>
+    r'3139f1c2fadb56cb64173a0b7380782d70e18367';
+
+final class WorkOrdersByAssetIdFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<WorkOrder>>, int> {
+  WorkOrdersByAssetIdFamily._()
+    : super(
+        retry: null,
+        name: r'workOrdersByAssetIdProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WorkOrdersByAssetIdProvider call(int assetId) =>
+      WorkOrdersByAssetIdProvider._(argument: assetId, from: this);
+
+  @override
+  String toString() => r'workOrdersByAssetIdProvider';
+}
+
 @ProviderFor(WorkOrderActions)
 final workOrderActionsProvider = WorkOrderActionsProvider._();
 

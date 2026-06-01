@@ -31,7 +31,6 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
   // Cached item list so _notify always works on current data, not a
   // stale closure reference from a previous build.
   List<TestTemplateItem> _items = [];
-  int _completedCount = 0;
 
   @override
   void didUpdateWidget(CertTestGrid oldWidget) {
@@ -73,7 +72,6 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
       return _isComplete(item, s);
     }).length;
 
-    setState(() => _completedCount = completed);
     widget.onValidityChanged(completed == _items.length);
   }
 
@@ -105,11 +103,24 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           _states.putIfAbsent(item.id, () => _OutputState());
         }
 
+        final passFailCount = items.where((item) {
+          final s = _states[item.id] ?? _OutputState();
+          return s.pass || s.fail || s.na;
+        }).length;
+        final itemsNeedingActual =
+            items.where((item) => !item.noActualRequired).toList();
+        final actualCount = itemsNeedingActual.where((item) {
+          final s = _states[item.id] ?? _OutputState();
+          return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
+        }).length;
+
         return Column(
           children: [
             _ProgressBanner(
-              completed: _completedCount,
+              passFailCount: passFailCount,
               total: items.length,
+              actualCount: actualCount,
+              actualRequired: itemsNeedingActual.length,
             ),
             Expanded(
               child: ListView(
@@ -146,15 +157,29 @@ class _OutputState {
 }
 
 class _ProgressBanner extends StatelessWidget {
-  const _ProgressBanner({required this.completed, required this.total});
-  final int completed;
+  const _ProgressBanner({
+    required this.passFailCount,
+    required this.total,
+    required this.actualCount,
+    required this.actualRequired,
+  });
+  final int passFailCount;
   final int total;
+  final int actualCount;
+  final int actualRequired;
 
   @override
   Widget build(BuildContext context) {
-    final remaining = total - completed;
-    final allDone = remaining == 0;
+    final allResultsDone = passFailCount == total;
+    final allActualDone = actualRequired == 0 || actualCount == actualRequired;
+    final allDone = allResultsDone && allActualDone;
     final color = allDone ? Colors.green[700]! : const Color(0xFFF57F17);
+
+    final rowStyle = TextStyle(
+      color: color,
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+    );
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -180,32 +205,22 @@ class _ProgressBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  allDone
-                      ? 'All $total tests completed'
-                      : '$remaining of $total tests remaining',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                Row(
+                  children: [
+                    Expanded(child: Text('Pass / Fail / N/A', style: rowStyle)),
+                    Text('$passFailCount / $total', style: rowStyle),
+                  ],
+                ),
+                if (actualRequired > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(child: Text('Actual Values', style: rowStyle)),
+                      Text('$actualCount / $actualRequired', style: rowStyle),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Select Pass, Fail or N/A for each test.'
-                  ' Enter actual value where required.',
-                  style: TextStyle(color: color, fontSize: 11),
-                ),
+                ],
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$completed / $total',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
             ),
           ),
         ],

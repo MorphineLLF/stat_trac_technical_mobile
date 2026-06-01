@@ -24,6 +24,7 @@ abstract interface class WoLocalDataSource {
     double? gpsLng,
   });
   Future<List<WorkOrderStatusHistory>> getStatusHistory(int workOrderId);
+  Future<List<WorkOrderModel>> getByAssetId(int assetId);
   Future<void> insertChangeLog({
     required String tableName,
     required int rowId,
@@ -151,6 +152,18 @@ class WoLocalDataSourceImpl implements WoLocalDataSource {
               changedAt: DateTime.parse(r['changed_at'] as String),
             ))
         .toList();
+  }
+
+  @override
+  Future<List<WorkOrderModel>> getByAssetId(int assetId) async {
+    final db = await _db;
+    final rows = await db.query(
+      'work_orders',
+      where: 'asset_id = ?',
+      whereArgs: [assetId],
+      orderBy: 'created_at DESC',
+    );
+    return rows.map(WorkOrderModel.fromMap).toList();
   }
 
   @override
