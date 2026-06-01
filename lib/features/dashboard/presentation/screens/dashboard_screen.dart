@@ -92,7 +92,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         actions: [
           _SyncStatusLabel(syncState: syncState),
           Badge(
-            isLabelVisible: badgeCount > 0,
+            isLabelVisible: badgeCount > 0 && !isSyncing,
             label: Text('$badgeCount'),
             child: IconButton(
               icon: const Icon(Icons.sync),

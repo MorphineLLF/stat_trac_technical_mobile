@@ -34,6 +34,12 @@ class SyncErrorLogDataSourceImpl implements SyncErrorLogDataSource {
     String? stackTrace,
   }) async {
     final db = await _db.database;
+    // Replace any existing unresolved row for this operation so the count
+    // stays at 1 per operation rather than growing on every sync cycle.
+    await db.rawDelete(
+      'DELETE FROM $_table WHERE operation = ? AND resolved = 0',
+      [operation],
+    );
     await db.insert(_table, {
       'occurred_at': DateTime.now().toUtc().toIso8601String(),
       'operation': operation,
