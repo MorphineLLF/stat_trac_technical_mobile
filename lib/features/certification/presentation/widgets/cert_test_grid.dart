@@ -27,8 +27,9 @@ class CertTestGrid extends ConsumerStatefulWidget {
 }
 
 class _CertTestGridState extends ConsumerState<CertTestGrid> {
-  // Map from item id → mutable output state
   final Map<int, _OutputState> _states = {};
+  int _completedCount = 0;
+  int _totalCount = 0;
 
   @override
   void didUpdateWidget(CertTestGrid oldWidget) {
@@ -36,6 +37,13 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
     if (oldWidget.templateNameId != widget.templateNameId) {
       _states.clear();
     }
+  }
+
+  bool _isComplete(TestTemplateItem item, _OutputState s) {
+    final hasResult = s.pass || s.fail || s.na;
+    if (!hasResult) return false;
+    if (item.noActualRequired) return true;
+    return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
   }
 
   void _notify(List<TestTemplateItem> items) {
@@ -57,12 +65,17 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
     }).toList();
     widget.onOutputsChanged(outputs);
 
-    final isValid = items.every((item) {
-      if (item.noActualRequired) return true;
+    final completed = items.where((item) {
       final s = _states[item.id] ?? _OutputState();
-      return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
+      return _isComplete(item, s);
+    }).length;
+
+    setState(() {
+      _completedCount = completed;
+      _totalCount = items.length;
     });
-    widget.onValidityChanged(isValid);
+
+    widget.onValidityChanged(completed == items.length);
   }
 
   @override
@@ -94,6 +107,10 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
 
         return ListView(
           children: [
+            _ProgressBanner(
+              completed: _completedCount,
+              total: items.length,
+            ),
             for (final entry in sections.entries) ...[
               _SectionHeader(title: entry.key),
               for (final item in entry.value)
@@ -120,6 +137,58 @@ class _OutputState {
   bool pass = false;
   bool fail = false;
   bool na = false;
+}
+
+class _ProgressBanner extends StatelessWidget {
+  const _ProgressBanner({required this.completed, required this.total});
+  final int completed;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = total - completed;
+    final allDone = remaining == 0;
+    final color = allDone ? Colors.green[700]! : brandError;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withAlpha(80)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            allDone ? Icons.check_circle_outline : Icons.pending_outlined,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              allDone
+                  ? 'All $total tests completed'
+                  : '$remaining of $total remaining',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Text(
+            '$completed / $total',
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
