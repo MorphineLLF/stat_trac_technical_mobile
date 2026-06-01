@@ -225,20 +225,18 @@ class _TestItemRow extends StatelessWidget {
                   ..fail = !state.fail
                   ..na = false),
               ),
-              if (!_noActualRequired) ...[
-                const SizedBox(width: 6),
-                _ResultChip(
-                  label: 'N/A',
-                  color: brandGrey,
-                  selected: state.na,
-                  onTap: () => onChanged(_OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = false
-                    ..fail = false
-                    ..na = !state.na),
-                ),
-              ],
+              const SizedBox(width: 6),
+              _ResultChip(
+                label: 'N/A',
+                color: brandGrey,
+                selected: state.na,
+                onTap: () => onChanged(_OutputState()
+                  ..actualValue = state.actualValue
+                  ..notes = state.notes
+                  ..pass = false
+                  ..fail = false
+                  ..na = !state.na),
+              ),
             ],
           ),
           const SizedBox(height: 6),
