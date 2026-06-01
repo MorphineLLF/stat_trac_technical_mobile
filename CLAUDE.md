@@ -147,8 +147,16 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 3** — tables: `work_orders`, `work_order_status_history`, `work_order_photos`, `work_order_signatures`, `change_log`, `assets`
+- **Current DB version: 5** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
+
+| Migration | Tables |
+|---|---|
+| 001 | `work_orders`, `work_order_status_history`, `work_order_photos`, `work_order_signatures`, `change_log` |
+| 002 | `assets` (original — superseded by 003) |
+| 003 | `assets` rebuilt with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue) |
+| 004 | `sync_error_log` |
+| 005 | `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs` |
 
 ## API
 
@@ -160,13 +168,19 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Binary uploads use multipart/form-data
 - Full endpoint list in §6 of the spec
 
-## Horse API Contract (auth endpoints — agreed shape)
+## Horse API Contract
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| POST | `/auth/login` | `{ username, password }` | `{ token: { access_token, refresh_token, expires_at }, user: { id, name, email, role, technician_code } }` |
+| POST | `/auth/login` | `{ username, password, db, app_version, device_os }` | `{ token: { access_token, refresh_token, expires_at }, user: { id, name, email, role, technician_code } }` |
 | POST | `/auth/refresh` | `{ refresh_token }` | `{ access_token, refresh_token, expires_at }` |
-| POST | `/auth/logout` | — | — |
+| POST | `/auth/logout` | — | 204 |
+| GET | `/assets?page=N&page_size=N` | — | `{ data: [...] }` paginated asset list |
+| POST | `/sync/log` | `{ operation, entity, row_count, status, message }` | 204 |
+| GET | `/certificates/templates?type=<1\|2\|3>` | — | `{ data: [...] }` template headers |
+| GET | `/certificates/templates/:id/items` | — | `{ data: [...] }` test items for template |
+| POST | `/certificates` | cert + outputs payload | `{ id: <TestCertificateID> }` |
+| GET | `/certificates/history?technician_id=<id>&after_id=<cursor>` | — | `{ data: [...] }` certs + embedded outputs for technician |
 
 ## Testing
 
@@ -214,21 +228,37 @@ Work in this order. Each phase builds on the previous.
 - `lib/features/auth/presentation/screens/login_screen.dart` — DB Name field shown on first login only (hidden once `db_name` stored); username/password form; error banner; loading state
 
 ### Dashboard — complete ✅
-- `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (spinner / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors), logout; single-screen layout (no tabs)
+- `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
-- **Top row** — two side-by-side `_TaskCountCard` tiles: "Pending Work Orders" (brandTeal) and "Pending PM Work Orders" (dark green); count + label with tinted bg/border
+- **Top row** — two side-by-side `_TaskCountCard` tiles: "Pending Work Orders" (brandTeal) and "Pending PM Work Orders" (dark green)
 - **Donut chart** — `fl_chart` `PieChart`, Overdue (brandError) / Pending (amber) / WIP (brandTeal) sections with legend + percentages; grey ring when total = 0
 - **KPI row** — three `_KpiTile` cards: Overdue, Pending, WIP counts in matching colours
-- **Quick actions grid** — 2×2 `_QuickActionTile` grid, all brandTeal: Worklist (→ `WorkOrderListScreen`), Create Work Order, Create PM Order, Create Certificate (last three show "coming soon")
-- **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; non-Home tabs show "coming soon" snackbar and keep Home selected
+- **Quick actions grid** — 5-tile 2-column grid (`childAspectRatio: 1.8`), all brandTeal: Worklist (→ `WorkOrderListScreen`), Create Work Order (→ `CreateWorkOrderScreen`), Create PM Order (coming soon), Create Certificate (→ `CreateCertificateScreen`), View Certificates (→ `CertificateListScreen`)
+- **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 
-### Sync engine — asset sync complete ✅
-- `lib/sync/sync_state.dart` — sealed `SyncIdle / SyncInProgress / SyncComplete / SyncError`
-- `lib/sync/sync_notifier.dart` + `.g.dart` — `SyncNotifier.triggerSync()`: connectivity check → purge old errors → asset sync (with field-change detection) → `POST /sync/log` → mark resolved / log error; `unresolvedSyncErrorCountProvider`; `_friendlySyncError(e)`; `_buildSyncMessage` includes removed IDs and field-change summary
-- `lib/sync/sync_error_log_data_source.dart` — `SyncErrorLogDataSourceImpl`: `logError`, `markResolved`, `unresolvedCount`, `purgeOldResolved`
-- `lib/sync/sync_remote_data_source.dart` — `SyncRemoteDataSourceImpl`: `POST /sync/log` (failures silently swallowed)
-- `lib/sync/sync_service.dart` — abstract `SyncService` interface (`sync()`, `enqueueBinaryUpload()`) — WO sync pending
+### Sync engine ✅
+- `lib/sync/sync_state.dart` — sealed `SyncIdle / SyncInProgress(progress, message) / SyncComplete / SyncError`; `SyncInProgress` carries `progress` (0.0–1.0) and a step label string
+- `lib/sync/sync_notifier.dart` + `.g.dart` — `SyncNotifier.triggerSync()` sequential pipeline:
+  1. Connectivity check (skip if offline)
+  2. Purge old resolved errors + deduplicate unresolved rows (1 per operation)
+  3. Asset sync with page-level `onPage` callback → updates progress 5%–60%
+  4. POST `/sync/log` (success and failures)
+  5. Template sync (cert templates types 1/2/3 + their items) → 65%
+  6. Push pending certificates → 80%
+  7. Pull certificates from server (cursor = MAX server_id) → 90%
+  8. `SyncComplete`
+- `unresolvedSyncErrorCountProvider` — count of `resolved = 0` rows, invalidated at start + end of each cycle
+- `unresolvedSyncErrorsProvider` — list of `SyncErrorEntry` objects for the error detail sheet
+- `lib/sync/sync_error_log_data_source.dart` — `SyncErrorLogDataSourceImpl`: `logError` (delete-before-insert per operation), `markResolved`, `unresolvedCount`, `getUnresolvedErrors`, `purgeOldResolved` (also deduplicates unresolved rows)
+- `lib/sync/sync_remote_data_source.dart` — `postSyncLog(operation, entity, rowCount, status, message)`: posts **both successes and failures** to server `AppSyncLog`
+- `lib/sync/sync_service.dart` — abstract `SyncService` interface — WO sync pending
 - `lib/sync/change_log_entry.dart` — `ChangeLogEntry` domain model + `ChangeOperation` enum
+
+**Sync progress UI (dashboard AppBar):**
+- `SyncInProgress` → dual-ring circle: outer deterministic ring fills to `progress`%, inner thin ring always spins; shows % text; tooltip shows step label
+- `SyncComplete` → green tick + `dd MMM HH:mm` timestamp
+- `SyncError` → red error icon + "Sync failed · timestamp"
+- Badge on sync icon → count of unresolved errors; **tap opens `_SyncErrorSheet`** (human-readable operation labels, error message, time ago, Retry button); tapping sync icon with no errors triggers sync directly
 
 ### Database foundation
 - `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 5**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
@@ -335,12 +365,16 @@ Local dev server lives at `C:\Delphi\StatTracTechAPI\`. Built with RAD Studio 12
 - `src\Auth.Routes.pas` — POST `/auth/login`, `/auth/refresh`, `/auth/logout`
 - `src\WorkOrders.Routes.pas` — GET/POST `/workorders`, POST `/workorders/:id/transition`
 - `src\Assets.Routes.pas` — GET `/assets?since=`
+- `src\Certificates.Routes.pas` — GET `/certificates/templates`, GET `/certificates/templates/:id/items`, POST `/certificates`, GET `/certificates/history`
+- `src\Sync.Routes.pas` — POST `/sync/log`
+- `src\SyncLog.pas` — `WriteSyncLog` shared procedure
+- `src\Contacts.Routes.pas`, `src\Facilities.Routes.pas`, `src\Issues.Routes.pas`, `src\Visits.Routes.pas` — supplementary endpoints
 
 ### Database tables (stat_trac)
 
 All table and column names are PascalCase and must be double-quoted in SQL.
 
-- `users` — username, password_hash (SHA-256 hex via pgcrypto), role, technician_code
+- `"Admin"` — user accounts. Key columns: `"UserID"` (PK), `"UserName"` (login username), `"UserPassword"` (plain-text), `"UserContactName"`, `"UserEmail"`, `"UserTechnician"` (1=tech, 2=customer, else=admin), `"UserActive"` (1=active). **No `users` table exists.**
 - `"Asset"` — master asset records (read-only). Key columns: `"AssetID"` (PK), `"AssetEquipmentType"`, `"AssetManufacturer"`, `"AssetModel"`, `"AssetSerialNo"`, `"AssetBarcode"`, `"AssetHospital"`, `"AssetLocation"`, `"AssetCondition"`, `"AssetActive"` (int), `"AssetCondemned"` (int), `"AssetNextServiceDate"`, `"AssetUserDate"` (last-modified, used for since-cursor sync)
 - `"Repair"` — work orders (**NOT** `work_orders`). Key columns: `"RepairTrackID"` (PK), `"RepairDate"` (date), `"RepairAssetID"` (FK → Asset), `"RepairFault"` (varchar 200, symptom), `"RepairNote"` (varchar 200, resolution), `"RepairCondition"` (varchar 200), `"RepairStatus"` (int), `"RepairType"` (int), `"RepairPriority"` (int), `"RepairTechID"` (int), `"RepairHospital"` (varchar 20), `"RepairLocation"` (varchar 30)
 - `"RepairProgress"` — work order status history (**NOT** `work_order_status_history`). Key columns: `"ProgressID"` (PK), `"ProgessTrackID"` (FK → Repair — **note: DB typo, missing 'r'**), `"ProgressAssetID"`, `"ProgressDate"`, `"ProgressWorkDone"`, `"ProgressHrs"`, `"ProgressTech"`, `"ProgressStatus"` (int), `"ProgressTechID"`
@@ -353,8 +387,17 @@ All table and column names are PascalCase and must be double-quoted in SQL.
 
 `RepairPriority` → Flutter `WoPriority` string: 0=`P3` (default), 1=`P1` (High), 2=`P2` (Medium), 3=`P3` (Low)
 
-### Test user
-- username: `tech1`, password: `Test1234!`, role: `technician`
+### Users
+
+Login authenticates against the `"Admin"` table (NOT a `users` table — that does not exist). Password is stored plain-text in `"Admin"."UserPassword"`. Active technicians (`UserTechnician = 1`, `UserActive = 1`):
+
+| UserID | UserName | Name |
+|---|---|---|
+| 35 | fritz | Mauritz Britz |
+| 39 | absorne | Absorne Mabena |
+| 30 | deon | Deon Rossouw |
+| 28 | 2 | Vaughn Sweeney |
+| 16 | 1 | Chris Potgieter |
 
 ### JWT
 - Algorithm: HS256, secret in `Auth.Routes.pas` const `JWT_SECRET`
@@ -386,27 +429,44 @@ All table and column names are PascalCase and must be double-quoted in SQL.
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
 - `android/build.gradle.kts` — remove `isar_flutter_libs` AGP 8.x namespace patch once `offline_sync_kit` upgrades past `isar_flutter_libs 3.1.0+1`
 
-## Sync Error Logging (requirement)
+### Certification module ✅
 
-Every sync cycle must persist errors to a local `sync_error_log` SQLite table so failures are not silently swallowed. Schema:
+**SQLite tables (migration_005):** `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs`
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | INTEGER PK AUTOINCREMENT | — |
-| `occurred_at` | TEXT | ISO-8601 UTC |
-| `operation` | TEXT | e.g. `push_change_log`, `pull_work_orders`, `upload_photo` |
-| `entity_table` | TEXT NULLABLE | e.g. `work_orders`, `assets` |
-| `entity_id` | TEXT NULLABLE | local row id or change-log id |
-| `error_message` | TEXT | human-readable error |
-| `stack_trace` | TEXT NULLABLE | Dart stack trace string |
-| `resolved` | INTEGER | 0 = unresolved, 1 = resolved on later sync |
+**Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface
+
+**Data layer:**
+- `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`
+- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId)`
+- `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)`
+- Sync cursor: `MAX(server_id)` from `test_certificates` — no extra storage needed
+- Locally-created certs (already have `server_id`) are skipped on pull to preserve signatures
+
+**Presentation:**
+- `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature
+- `certificate_list_screen.dart` — all certs newest first, type chip, pending badge; reads from local SQLite
+- `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`
+- `certificate_providers.dart` — `certificateListProvider`, `certificateSummaryProvider`, `certOutputsProvider`, `templatesByTypeProvider`, `templateItemsProvider`
+
+**Horse API PostgreSQL tables:**
+- `"TestTemplateName"` — 62 templates; key: `TestTemplateNameID`, `TestTemplateType` (1=Test/OVP, 2=QA, 3=Commission)
+- `"TestTemplate"` — 1773 items; FK: `TestTempCertificateNameID`
+- `"TestCertificate"` — completed certs; key: `TestCertificateID`, `TestTechID`, `TestCertType` (template FK), `TestType` (cert category)
+- `"TestOutput"` — test result rows; FK: `TestOutputCertID`
+
+## Sync Error Logging ✅
+
+Every sync failure writes to **two places**:
+1. **Device SQLite `sync_error_log`** — powers the badge count and `_SyncErrorSheet` in the app
+2. **Server PostgreSQL `AppSyncLog`** — visible to admins in the back-office (via `POST /sync/log` with `status: 'error'`)
 
 Rules:
-- Write a row on every caught sync exception before retrying or giving up.
-- Mark `resolved = 1` when the same entity syncs successfully on a subsequent cycle.
-- The sync icon in the AppBar should show a warning badge when unresolved errors exist (query count of `resolved = 0` rows).
-- Rows older than 30 days with `resolved = 1` are purged on app launch.
-- Never log personal information (patient data, contact details) in `error_message` or `stack_trace`.
+- `logError` deletes the existing unresolved row for the same `operation` before inserting — always 1 row per operation, never accumulates
+- `purgeOldResolved()` also deduplicates any legacy stale rows
+- `markResolved(operation)` called on next successful sync of that operation
+- Rows older than 30 days with `resolved = 1` are purged each sync cycle
+- Never log personal information in `error_message` or `stack_trace`
+- Operations tracked: `sync_assets`, `sync_templates`, `push_certificates`, `pull_certificates`
 
 ## Immediate Next Steps (Phase 1 continuation)
 
