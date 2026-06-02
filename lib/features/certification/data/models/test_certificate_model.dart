@@ -23,6 +23,7 @@ class TestCertificateModel extends TestCertificate {
     super.clientName,
     super.notes,
     super.patientSafe,
+    super.certName,
   });
 
   factory TestCertificateModel.fromMap(Map<String, dynamic> m) =>
@@ -56,6 +57,7 @@ class TestCertificateModel extends TestCertificate {
         syncStatus: m['sync_status'] as String? ?? 'pending',
         createdAt: DateTime.parse(m['created_at'] as String),
         patientSafe: m['patient_safe'] as int?,
+        certName: m['cert_name'] as String?,
       );
 
   factory TestCertificateModel.fromJson(Map<String, dynamic> j) {
@@ -82,6 +84,7 @@ class TestCertificateModel extends TestCertificate {
       syncStatus: 'synced',
       createdAt: testDate ?? DateTime.now(),
       patientSafe: j['patient_safe'] as int?,
+      certName: j['cert_name'] as String?,
     );
   }
 
@@ -107,5 +110,6 @@ class TestCertificateModel extends TestCertificate {
         'sync_status': syncStatus,
         'created_at': createdAt.toIso8601String(),
         'patient_safe': patientSafe,
+        'cert_name': certName,
       };
 }

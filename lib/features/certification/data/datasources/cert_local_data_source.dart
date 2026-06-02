@@ -51,6 +51,10 @@ abstract interface class CertLocalDataSource {
   /// Returns all server_ids stored locally (excludes NULLs / pending certs).
   /// Used by Option B pull to detect certs deleted on the server.
   Future<List<int>> getSyncedServerIds();
+
+  /// True if any synced cert is missing cert_name — triggers full re-pull
+  /// to backfill cert_name from the updated Horse API.
+  Future<bool> hasCertsWithNullCertName();
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -182,14 +186,22 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   static const _certSummarySelect = '''
     SELECT
       tc.id,
+      tc.server_id AS certificate_no,
       tc.cert_type,
       tc.sync_status,
       tc.created_at,
       tc.patient_safe,
-      tn.test_template_cert_name AS cert_name,
+      tc.template_name_id,
+      COALESCE(
+        tn1.test_template_cert_name,
+        tn2.test_template_cert_name,
+        tc.cert_name
+      ) AS cert_name,
+      COALESCE(tn1.test_template_name, tn2.test_template_name) AS template_name,
       a.equipment_type
     FROM test_certificates tc
-    LEFT JOIN test_template_names tn ON tn.id = tc.template_name_id
+    LEFT JOIN test_template_names tn1 ON tn1.id = tc.template_name_id
+    LEFT JOIN test_template_names tn2 ON tn2.id = tc.cert_type
     LEFT JOIN assets a ON a.asset_id = tc.asset_id
   ''';
 
@@ -197,7 +209,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   Future<List<CertificateSummary>> getCertificates() async {
     final db = await _db.database;
     final rows = await db.rawQuery(
-      '$_certSummarySelect ORDER BY tc.created_at DESC',
+      '$_certSummarySelect ORDER BY certificate_no DESC, tc.created_at DESC',
     );
     return rows.map(CertificateSummary.fromMap).toList();
   }
@@ -231,7 +243,18 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       where: 'server_id = ?',
       whereArgs: [cert.serverId],
     );
-    if (existing.isNotEmpty) return null; // already have this cert
+    if (existing.isNotEmpty) {
+      // Backfill cert_name if the server now provides it and we didn't have it.
+      if (cert.certName != null) {
+        await db.update(
+          'test_certificates',
+          {'cert_name': cert.certName},
+          where: 'server_id = ? AND cert_name IS NULL',
+          whereArgs: [cert.serverId],
+        );
+      }
+      return null;
+    }
     return db.insert('test_certificates', cert.toMap());
   }
 
@@ -272,5 +295,15 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       where: 'server_id IS NOT NULL',
     );
     return rows.map((r) => r['server_id'] as int).toList();
+  }
+
+  @override
+  Future<bool> hasCertsWithNullCertName() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM test_certificates '
+      'WHERE server_id IS NOT NULL AND cert_name IS NULL',
+    );
+    return ((result.first['c'] as int?) ?? 0) > 0;
   }
 }

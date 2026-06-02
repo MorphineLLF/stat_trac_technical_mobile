@@ -171,19 +171,35 @@ class CertificateRepositoryImpl implements CertificateRepository {
       }
     }
 
-    final afterId = await local.getMaxServerId();
-    final certs = await remote.fetchCertificateHistory(technicianId, afterId);
+    // Use cursor 0 when existing certs are missing cert_name so the full
+    // history is re-pulled and insertCertificateFromServer can backfill them.
+    final needsBackfill = await local.hasCertsWithNullCertName();
+    var cursor = needsBackfill ? 0 : await local.getMaxServerId();
     var added = 0;
-    for (final (cert, outputs) in certs) {
-      try {
-        final localId = await local.insertCertificateFromServer(cert);
-        if (localId != null) {
-          if (outputs.isNotEmpty) {
-            await local.insertOutputsForCert(localId, outputs);
+    const pageSize = 100;
+
+    while (true) {
+      final page = await remote.fetchCertificateHistory(
+          technicianId, cursor, pageSize: pageSize);
+
+      for (final (cert, outputs) in page) {
+        try {
+          final localId = await local.insertCertificateFromServer(cert);
+          if (localId != null) {
+            if (outputs.isNotEmpty) {
+              await local.insertOutputsForCert(localId, outputs);
+            }
+            added++;
           }
-          added++;
+        } catch (_) {}
+        // Advance cursor to the last seen server ID so the next page
+        // starts where this one ended.
+        if (cert.serverId != null && cert.serverId! > cursor) {
+          cursor = cert.serverId!;
         }
-      } catch (_) {}
+      }
+
+      if (page.length < pageSize) break;
     }
 
     return (deletedIds: deletedIds, added: added);

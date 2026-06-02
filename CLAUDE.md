@@ -147,7 +147,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 7** — tables below
+- **Current DB version: 10** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
 | Migration | DB version | Tables / changes |
@@ -158,6 +158,9 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | 004 | 4 | `sync_error_log` |
 | 005 → v6 | 6 | `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs` |
 | 007 → v7 | 7 | `test_template_items` — adds `actual_value_template TEXT` column (maps `TestTempActualValue`; value `'-'` means no actual reading required, exposed via `noActualRequired` getter on `TestTemplateItem`) |
+| 008 → v8 | 8 | `test_certificates` — adds `patient_safe INTEGER` (compliance status) |
+| 009 → v9 | 9 | `sync_metadata` — key/value store |
+| 010 → v10 | 10 | `test_certificates` — adds `cert_name TEXT` (template cert name stored at pull time) |
 
 ## API
 
@@ -182,7 +185,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | GET | `/certificates/templates/:id/items` | — | `{ data: [...] }` test items for template |
 | POST | `/certificates` | cert + outputs payload | `{ id: <TestCertificateID> }` |
 | GET | `/certificates/ids?technician_id=<id>` | — | `{ ids: [...] }` all TestCertificateID values for technician (Option B deletion detection) |
-| GET | `/certificates/history?technician_id=<id>&after_id=<cursor>` | — | `{ data: [...] }` certs + embedded outputs for technician (new records only, cursor-based) |
+| GET | `/certificates/history?technician_id=<id>&after_id=<cursor>&page_size=<n>` | — | `{ data: [...] }` certs + embedded outputs, paginated (default 100, max 500); loop advancing after_id until page < page_size |
 
 ## Testing
 
@@ -439,11 +442,13 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 
 **Data layer:**
 - `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`, `getSyncedServerIds()` (returns all non-null server_ids for Option B diff), `deleteCertificateByServerId()`
-- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId)`, `fetchCertificateIds(technicianId)`
+- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId, {pageSize=100})`, `fetchCertificateIds(technicianId)`
 - `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)` → returns `({List<int> deletedIds, int added})`
-- **Option B pull logic:** fetch all server IDs via `fetchCertificateIds` → diff against `getSyncedServerIds()` → delete orphans → pull new certs by `MAX(server_id)` cursor
-- Locally-created certs (already have `server_id`) are skipped on pull to preserve signatures
-- `pullCertificatesFromRemote` success is logged to `AppSyncLog` with deleted IDs and added count
+- **Option B pull logic:** fetch all server IDs → diff → delete orphans → paginated history pull (100/page) advancing cursor per page
+- `hasCertsWithNullCertName()` triggers cursor=0 (full re-pull) for one-time cert_name backfill
+- `insertCertificateFromServer` updates `cert_name` for existing certs missing it; skips re-inserting cert + outputs
+- `pullCertificatesFromRemote` success logged to `AppSyncLog` with deleted IDs and added count
+- **`cert_name` column** (`test_certificates`) — resolved template cert name from Horse API; avoids broken JOIN on historical certs where `TestType=0`
 
 **Presentation:**
 - `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature

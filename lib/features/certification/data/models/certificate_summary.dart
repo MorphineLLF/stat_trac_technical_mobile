@@ -7,19 +7,39 @@ class CertificateSummary {
     required this.certType,
     required this.syncStatus,
     required this.createdAt,
+    this.certificateNo,
     this.certName,
     this.equipmentType,
     this.patientSafe,
+    this.templateNameId,
+    this.templateName,
   });
 
   final int id;
+  final int? certificateNo;     // TestCertificateID on server
   final int certType;           // 1=Test, 2=QA, 3=Commission
   final String syncStatus;      // 'pending' | 'synced'
   final DateTime createdAt;
   final String? certName;       // test_template_names.test_template_cert_name
+  final String? templateName;   // test_template_names.test_template_name (fallback)
   final String? equipmentType;  // assets.equipment_type
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   final int? patientSafe;
+  final int? templateNameId;
+
+  /// Resolved display name for the template.
+  /// Null when no name can be determined — callers should fall back to
+  /// [equipmentType] or another contextual label.
+  String? get resolvedTemplateName {
+    if (certName != null && certName!.isNotEmpty) return certName!;
+    if (templateName != null && templateName!.isNotEmpty) return templateName!;
+    return null;
+  }
+
+  /// Title shown in lists and headers — template name when available,
+  /// otherwise a generic cert-type label for historical certs.
+  String get displayTitle =>
+      resolvedTemplateName ?? '$typeLabel Certificate';
 
   String get complianceLabel {
     switch (patientSafe) {
@@ -52,11 +72,14 @@ class CertificateSummary {
   factory CertificateSummary.fromMap(Map<String, dynamic> m) =>
       CertificateSummary(
         id: m['id'] as int,
+        certificateNo: m['certificate_no'] as int?,
         certType: m['cert_type'] as int? ?? 1,
         syncStatus: m['sync_status'] as String? ?? 'pending',
         createdAt: DateTime.parse(m['created_at'] as String),
         certName: m['cert_name'] as String?,
+        templateName: m['template_name'] as String?,
         equipmentType: m['equipment_type'] as String?,
         patientSafe: m['patient_safe'] as int?,
+        templateNameId: m['template_name_id'] as int?,
       );
 }

@@ -19,7 +19,7 @@ class CertificateDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: summaryAsync.when(
-          data: (s) => Text(s?.certName ?? 'Certificate'),
+          data: (s) => Text(s?.displayTitle ?? 'Certificate'),
           loading: () => const Text('Certificate'),
           error: (_, _) => const Text('Certificate'),
         ),
@@ -110,6 +110,25 @@ class _HeaderCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                if (summary.complianceLabel.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: summary.complianceColor.withAlpha(20),
+                      border: Border.all(color: summary.complianceColor),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      summary.complianceLabel,
+                      style: TextStyle(
+                        color: summary.complianceColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -134,9 +153,8 @@ class _HeaderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (summary.certName != null)
-              Text(summary.certName!,
-                  style: Theme.of(context).textTheme.titleLarge),
+            Text(summary.displayTitle,
+                style: Theme.of(context).textTheme.titleLarge),
             if (summary.equipmentType != null) ...[
               const SizedBox(height: 4),
               Text(summary.equipmentType!,

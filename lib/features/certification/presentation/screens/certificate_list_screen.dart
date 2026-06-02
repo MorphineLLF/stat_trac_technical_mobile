@@ -98,19 +98,28 @@ class _CertTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          cert.certName ?? 'Unknown template',
+          cert.displayTitle,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (cert.equipmentType != null)
-              Text(cert.equipmentType!,
-                  style: TextStyle(color: brandGrey)),
+            Text(
+              cert.equipmentType ?? '—',
+              style: TextStyle(color: brandGrey),
+            ),
             Row(
               children: [
                 Text(dateStr,
                     style: Theme.of(context).textTheme.bodySmall),
+                if (cert.certificateNo != null) ...[
+                  const SizedBox(width: 6),
+                  Text('Cert #${cert.certificateNo}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: brandGrey)),
+                ],
                 if (cert.isPending) ...[
                   const SizedBox(width: 8),
                   Container(

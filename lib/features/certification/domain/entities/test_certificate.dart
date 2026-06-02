@@ -24,6 +24,7 @@ class TestCertificate {
     this.clientName,
     this.notes,
     this.patientSafe,
+    this.certName,
   });
 
   final int id;
@@ -48,4 +49,5 @@ class TestCertificate {
   final DateTime createdAt;
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete (maps TestCertPatientSafe)
   final int? patientSafe;
+  final String? certName;
 }
