@@ -15,8 +15,18 @@ Location: `C:\Users\HomePC\Nextcloud\Stat Trac\Mobile App develepment\Stat_Trac_
 | `3-Horse-API.md` | Touching Horse API source files |
 | `4-Flutter-App.md` | Touching Flutter code, auth, SQLite |
 | `5-Decisions-Log.md` | Before making any architectural decision |
+| `6-Security.md` | Before any auth, storage, network, or pre-production work |
 
 **Update these files** whenever a significant decision is made, a new table is mapped, or an endpoint changes. They are synced to Nextcloud automatically via the desktop client.
+
+### Superpowers Plans
+
+Implementation plans live in `docs/superpowers/plans/`. Check this folder at session start — any open plan should be executed using the `superpowers:executing-plans` skill before starting new work.
+
+| Plan | Status |
+|---|---|
+| `2026-06-01-sync-certificates-from-master-db.md` | ✅ Complete — implemented 2026-06-02 (plus Option B deletion detection, cert_name backfill, pagination) |
+| `2026-06-02-cert-sync-option-b-display-pagination.md` | ✅ Complete — Option B pull, cert_name backfill, pagination, display fixes, security doc |
 
 ## What This Is
 
