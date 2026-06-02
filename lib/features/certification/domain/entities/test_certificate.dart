@@ -23,6 +23,7 @@ class TestCertificate {
     this.clientSignature,
     this.clientName,
     this.notes,
+    this.patientSafe,
   });
 
   final int id;
@@ -45,4 +46,6 @@ class TestCertificate {
   final String? notes;
   final String syncStatus;           // 'pending' | 'synced' | 'error'
   final DateTime createdAt;
+  // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete (maps TestCertPatientSafe)
+  final int? patientSafe;
 }

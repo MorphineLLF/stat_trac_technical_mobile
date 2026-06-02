@@ -15,11 +15,14 @@ abstract interface class CertRemoteDataSource {
   /// POST /certificates — returns the server-assigned TestCertificateID.
   Future<int> pushCertificate(Map<String, dynamic> payload);
 
-  /// GET /certificates/history?technician_id=<id>&after_id=<cursor>
-  /// Returns cert + embedded outputs for certs the technician created on the
-  /// server that are not yet in local SQLite.
+  /// `GET /certificates/history?technician_id=:id&after_id=:cursor`
+  /// Returns certs with embedded outputs whose ID is greater than afterId.
   Future<List<(TestCertificateModel, List<TestOutputModel>)>>
       fetchCertificateHistory(int technicianId, int afterId);
+
+  /// `GET /certificates/ids?technician_id=:id`
+  /// Returns all TestCertificateID values for the technician on the server.
+  Future<List<int>> fetchCertificateIds(int technicianId);
 }
 
 class CertRemoteDataSourceImpl implements CertRemoteDataSource {
@@ -57,10 +60,7 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
       fetchCertificateHistory(int technicianId, int afterId) async {
     final response = await _dio.get(
       '/certificates/history',
-      queryParameters: {
-        'technician_id': technicianId,
-        'after_id': afterId,
-      },
+      queryParameters: {'technician_id': technicianId, 'after_id': afterId},
     );
     final data =
         ((response.data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
@@ -73,5 +73,14 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
           .toList();
       return (cert, outputs);
     }).toList();
+  }
+
+  @override
+  Future<List<int>> fetchCertificateIds(int technicianId) async {
+    final response = await _dio.get(
+      '/certificates/ids',
+      queryParameters: {'technician_id': technicianId},
+    );
+    return ((response.data['ids'] as List?) ?? []).cast<int>();
   }
 }

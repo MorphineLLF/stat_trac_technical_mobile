@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+
 import '../../domain/entities/test_certificate.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
@@ -48,6 +50,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
       clientSignature: cert.clientSignature,
       clientName: cert.clientName,
       notes: cert.notes,
+      patientSafe: cert.patientSafe,
     );
     final certId = await local.saveCertificate(certModel);
 
@@ -76,12 +79,8 @@ class CertificateRepositoryImpl implements CertificateRepository {
     final pending = await local.getPendingSyncCertificates();
     var pushed = 0;
     for (final cert in pending) {
-      try {
-        await _pushSingleCertificate(cert);
-        pushed++;
-      } catch (_) {
-        // Cert stays pending and retries on next sync cycle.
-      }
+      await _pushSingleCertificate(cert);
+      pushed++;
     }
     return pushed;
   }
@@ -103,6 +102,8 @@ class CertificateRepositoryImpl implements CertificateRepository {
           ? base64Encode(cert.clientSignature!)
           : null,
       'client_name': cert.clientName,
+      'patient_safe': cert.patientSafe,
+      'notes': cert.notes,
       'outputs': outputs
           .map((o) => {
                 'description_id': o.descriptionId,
@@ -115,8 +116,13 @@ class CertificateRepositoryImpl implements CertificateRepository {
               })
           .toList(),
     };
-    final serverId = await remote.pushCertificate(payload);
-    await local.markSynced(cert.id, serverId);
+    try {
+      final serverId = await remote.pushCertificate(payload);
+      await local.markSynced(cert.id, serverId);
+    } on DioException catch (e) {
+      final body = e.response?.data?.toString() ?? e.message ?? e.toString();
+      throw Exception('cert ${cert.id}: $body');
+    }
   }
 
   @override
@@ -150,20 +156,36 @@ class CertificateRepositoryImpl implements CertificateRepository {
   }
 
   @override
-  Future<void> pullCertificatesFromRemote(int technicianId) async {
-    final afterId = await local.getMaxServerId();
-    final records =
-        await remote.fetchCertificateHistory(technicianId, afterId);
-
-    for (final (cert, outputs) in records) {
-      try {
-        final localId = await local.insertCertificateFromServer(cert);
-        if (localId != null && outputs.isNotEmpty) {
-          await local.insertOutputsForCert(localId, outputs);
-        }
-      } catch (_) {
-        // Skip this record; it will be retried on the next pull cycle.
+  Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(
+      int technicianId) async {
+    // Option B: compare full ID sets to detect server-side deletes.
+    final serverIds = (await remote.fetchCertificateIds(technicianId)).toSet();
+    final localServerIds = await local.getSyncedServerIds();
+    final deletedIds = <int>[];
+    for (final id in localServerIds) {
+      if (!serverIds.contains(id)) {
+        try {
+          await local.deleteCertificateByServerId(id);
+          deletedIds.add(id);
+        } catch (_) {}
       }
     }
+
+    final afterId = await local.getMaxServerId();
+    final certs = await remote.fetchCertificateHistory(technicianId, afterId);
+    var added = 0;
+    for (final (cert, outputs) in certs) {
+      try {
+        final localId = await local.insertCertificateFromServer(cert);
+        if (localId != null) {
+          if (outputs.isNotEmpty) {
+            await local.insertOutputsForCert(localId, outputs);
+          }
+          added++;
+        }
+      } catch (_) {}
+    }
+
+    return (deletedIds: deletedIds, added: added);
   }
 }

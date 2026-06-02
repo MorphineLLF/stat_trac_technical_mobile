@@ -130,6 +130,27 @@ class _CertTile extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (cert.complianceLabel.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: cert.complianceColor.withAlpha(25),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                          color: cert.complianceColor.withAlpha(120)),
+                    ),
+                    child: Text(
+                      cert.complianceLabel.toUpperCase(),
+                      style: TextStyle(
+                        color: cert.complianceColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

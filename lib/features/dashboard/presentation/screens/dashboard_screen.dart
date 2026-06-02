@@ -104,7 +104,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
+            if (syncState is SyncComplete) ...[
+              const SizedBox(height: 2),
+              _SyncDonePill(lastSyncedAt: syncState.lastSyncedAt),
+            ],
+          ],
+        ),
         actions: [
           _SyncStatusLabel(syncState: syncState),
           Badge(
@@ -801,14 +811,12 @@ class _ErrorTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(
+                SelectableText(
                   entry.errorMessage,
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
                       ?.copyWith(color: brandGrey),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -824,5 +832,38 @@ class _ErrorTile extends StatelessWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+}
+
+class _SyncDonePill extends StatelessWidget {
+  const _SyncDonePill({required this.lastSyncedAt});
+  final DateTime lastSyncedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = DateFormat('HH:mm').format(lastSyncedAt.toLocal());
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.green.withAlpha(40),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.green.withAlpha(100)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, size: 10, color: Colors.green[700]),
+          const SizedBox(width: 4),
+          Text(
+            'Synced $time',
+            style: TextStyle(
+              color: Colors.green[700],
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

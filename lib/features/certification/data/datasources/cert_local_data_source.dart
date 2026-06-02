@@ -44,6 +44,13 @@ abstract interface class CertLocalDataSource {
   /// localCertId is used instead.
   Future<void> insertOutputsForCert(
       int localCertId, List<TestOutputModel> outputs);
+
+  /// Deletes a certificate and its outputs from local SQLite by server_id.
+  Future<void> deleteCertificateByServerId(int serverId);
+
+  /// Returns all server_ids stored locally (excludes NULLs / pending certs).
+  /// Used by Option B pull to detect certs deleted on the server.
+  Future<List<int>> getSyncedServerIds();
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -178,6 +185,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       tc.cert_type,
       tc.sync_status,
       tc.created_at,
+      tc.patient_safe,
       tn.test_template_cert_name AS cert_name,
       a.equipment_type
     FROM test_certificates tc
@@ -236,5 +244,33 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       batch.insert('test_outputs', {...o.toMap(), 'certificate_id': localCertId});
     }
     await batch.commit(noResult: true);
+  }
+
+  @override
+  Future<void> deleteCertificateByServerId(int serverId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'test_certificates',
+      columns: ['id'],
+      where: 'server_id = ?',
+      whereArgs: [serverId],
+    );
+    if (rows.isEmpty) return;
+    final localId = rows.first['id'] as int;
+    await db.delete('test_outputs',
+        where: 'certificate_id = ?', whereArgs: [localId]);
+    await db.delete('test_certificates',
+        where: 'id = ?', whereArgs: [localId]);
+  }
+
+  @override
+  Future<List<int>> getSyncedServerIds() async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'test_certificates',
+      columns: ['server_id'],
+      where: 'server_id IS NOT NULL',
+    );
+    return rows.map((r) => r['server_id'] as int).toList();
   }
 }

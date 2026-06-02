@@ -18,7 +18,7 @@ class CertTypeSelector extends StatelessWidget {
         ),
         _TypeTile(
           icon: Icons.science_outlined,
-          label: 'Test Certificate',
+          label: 'OVP Certificate',
           subtitle: 'Performance verification / OVP',
           type: CertType.test,
           onSelected: onSelected,

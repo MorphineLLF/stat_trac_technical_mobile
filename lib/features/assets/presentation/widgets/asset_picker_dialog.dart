@@ -144,11 +144,25 @@ class _DialogHeader extends StatelessWidget {
 
 // ── Page 1: Hospital selection ────────────────────────────────────────────────
 
-class _HospitalPage extends ConsumerWidget {
+class _HospitalPage extends ConsumerStatefulWidget {
   const _HospitalPage();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HospitalPage> createState() => _HospitalPageState();
+}
+
+class _HospitalPageState extends ConsumerState<_HospitalPage> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final hospitalsAsync = ref.watch(_hospitalsProvider);
 
     return hospitalsAsync.when(
@@ -156,25 +170,64 @@ class _HospitalPage extends ConsumerWidget {
       error: (e, _) => Center(
         child: Text('Error: $e', style: Theme.of(context).textTheme.bodySmall),
       ),
-      data: (hospitals) => hospitals.isEmpty
-          ? _SyncEmptyState(
-              message: 'No hospitals available',
-              subtitle: 'Sync to download the asset list',
-            )
-          : ListView.separated(
-              itemCount: hospitals.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, indent: 16),
-              itemBuilder: (_, i) => ListTile(
-                leading: const Icon(Icons.local_hospital_outlined,
-                    color: brandTeal),
-                title: Text(hospitals[i],
-                    style: Theme.of(context).textTheme.bodyLarge),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () =>
-                    ref.read(_selectedHospitalProvider.notifier).select(hospitals[i]),
+      data: (hospitals) {
+        if (hospitals.isEmpty) {
+          return _SyncEmptyState(
+            message: 'No hospitals available',
+            subtitle: 'Sync to download the asset list',
+          );
+        }
+
+        final filtered = _query.isEmpty
+            ? hospitals
+            : hospitals
+                .where((h) =>
+                    h.toLowerCase().contains(_query.toLowerCase()))
+                .toList();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: TextField(
+                controller: _searchCtrl,
+                autofocus: false,
+                decoration: const InputDecoration(
+                  hintText: 'Search hospitals…',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => _query = v.trim()),
               ),
             ),
+            const Divider(height: 1),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No hospitals matched',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) =>
+                          const Divider(height: 1, indent: 16),
+                      itemBuilder: (_, i) => ListTile(
+                        leading: const Icon(Icons.local_hospital_outlined,
+                            color: brandTeal),
+                        title: Text(filtered[i],
+                            style: Theme.of(context).textTheme.bodyLarge),
+                        trailing: const Icon(Icons.chevron_right, size: 18),
+                        onTap: () => ref
+                            .read(_selectedHospitalProvider.notifier)
+                            .select(filtered[i]),
+                      ),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

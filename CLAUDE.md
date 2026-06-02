@@ -181,7 +181,8 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | GET | `/certificates/templates?type=<1\|2\|3>` | — | `{ data: [...] }` template headers |
 | GET | `/certificates/templates/:id/items` | — | `{ data: [...] }` test items for template |
 | POST | `/certificates` | cert + outputs payload | `{ id: <TestCertificateID> }` |
-| GET | `/certificates/history?technician_id=<id>&after_id=<cursor>` | — | `{ data: [...] }` certs + embedded outputs for technician |
+| GET | `/certificates/ids?technician_id=<id>` | — | `{ ids: [...] }` all TestCertificateID values for technician (Option B deletion detection) |
+| GET | `/certificates/history?technician_id=<id>&after_id=<cursor>` | — | `{ data: [...] }` certs + embedded outputs for technician (new records only, cursor-based) |
 
 ## Testing
 
@@ -437,11 +438,12 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 **Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface. `TestTemplateItem` has `actualValueTemplate` (maps `TestTempActualValue`) and `noActualRequired` getter — returns `true` when the server value is `'-'`, hiding the Actual field in the test grid.
 
 **Data layer:**
-- `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`
-- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId)`
-- `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)`
-- Sync cursor: `MAX(server_id)` from `test_certificates` — no extra storage needed
+- `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`, `getSyncedServerIds()` (returns all non-null server_ids for Option B diff), `deleteCertificateByServerId()`
+- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId)`, `fetchCertificateIds(technicianId)`
+- `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)` → returns `({List<int> deletedIds, int added})`
+- **Option B pull logic:** fetch all server IDs via `fetchCertificateIds` → diff against `getSyncedServerIds()` → delete orphans → pull new certs by `MAX(server_id)` cursor
 - Locally-created certs (already have `server_id`) are skipped on pull to preserve signatures
+- `pullCertificatesFromRemote` success is logged to `AppSyncLog` with deleted IDs and added count
 
 **Presentation:**
 - `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature

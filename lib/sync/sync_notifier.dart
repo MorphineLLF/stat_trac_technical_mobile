@@ -163,10 +163,25 @@ class SyncNotifier extends _$SyncNotifier {
     };
     if (technicianId > 0) {
       try {
-        await ref
+        final pullResult = await ref
             .read(certificateRepositoryProvider)
             .pullCertificatesFromRemote(technicianId);
         await errorLog.markResolved('pull_certificates');
+        final parts = <String>[];
+        if (pullResult.added > 0) parts.add('${pullResult.added} added');
+        if (pullResult.deletedIds.isNotEmpty) {
+          parts.add(
+            '${pullResult.deletedIds.length} deleted '
+            '(IDs: ${pullResult.deletedIds.join(', ')})',
+          );
+        }
+        await syncRemote.postSyncLog(
+          operation: 'pull_certificates',
+          entity: 'test_certificates',
+          rowCount: pullResult.added + pullResult.deletedIds.length,
+          status: 'success',
+          message: parts.isEmpty ? 'No changes' : parts.join(', '),
+        );
       } on Exception catch (e, st) {
         await errorLog.logError(
           operation: 'pull_certificates',

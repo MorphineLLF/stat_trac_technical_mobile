@@ -19,7 +19,9 @@ abstract class CertificateRepository {
   );
   Future<void> syncTemplatesFromRemote();
 
-  /// Pulls certs and their outputs from the server for the given technician
-  /// that are not yet stored locally. Uses MAX(server_id) as the cursor.
-  Future<void> pullCertificatesFromRemote(int technicianId);
+  /// Pulls certs from the server for the given technician.
+  /// Uses MAX(server_id) as the cursor for new certs, and diffs the full
+  /// server ID set against local to detect and delete orphaned certs.
+  /// Returns the IDs of deleted records and count of added records.
+  Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(int technicianId);
 }

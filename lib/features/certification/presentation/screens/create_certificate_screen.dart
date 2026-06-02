@@ -31,6 +31,15 @@ class _CreateCertificateScreenState
   int? _savedCertId;
   bool _saving = false;
   bool _allActualsValid = false;
+  // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
+  int? _patientSafe;
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   void _pickAsset() async {
     final dataSource = ref.read(certAssetLocalDataSourceProvider);
@@ -54,6 +63,10 @@ class _CreateCertificateScreenState
         testDate: DateTime.now(),
         templateNameId: _selectedTemplate?.id,
         docNo: _selectedTemplate?.docNo,
+        patientSafe: _patientSafe,
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
       );
       final certId = await ref
           .read(certificateRepositoryProvider)
@@ -62,6 +75,15 @@ class _CreateCertificateScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Certificate data saved to device')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -149,22 +171,47 @@ class _CreateCertificateScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (!_allActualsValid && _savedCertId == null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            'All actual values are required before saving.',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontSize: 13),
-                            textAlign: TextAlign.center,
+                      if (_savedCertId == null) ...[
+                        TextField(
+                          controller: _notesController,
+                          decoration: const InputDecoration(
+                            labelText: 'Notes',
+                            hintText: 'Optional certificate notes…',
+                            prefixIcon: Icon(Icons.notes_outlined),
                           ),
+                          maxLength: 200,
+                          maxLines: 2,
+                          minLines: 1,
+                          textInputAction: TextInputAction.done,
                         ),
-                      if (_savedCertId == null)
+                        const SizedBox(height: 8),
+                        _ComplianceSelector(
+                          value: _patientSafe,
+                          onChanged: (v) =>
+                              setState(() => _patientSafe = v),
+                        ),
+                        const SizedBox(height: 8),
+                        if (!_allActualsValid || _patientSafe == null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              [
+                                if (!_allActualsValid)
+                                  'Fill in all test results and actual values.',
+                                if (_patientSafe == null)
+                                  'Select a compliance status.',
+                              ].join(' '),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         FilledButton(
-                          onPressed: _saving || !_allActualsValid
-                              ? null
-                              : _saveCertificate,
+                          onPressed:
+                              _saving || !_allActualsValid || _patientSafe == null
+                                  ? null
+                                  : _saveCertificate,
                           child: _saving
                               ? const SizedBox(
                                   width: 20,
@@ -173,8 +220,8 @@ class _CreateCertificateScreenState
                                       strokeWidth: 2),
                                 )
                               : const Text('Save'),
-                        )
-                      else ...[
+                        ),
+                      ] else ...[
                         Text(
                           'Saved to device ✓',
                           textAlign: TextAlign.center,
@@ -204,6 +251,66 @@ class _CreateCertificateScreenState
             const SizedBox.shrink(),
         ],
       ),
+    );
+  }
+}
+
+// ── Compliance selector ───────────────────────────────────────────────────────
+
+class _ComplianceSelector extends StatelessWidget {
+  const _ComplianceSelector({required this.value, required this.onChanged});
+  final int? value;
+  final ValueChanged<int> onChanged;
+
+  static const _options = [
+    (label: 'Compliant', value: 1, color: Color(0xFF2E7D32)),
+    (label: 'Non-Compliant', value: 0, color: Color(0xFFC62828)),
+    (label: 'Incomplete', value: 2, color: Color(0xFFF57F17)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Compliance Status',
+            style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 6),
+        Row(
+          children: _options.map((opt) {
+            final selected = value == opt.value;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: GestureDetector(
+                  onTap: () => onChanged(opt.value),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: selected ? opt.color : opt.color.withAlpha(22),
+                      border: Border.all(
+                        color: opt.color,
+                        width: selected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      opt.label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? Colors.white : opt.color,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

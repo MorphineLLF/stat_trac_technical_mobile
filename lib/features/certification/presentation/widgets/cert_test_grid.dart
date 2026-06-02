@@ -345,7 +345,8 @@ class _TestItemRow extends StatelessWidget {
             children: [
               _ResultChip(
                 label: 'Pass',
-                color: Colors.green,
+                icon: Icons.check_circle,
+                color: const Color(0xFF2E7D32),
                 selected: state.pass,
                 onTap: () => onChanged(_OutputState()
                   ..actualValue = state.actualValue
@@ -354,10 +355,11 @@ class _TestItemRow extends StatelessWidget {
                   ..fail = false
                   ..na = false),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               _ResultChip(
                 label: 'Fail',
-                color: brandError,
+                icon: Icons.cancel,
+                color: const Color(0xFFC62828),
                 selected: state.fail,
                 onTap: () => onChanged(_OutputState()
                   ..actualValue = state.actualValue
@@ -366,10 +368,11 @@ class _TestItemRow extends StatelessWidget {
                   ..fail = !state.fail
                   ..na = false),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               _ResultChip(
                 label: 'N/A',
-                color: brandGrey,
+                icon: Icons.remove_circle,
+                color: const Color(0xFF37474F),
                 selected: state.na,
                 onTap: () => onChanged(_OutputState()
                   ..actualValue = state.actualValue
@@ -426,33 +429,44 @@ class _TestItemRow extends StatelessWidget {
 class _ResultChip extends StatelessWidget {
   const _ResultChip({
     required this.label,
+    required this.icon,
     required this.color,
     required this.selected,
     required this.onTap,
   });
   final String label;
+  final IconData icon;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final fg = selected ? Colors.white : color;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? color : color.withAlpha(20),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color, width: selected ? 0 : 1.5),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : color,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: fg),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );
