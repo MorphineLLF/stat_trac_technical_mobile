@@ -2,6 +2,7 @@ import '../entities/test_template_name.dart';
 import '../entities/test_template_item.dart';
 import '../entities/test_certificate.dart';
 import '../entities/test_output.dart';
+import '../entities/test_equipment_selection.dart';
 
 abstract class CertificateRepository {
   Future<List<TestTemplateName>> getTemplatesByType(CertType type);
@@ -9,6 +10,7 @@ abstract class CertificateRepository {
   Future<int> issueCertificate({
     required TestCertificate cert,
     required List<TestOutput> outputs,
+    List<TestEquipmentSelection> equipment = const [],
   });
   Future<int> pushPendingCertificates();
   Future<void> updateSignatures(
@@ -24,4 +26,8 @@ abstract class CertificateRepository {
   /// server ID set against local to detect and delete orphaned certs.
   /// Returns the IDs of deleted records and count of added records.
   Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(int technicianId);
+
+  /// Fetches test equipment asset list from the server and upserts locally.
+  /// Returns the number of assets synced.
+  Future<int> syncTestEquipmentAssets();
 }

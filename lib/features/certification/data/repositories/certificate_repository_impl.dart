@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../domain/entities/test_certificate.dart';
+import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_template_name.dart';
@@ -29,6 +30,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
   Future<int> issueCertificate({
     required TestCertificate cert,
     required List<TestOutput> outputs,
+    List<TestEquipmentSelection> equipment = const [],
   }) async {
     final certModel = TestCertificateModel(
       id: 0,
@@ -51,6 +53,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
       clientName: cert.clientName,
       notes: cert.notes,
       patientSafe: cert.patientSafe,
+      certName: cert.certName,
     );
     final certId = await local.saveCertificate(certModel);
 
@@ -71,6 +74,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
         .toList();
 
     await local.saveOutputs(outputModels);
+    await local.saveEquipmentSelections(certId, equipment);
     return certId;
   }
 
@@ -87,6 +91,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
 
   Future<void> _pushSingleCertificate(TestCertificate cert) async {
     final outputs = await local.getOutputsByCertId(cert.id);
+    final equipment = await local.getEquipmentForCert(cert.id);
     final payload = {
       'asset_id': cert.assetId,
       'cert_type': cert.certType,
@@ -104,6 +109,16 @@ class CertificateRepositoryImpl implements CertificateRepository {
       'client_name': cert.clientName,
       'patient_safe': cert.patientSafe,
       'notes': cert.notes,
+      'test_equipment': equipment
+          .map((e) => {
+                'asset_id': e.assetId,
+                'serial_no': e.serialNo,
+                'model': e.model,
+                'manufacturer': e.manufacturer,
+                'cal_date': e.calDate,
+              })
+          .toList(),
+      'description': cert.certName,
       'outputs': outputs
           .map((o) => {
                 'description_id': o.descriptionId,
@@ -203,5 +218,12 @@ class CertificateRepositoryImpl implements CertificateRepository {
     }
 
     return (deletedIds: deletedIds, added: added);
+  }
+
+  @override
+  Future<int> syncTestEquipmentAssets() async {
+    final assets = await remote.fetchTestEquipmentAssets();
+    await local.upsertTestEquipmentAssets(assets);
+    return assets.length;
   }
 }
