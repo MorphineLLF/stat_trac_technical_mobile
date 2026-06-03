@@ -9,6 +9,7 @@ import '../../data/datasources/cert_local_data_source.dart';
 import '../../data/datasources/cert_remote_data_source.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../data/repositories/certificate_repository_impl.dart';
+import '../../domain/entities/test_equipment_asset.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_template_name.dart';
@@ -62,3 +63,7 @@ Future<CertificateSummary?> certificateSummary(Ref ref, int id) =>
 @riverpod
 Future<List<TestOutput>> certOutputs(Ref ref, int certId) =>
     ref.watch(certLocalDataSourceProvider).getOutputsByCertId(certId);
+
+@riverpod
+Future<List<TestEquipmentAsset>> testEquipmentAssets(Ref ref) =>
+    ref.watch(certLocalDataSourceProvider).getTestEquipmentAssets();

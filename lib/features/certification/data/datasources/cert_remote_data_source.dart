@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/test_certificate_model.dart';
+import '../models/test_equipment_asset_model.dart';
 import '../models/test_output_model.dart';
 import '../models/test_template_name_model.dart';
 import '../models/test_template_item_model.dart';
@@ -25,6 +26,9 @@ abstract interface class CertRemoteDataSource {
   /// `GET /certificates/ids?technician_id=:id`
   /// Returns all TestCertificateID values for the technician on the server.
   Future<List<int>> fetchCertificateIds(int technicianId);
+
+  /// GET /assets/test-equipment
+  Future<List<TestEquipmentAssetModel>> fetchTestEquipmentAssets();
 }
 
 class CertRemoteDataSourceImpl implements CertRemoteDataSource {
@@ -89,5 +93,13 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
       queryParameters: {'technician_id': technicianId},
     );
     return ((response.data['ids'] as List?) ?? []).cast<int>();
+  }
+
+  @override
+  Future<List<TestEquipmentAssetModel>> fetchTestEquipmentAssets() async {
+    final response = await _dio.get('/assets/test-equipment');
+    final data = ((response.data['data'] as List?) ?? [])
+        .cast<Map<String, dynamic>>();
+    return data.map(TestEquipmentAssetModel.fromJson).toList();
   }
 }

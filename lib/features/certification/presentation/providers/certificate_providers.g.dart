@@ -590,3 +590,45 @@ final class CertOutputsFamily extends $Family
   @override
   String toString() => r'certOutputsProvider';
 }
+
+@ProviderFor(testEquipmentAssets)
+final testEquipmentAssetsProvider = TestEquipmentAssetsProvider._();
+
+final class TestEquipmentAssetsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<TestEquipmentAsset>>,
+          List<TestEquipmentAsset>,
+          FutureOr<List<TestEquipmentAsset>>
+        >
+    with
+        $FutureModifier<List<TestEquipmentAsset>>,
+        $FutureProvider<List<TestEquipmentAsset>> {
+  TestEquipmentAssetsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'testEquipmentAssetsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$testEquipmentAssetsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<TestEquipmentAsset>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<TestEquipmentAsset>> create(Ref ref) {
+    return testEquipmentAssets(ref);
+  }
+}
+
+String _$testEquipmentAssetsHash() =>
+    r'f34aaf8e8ceae4b32cfe6b2a69671682d31f8b9f';
