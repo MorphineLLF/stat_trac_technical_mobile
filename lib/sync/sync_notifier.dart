@@ -131,6 +131,35 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
+    // Step 5.5 — test equipment assets (~68%)
+    state = const SyncInProgress(progress: 0.68, message: 'Syncing test equipment…');
+    try {
+      final equipCount =
+          await ref.read(certificateRepositoryProvider).syncTestEquipmentAssets();
+      await syncRemote.postSyncLog(
+        operation: 'sync_test_equipment',
+        entity: 'test_equipment_assets',
+        rowCount: equipCount,
+        status: 'success',
+        message: 'Synced $equipCount test equipment assets',
+      );
+      await errorLog.markResolved('sync_test_equipment');
+    } on Exception catch (e, st) {
+      await errorLog.logError(
+        operation: 'sync_test_equipment',
+        entityTable: 'test_equipment_assets',
+        errorMessage: e.toString(),
+        stackTrace: st.toString(),
+      );
+      await syncRemote.postSyncLog(
+        operation: 'sync_test_equipment',
+        entity: 'test_equipment_assets',
+        rowCount: 0,
+        status: 'error',
+        message: e.toString(),
+      );
+    }
+
     state = const SyncInProgress(progress: 0.80, message: 'Uploading certificates...');
 
     // Push pending certificates to the server.

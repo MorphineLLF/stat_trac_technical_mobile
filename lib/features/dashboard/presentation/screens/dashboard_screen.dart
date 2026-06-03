@@ -104,19 +104,62 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
-            if (syncState is SyncComplete) ...[
-              const SizedBox(height: 2),
-              _SyncDonePill(lastSyncedAt: syncState.lastSyncedAt),
-            ],
-          ],
-        ),
+        title: Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
         actions: [
-          _SyncStatusLabel(syncState: syncState),
+          if (syncState is SyncInProgress)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Tooltip(
+                message: syncState.message,
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: syncState.progress),
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
+                    builder: (_, p, _) => Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: p,
+                          strokeWidth: 3,
+                          color: Colors.white,
+                          backgroundColor: Colors.white24,
+                        ),
+                        SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        Text(
+                          '${(p * 100).round()}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (syncState is SyncError)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.error_outline,
+                  size: 20, color: Theme.of(context).colorScheme.error),
+            ),
+          if (syncState is SyncComplete)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: _SyncDonePill(lastSyncedAt: syncState.lastSyncedAt),
+            ),
           Badge(
             isLabelVisible: badgeCount > 0,
             label: Text('$badgeCount'),
@@ -208,7 +251,7 @@ class _HomeBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const _QuickActionsGrid(),
+          const _ModuleGrid(),
         ],
       ),
     );
@@ -499,208 +542,190 @@ class _KpiTile extends StatelessWidget {
   }
 }
 
-// ── Quick actions grid ────────────────────────────────────────────────────────
+// ── Module grid ───────────────────────────────────────────────────────────────
 
-class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid();
+class _TileAction {
+  const _TileAction({required this.label, required this.icon, this.destination});
+  final String label;
+  final IconData icon;
+  final WidgetBuilder? destination;
+}
+
+class _ModuleGrid extends StatelessWidget {
+  const _ModuleGrid();
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.8,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        _QuickActionTile(
-          icon: Icons.list_alt_outlined,
-          label: 'Worklist',
-          color: brandTeal,
-          destination: (_) => const WorkOrderListScreen(),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ModuleTile(
+                  icon: Icons.list_alt_outlined,
+                  label: 'Worklist',
+                  color: brandTeal,
+                  actions: [
+                    _TileAction(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      destination: (_) => const WorkOrderListScreen(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModuleTile(
+                  icon: Icons.build_outlined,
+                  label: 'Work Order',
+                  color: const Color(0xFF1565C0),
+                  actions: [
+                    _TileAction(
+                      label: 'Create',
+                      icon: Icons.add_circle_outline,
+                      destination: (_) => const CreateWorkOrderScreen(),
+                    ),
+                    _TileAction(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      destination: (_) => const WorkOrderListScreen(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        _QuickActionTile(
-          icon: Icons.add_circle_outline,
-          label: 'Create Work Order',
-          color: brandTeal,
-          destination: (_) => const CreateWorkOrderScreen(),
-        ),
-        const _QuickActionTile(
-          icon: Icons.assignment_outlined,
-          label: 'Create PM Order',
-          color: brandTeal,
-        ),
-        _QuickActionTile(
-          icon: Icons.verified_outlined,
-          label: 'Create Certificate',
-          color: brandTeal,
-          destination: (_) => const CreateCertificateScreen(),
-        ),
-        _QuickActionTile(
-          icon: Icons.workspace_premium_outlined,
-          label: 'View Certificates',
-          color: brandTeal,
-          destination: (_) => const CertificateListScreen(),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ModuleTile(
+                  icon: Icons.assignment_outlined,
+                  label: 'PM Work Order',
+                  color: const Color(0xFF2E7D32),
+                  actions: [
+                    _TileAction(label: 'Create', icon: Icons.add_circle_outline),
+                    _TileAction(label: 'View', icon: Icons.visibility_outlined),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModuleTile(
+                  icon: Icons.verified_outlined,
+                  label: 'Certificate',
+                  color: const Color(0xFF00838F),
+                  actions: [
+                    _TileAction(
+                      label: 'Create',
+                      icon: Icons.add_circle_outline,
+                      destination: (_) => const CreateCertificateScreen(),
+                    ),
+                    _TileAction(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      destination: (_) => const CertificateListScreen(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({
+class _ModuleTile extends StatelessWidget {
+  const _ModuleTile({
     required this.icon,
     required this.label,
     required this.color,
-    this.destination,
+    required this.actions,
   });
   final IconData icon;
   final String label;
   final Color color;
-  final WidgetBuilder? destination;
+  final List<_TileAction> actions;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: color.withAlpha(20),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          if (destination != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: destination!));
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$label — coming soon')),
-            );
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withAlpha(60)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        border: Border.all(color: color.withAlpha(60)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Icon(icon, size: 24, color: color),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(color: color),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(color: color, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (int i = 0; i < actions.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(child: _ActionButton(action: actions[i], color: color)),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── AppBar: sync status label ─────────────────────────────────────────────────
-
-class _SyncStatusLabel extends StatelessWidget {
-  const _SyncStatusLabel({required this.syncState});
-  final SyncState syncState;
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.action, required this.color});
+  final _TileAction action;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return switch (syncState) {
-      SyncInProgress(:final progress, :final message) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Tooltip(
-            message: message,
-            child: SizedBox(
-              width: 38,
-              height: 38,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(end: progress),
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOut,
-                builder: (_, p, _) => Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer ring — actual progress, animates between pages.
-                    CircularProgressIndicator(
-                      value: p,
-                      strokeWidth: 3,
-                      color: Colors.white,
-                      backgroundColor: Colors.white24,
-                    ),
-                    // Inner ring — always spinning so it's clear we're not frozen.
-                    SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: Colors.white38,
-                      ),
-                    ),
-                    Text(
-                      '${(p * 100).round()}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      SyncComplete(:final lastSyncedAt) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle_outline,
-                  size: 14, color: Color(0xFF4CAF50)),
-              const SizedBox(width: 4),
-              Text(
-                DateFormat('dd MMM HH:mm').format(lastSyncedAt),
-                style: const TextStyle(fontSize: 12, color: Color(0xFF4CAF50)),
-              ),
-            ],
-          ),
-        ),
-      SyncError(:final lastSyncedAt) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline,
-                  size: 14, color: Theme.of(context).colorScheme.error),
-              const SizedBox(width: 4),
-              Text(
-                lastSyncedAt != null
-                    ? 'Sync failed · ${DateFormat('dd MMM HH:mm').format(lastSyncedAt)}'
-                    : 'Sync failed',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-          ),
-        ),
-      _ => const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'Not synced',
-            style: TextStyle(fontSize: 12, color: Colors.white60),
-          ),
-        ),
-    };
+    return OutlinedButton.icon(
+      onPressed: () {
+        if (action.destination != null) {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: action.destination!));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${action.label} — coming soon')),
+          );
+        }
+      },
+      icon: Icon(action.icon, size: 14),
+      label: Text(action.label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withAlpha(120)),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        minimumSize: const Size(0, 32),
+        textStyle: const TextStyle(fontSize: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 }
 
@@ -711,10 +736,11 @@ class _SyncErrorSheet extends ConsumerWidget {
   final VoidCallback onRetry;
 
   static const _labels = <String, String>{
-    'sync_assets':       'Asset sync failed',
-    'sync_templates':    'Template sync failed',
-    'push_certificates': 'Certificate upload failed',
-    'pull_certificates': 'Certificate download failed',
+    'sync_assets':         'Asset sync failed',
+    'sync_templates':      'Template sync failed',
+    'sync_test_equipment': 'Test equipment sync failed',
+    'push_certificates':   'Certificate upload failed',
+    'pull_certificates':   'Certificate download failed',
   };
 
   @override
@@ -843,22 +869,22 @@ class _SyncDonePill extends StatelessWidget {
   Widget build(BuildContext context) {
     final time = DateFormat('HH:mm').format(lastSyncedAt.toLocal());
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.green.withAlpha(40),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.green.withAlpha(100)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, size: 10, color: Colors.green[700]),
-          const SizedBox(width: 4),
+          Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
+          const SizedBox(width: 5),
           Text(
             'Synced $time',
             style: TextStyle(
               color: Colors.green[700],
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
