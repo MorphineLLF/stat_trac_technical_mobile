@@ -9,13 +9,14 @@ import 'migrations/migration_007_template_items_actual.dart';
 import 'migrations/migration_008_cert_compliance.dart';
 import 'migrations/migration_009_sync_metadata.dart';
 import 'migrations/migration_010_cert_name.dart';
+import 'migrations/migration_011_cert_details.dart';
 
 class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static const _dbName = 'stat_trac_technical.db';
-  static const _dbVersion = 10;
+  static const _dbVersion = 11;
 
   Database? _db;
 
@@ -43,6 +44,7 @@ class DatabaseHelper {
     await migration008CertCompliance(db);
     await migration009SyncMetadata(db);
     await migration010CertName(db);
+    await migration011CertDetails(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -54,6 +56,7 @@ class DatabaseHelper {
     if (oldVersion < 8) await migration008CertCompliance(db);
     if (oldVersion < 9) await migration009SyncMetadata(db);
     if (oldVersion < 10) await migration010CertName(db);
+    if (oldVersion < 11) await migration011CertDetails(db);
   }
 
   Future<void> close() async {
