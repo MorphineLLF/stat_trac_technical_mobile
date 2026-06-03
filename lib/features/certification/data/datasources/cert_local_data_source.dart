@@ -327,14 +327,16 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   Future<void> upsertTestEquipmentAssets(
       List<TestEquipmentAssetModel> assets) async {
     final db = await _db.database;
-    await db.delete('test_equipment_assets');
-    if (assets.isEmpty) return;
-    final batch = db.batch();
-    for (final a in assets) {
-      batch.insert('test_equipment_assets', a.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
-    }
-    await batch.commit(noResult: true);
+    await db.transaction((txn) async {
+      await txn.delete('test_equipment_assets');
+      if (assets.isEmpty) return;
+      final batch = txn.batch();
+      for (final a in assets) {
+        batch.insert('test_equipment_assets', a.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   @override

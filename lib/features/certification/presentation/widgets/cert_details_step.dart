@@ -38,6 +38,16 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
     _equipment = List.from(widget.initialEquipment);
   }
 
+  @override
+  void didUpdateWidget(covariant CertDetailsStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.template.testEquipQty != widget.template.testEquipQty) {
+      setState(() {
+        _equipment = List.filled(widget.template.testEquipQty, null);
+      });
+    }
+  }
+
   bool get _isValid =>
       widget.template.testEquipQty == 0 ||
       (_equipment.length == widget.template.testEquipQty &&
@@ -178,7 +188,7 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
             ),
           ],
 
-          const Spacer(),
+          const SizedBox(height: 24),
           FilledButton(
             onPressed: _isValid ? widget.onNext : null,
             child: Text(_isValid

@@ -144,6 +144,7 @@ class SyncNotifier extends _$SyncNotifier {
         message: 'Synced $equipCount test equipment assets',
       );
       await errorLog.markResolved('sync_test_equipment');
+      ref.invalidate(testEquipmentAssetsProvider);
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'sync_test_equipment',
