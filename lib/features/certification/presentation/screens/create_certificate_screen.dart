@@ -4,10 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../assets/domain/entities/asset.dart';
 import '../../../assets/presentation/widgets/asset_picker_dialog.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
 import '../../domain/entities/test_certificate.dart';
+import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../providers/certificate_providers.dart';
+import '../widgets/cert_details_step.dart';
 import '../widgets/cert_signature_step.dart';
 import '../widgets/cert_template_picker.dart';
 import '../widgets/cert_test_grid.dart';
@@ -31,6 +35,8 @@ class _CreateCertificateScreenState
   int? _savedCertId;
   bool _saving = false;
   bool _allActualsValid = false;
+  DateTime _testDate = DateTime.now();
+  List<TestEquipmentSelection?> _equipment = [];
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   int? _patientSafe;
   final _notesController = TextEditingController();
@@ -49,28 +55,41 @@ class _CreateCertificateScreenState
 
   void _goToStep(int step) => setState(() => _step = step);
 
+  bool get _shouldShowDetailsStep =>
+      _selectedTemplate != null &&
+      (_selectedTemplate!.editDate || _selectedTemplate!.testEquipQty > 0);
+
   // Saves cert + outputs to local SQLite (no signatures yet).
   Future<void> _saveCertificate() async {
     if (_saving) return;
     setState(() => _saving = true);
     try {
+      final authState = ref.read(authProvider);
+      final user = authState is AuthAuthenticated ? authState.user : null;
       final cert = TestCertificate(
         id: 0,
         certType: TestTemplateName.typeToInt(_selectedType!),
         syncStatus: 'pending',
         createdAt: DateTime.now(),
         assetId: _selectedAsset?.assetId,
-        testDate: DateTime.now(),
+        testDate: _testDate,
         templateNameId: _selectedTemplate?.id,
         docNo: _selectedTemplate?.docNo,
         patientSafe: _patientSafe,
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        technician: user?.name,
+        technicianId: user?.id,
+        certName: _selectedTemplate?.certName,
       );
       final certId = await ref
           .read(certificateRepositoryProvider)
-          .issueCertificate(cert: cert, outputs: _outputs);
+          .issueCertificate(
+            cert: cert,
+            outputs: _outputs,
+            equipment: _equipment.whereType<TestEquipmentSelection>().toList(),
+          );
       setState(() => _savedCertId = certId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +137,13 @@ class _CreateCertificateScreenState
         leading: BackButton(
           onPressed: _step == 0
               ? () => Navigator.of(context).pop()
-              : () => _goToStep(_step - 1),
+              : () {
+                  if (_step == 4 && !_shouldShowDetailsStep) {
+                    _goToStep(2);
+                  } else {
+                    _goToStep(_step - 1);
+                  }
+                },
         ),
       ),
       body: IndexedStack(
@@ -132,13 +157,11 @@ class _CreateCertificateScreenState
             },
           ),
 
-          // Step 1: asset picker prompt
+          // Step 1: asset picker
           _AssetPickStep(
             selectedAsset: _selectedAsset,
             onPickTap: _pickAsset,
-            onNext: _selectedAsset != null
-                ? () => _goToStep(2)
-                : null,
+            onNext: _selectedAsset != null ? () => _goToStep(2) : null,
           ),
 
           // Step 2: template picker
@@ -146,14 +169,32 @@ class _CreateCertificateScreenState
             CertTemplatePicker(
               certType: _selectedType!,
               onSelected: (t) {
-                setState(() => _selectedTemplate = t);
-                _goToStep(3);
+                setState(() {
+                  _selectedTemplate = t;
+                  _equipment = List.filled(t.testEquipQty, null);
+                });
+                _goToStep(_shouldShowDetailsStep ? 3 : 4);
               },
             )
           else
             const SizedBox.shrink(),
 
-          // Step 3: test items grid
+          // Step 3: certificate details (NEW)
+          if (_selectedTemplate != null)
+            CertDetailsStep(
+              template: _selectedTemplate!,
+              initialDate: _testDate,
+              initialEquipment: _equipment,
+              onChanged: (date, equip) => setState(() {
+                _testDate = date;
+                _equipment = equip;
+              }),
+              onNext: () => _goToStep(4),
+            )
+          else
+            const SizedBox.shrink(),
+
+          // Step 4: test items grid (was step 3)
           if (_selectedTemplate != null && _selectedAsset != null)
             Column(
               children: [
@@ -187,8 +228,7 @@ class _CreateCertificateScreenState
                         const SizedBox(height: 8),
                         _ComplianceSelector(
                           value: _patientSafe,
-                          onChanged: (v) =>
-                              setState(() => _patientSafe = v),
+                          onChanged: (v) => setState(() => _patientSafe = v),
                         ),
                         const SizedBox(height: 8),
                         if (!_allActualsValid || _patientSafe == null)
@@ -208,16 +248,16 @@ class _CreateCertificateScreenState
                             ),
                           ),
                         FilledButton(
-                          onPressed:
-                              _saving || !_allActualsValid || _patientSafe == null
-                                  ? null
-                                  : _saveCertificate,
+                          onPressed: _saving ||
+                                  !_allActualsValid ||
+                                  _patientSafe == null
+                              ? null
+                              : _saveCertificate,
                           child: _saving
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Text('Save'),
                         ),
@@ -229,7 +269,7 @@ class _CreateCertificateScreenState
                         ),
                         const SizedBox(height: 8),
                         FilledButton(
-                          onPressed: () => _goToStep(4),
+                          onPressed: () => _goToStep(5),
                           child: const Text('Sign Certificate'),
                         ),
                       ],
@@ -241,7 +281,7 @@ class _CreateCertificateScreenState
           else
             const SizedBox.shrink(),
 
-          // Step 4: signatures
+          // Step 5: signatures (was step 4)
           if (_selectedTemplate != null)
             CertSignatureStep(
               requiresCustomerSig: _selectedTemplate!.customerSigRequired,
