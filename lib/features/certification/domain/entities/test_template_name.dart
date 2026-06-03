@@ -10,6 +10,9 @@ class TestTemplateName {
     this.templateName,
     this.certName,
     this.customerSigRequired = false,
+    this.editDate = false,
+    this.nextService = false,
+    this.testEquipQty = 0,
     this.docNo,
     this.note,
     this.lastSyncedAt,
@@ -20,6 +23,9 @@ class TestTemplateName {
   final String? templateName;
   final String? certName;
   final bool customerSigRequired;
+  final bool editDate;
+  final bool nextService;
+  final int testEquipQty;
   final String? docNo;
   final String? note;
   final DateTime? lastSyncedAt;
