@@ -5,11 +5,14 @@ import '../../domain/entities/test_template_name.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_certificate.dart';
 import '../../domain/entities/test_output.dart';
+import '../../domain/entities/test_equipment_asset.dart';
+import '../../domain/entities/test_equipment_selection.dart';
 import '../models/test_template_name_model.dart';
 import '../models/test_template_item_model.dart';
 import '../models/test_certificate_model.dart';
 import '../models/test_output_model.dart';
 import '../models/certificate_summary.dart';
+import '../models/test_equipment_asset_model.dart';
 
 abstract interface class CertLocalDataSource {
   Future<List<TestTemplateName>> getTemplatesByType(CertType type);
@@ -55,6 +58,19 @@ abstract interface class CertLocalDataSource {
   /// True if any synced cert is missing cert_name — triggers full re-pull
   /// to backfill cert_name from the updated Horse API.
   Future<bool> hasCertsWithNullCertName();
+
+  /// Full-replace upsert of test equipment assets from server sync.
+  Future<void> upsertTestEquipmentAssets(List<TestEquipmentAssetModel> assets);
+
+  /// Returns all test equipment assets ordered by manufacturer.
+  Future<List<TestEquipmentAsset>> getTestEquipmentAssets();
+
+  /// Saves equipment selections to test_cert_equipment for [certId].
+  Future<void> saveEquipmentSelections(
+      int certId, List<TestEquipmentSelection> equipment);
+
+  /// Returns equipment selections for [certId] ordered by slot_no.
+  Future<List<TestEquipmentSelection>> getEquipmentForCert(int certId);
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -305,5 +321,74 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       'WHERE server_id IS NOT NULL AND cert_name IS NULL',
     );
     return ((result.first['c'] as int?) ?? 0) > 0;
+  }
+
+  @override
+  Future<void> upsertTestEquipmentAssets(
+      List<TestEquipmentAssetModel> assets) async {
+    final db = await _db.database;
+    await db.delete('test_equipment_assets');
+    if (assets.isEmpty) return;
+    final batch = db.batch();
+    for (final a in assets) {
+      batch.insert('test_equipment_assets', a.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  @override
+  Future<List<TestEquipmentAsset>> getTestEquipmentAssets() async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'test_equipment_assets',
+      orderBy: 'manufacturer ASC',
+    );
+    return rows.map(TestEquipmentAssetModel.fromMap).toList();
+  }
+
+  @override
+  Future<void> saveEquipmentSelections(
+      int certId, List<TestEquipmentSelection> equipment) async {
+    if (equipment.isEmpty) return;
+    final db = await _db.database;
+    final batch = db.batch();
+    for (var i = 0; i < equipment.length; i++) {
+      final e = equipment[i];
+      batch.insert(
+        'test_cert_equipment',
+        {
+          'certificate_id': certId,
+          'slot_no': i + 1,
+          'asset_id': e.assetId,
+          'manufacturer': e.manufacturer,
+          'model': e.model,
+          'serial_no': e.serialNo,
+          'cal_date': e.calDate,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  @override
+  Future<List<TestEquipmentSelection>> getEquipmentForCert(int certId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'test_cert_equipment',
+      where: 'certificate_id = ?',
+      whereArgs: [certId],
+      orderBy: 'slot_no ASC',
+    );
+    return rows
+        .map((r) => TestEquipmentSelection(
+              assetId: r['asset_id'] as int,
+              manufacturer: r['manufacturer'] as String?,
+              model: r['model'] as String?,
+              serialNo: r['serial_no'] as String?,
+              calDate: r['cal_date'] as String?,
+            ))
+        .toList();
   }
 }
