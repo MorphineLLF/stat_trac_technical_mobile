@@ -1,7 +1,7 @@
 # Certificate PDF Generation — Delphi Changes
 
-**Date:** 2026-06-03  
-**Status:** In progress — FastReport dataset connection under investigation
+**Date:** 2026-06-04  
+**Status:** Working ✅
 
 ---
 
@@ -72,24 +72,33 @@ The `.fr3` template references two datasets:
 - `DataSet="CertDataset1"` / `DataSetName="Certification"`
 - `DataSet="CertDataset2"` / `DataSetName="Analyser"`
 
-Current approach (fix 3 — confirmed generating correct PDF for cert 5030 at 16:21 on 2026-06-03):
+Correct approach (confirmed working 2026-06-04 — all cert IDs):
 
 ```pascal
-LReport := TfrxReport.Create(LOwner);
-LReport.LoadFromFile(PDF_TEMPLATE);
-
-LCertDS := TfrxDBDataSet.Create(LReport);  // owned by report
+// 1. Create wrappers BEFORE LoadFromFile
+LCertDS := TfrxDBDataSet.Create(LOwner);
 LCertDS.Name     := 'CertDataset1';
 LCertDS.UserName := 'Certification';
 LCertDS.DataSet  := LCertQ;
 
-LAnalyserDS := TfrxDBDataSet.Create(LReport);
+LAnalyserDS := TfrxDBDataSet.Create(LOwner);
 LAnalyserDS.Name     := 'CertDataset2';
 LAnalyserDS.UserName := 'Analyser';
 LAnalyserDS.DataSet  := LAnalyserQ;
+
+LReport := TfrxReport.Create(LOwner);
+LReport.LoadFromFile(PDF_TEMPLATE);
+
+// 2. LoadFromFile creates stub TfrxDataSetItems with DataSet=nil.
+//    Find them by UserName and wire to the live wrappers.
+var LCertItem := LReport.DataSets.Find('Certification');
+if Assigned(LCertItem) then LCertItem.DataSet := LCertDS;
+
+var LAnalyserItem := LReport.DataSets.Find('Analyser');
+if Assigned(LAnalyserItem) then LAnalyserItem.DataSet := LAnalyserDS;
 ```
 
-**Known issue:** Some cert IDs produce a blank 946-byte PDF (datasets not connecting). Investigation ongoing. The exact FastReport API for programmatic dataset registration in this version (2026.2.0) is not yet confirmed.
+**Why this works:** The .fr3 `<Datasets>` section is a reference list, not serialized components. `LoadFromFile` calls `TfrxReportDataSets.Add(AName)` for each entry, producing stubs where `DataSet = nil`. `TfrxDBDataSet.Create(LReport)` only sets Delphi ownership — it does NOT register the dataset in `LReport.DataSets`. The correct API is `LReport.DataSets.Find(UserName)` which returns a `TfrxDataSetItem` whose published `DataSet` property can be set directly.
 
 ### Response
 
