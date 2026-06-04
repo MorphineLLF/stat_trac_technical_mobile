@@ -288,7 +288,7 @@ Work in this order. Each phase builds on the previous.
 - Badge on sync icon → count of unresolved errors; **tap opens `_SyncErrorSheet`** (human-readable operation labels, error message, time ago, Retry button); tapping sync icon with no errors triggers sync directly
 
 ### Database foundation
-- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 5**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
+- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 10**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
 - `lib/database/migrations/migration_001_work_orders.dart` — §5.1 tables + `change_log`
 - `lib/database/migrations/migration_002_assets.dart` — original `assets` table (superseded by migration_003)
 - `lib/database/migrations/migration_003_assets_v2.dart` — rebuilds `assets` with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue)
@@ -322,6 +322,38 @@ Work in this order. Each phase builds on the previous.
 **WO creation business rule** (§BR-9):
 - CM created by technician: `initialStatus = WoStatus.inProgress`, `startedAt = now` (no dispatcher approval)
 - All other types: `initialStatus = WoStatus.created` (goes to dispatcher queue)
+
+### Certification module ✅
+
+**SQLite tables (migration_005):** `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs`
+
+**Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface. `TestTemplateItem` has `actualValueTemplate` (maps `TestTempActualValue`) and `noActualRequired` getter — returns `true` when the server value is `'-'`, hiding the Actual field in the test grid.
+
+**Data layer:**
+- `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`, `getSyncedServerIds()` (returns all non-null server_ids for Option B diff), `deleteCertificateByServerId()`
+- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId, {pageSize=100})`, `fetchCertificateIds(technicianId)`
+- `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)` → returns `({List<int> deletedIds, int added})`
+- **Option B pull logic:** fetch all server IDs → diff → delete orphans → paginated history pull (100/page) advancing cursor per page
+- `hasCertsWithNullCertName()` triggers cursor=0 (full re-pull) for one-time cert_name backfill
+- `insertCertificateFromServer` updates `cert_name` for existing certs missing it; skips re-inserting cert + outputs
+- `pullCertificatesFromRemote` success logged to `AppSyncLog` with deleted IDs and added count
+- **`cert_name` column** (`test_certificates`) — resolved template cert name from Horse API; avoids broken JOIN on historical certs where `TestType=0`
+
+**Presentation:**
+- `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature
+- `certificate_list_screen.dart` — all certs newest first, type chip, pending badge; reads from local SQLite
+- `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`; AppBar has **View PDF** and **Email** action buttons (enabled only when `cert.serverId != null`). View PDF downloads via `GET /certificates/:id/pdf`, caches to `{cacheDir}/certs/cert_{id}.pdf`, opens with `open_file`. Email opens a dialog for recipient address then calls `POST /certificates/:id/email`.
+- `certificate_providers.dart` — `certificateListProvider`, `certificateSummaryProvider`, `certOutputsProvider`, `templatesByTypeProvider`, `templateItemsProvider`
+
+**Android FileProvider** (required by `open_file` to share internal cache files with PDF viewer apps):
+- `android/app/src/main/AndroidManifest.xml` — `<provider>` declared with authority `${applicationId}.file_provider`
+- `android/app/src/main/res/xml/file_paths.xml` — exposes `cache-path` to FileProvider
+
+**Horse API PostgreSQL tables:**
+- `"TestTemplateName"` — 62 templates; key: `TestTemplateNameID`, `TestTemplateType` (1=Test/OVP, 2=QA, 3=Commission)
+- `"TestTemplate"` — 1773 items; FK: `TestTempCertificateNameID`
+- `"TestCertificate"` — completed certs; key: `TestCertificateID`, `TestTechID`, `TestCertType` (template FK), `TestType` (cert category)
+- `"TestOutput"` — test result rows; FK: `TestOutputCertID`
 
 ### Infrastructure
 - `lib/api/auth_interceptor.dart` — JWT injection, auto-refresh on 401
@@ -456,38 +488,6 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
 - `android/build.gradle.kts` — remove `isar_flutter_libs` AGP 8.x namespace patch once `offline_sync_kit` upgrades past `isar_flutter_libs 3.1.0+1`
-
-### Certification module ✅
-
-**SQLite tables (migration_005):** `test_template_names`, `test_template_items`, `test_certificates`, `test_outputs`
-
-**Domain:** `lib/features/certification/domain/` — `TestTemplateName`, `TestTemplateItem`, `TestCertificate`, `TestOutput` entities; `CertificateRepository` interface. `TestTemplateItem` has `actualValueTemplate` (maps `TestTempActualValue`) and `noActualRequired` getter — returns `true` when the server value is `'-'`, hiding the Actual field in the test grid.
-
-**Data layer:**
-- `cert_local_data_source.dart` — template CRUD, cert save/load, `getMaxServerId()`, `insertCertificateFromServer()`, `insertOutputsForCert()`, `getSyncedServerIds()` (returns all non-null server_ids for Option B diff), `deleteCertificateByServerId()`
-- `cert_remote_data_source.dart` — `fetchTemplates(type)`, `fetchTemplateItems(id)`, `pushCertificate(payload)`, `fetchCertificateHistory(technicianId, afterId, {pageSize=100})`, `fetchCertificateIds(technicianId)`
-- `certificate_repository_impl.dart` — `syncTemplatesFromRemote()`, `pushPendingCertificates()`, `pullCertificatesFromRemote(technicianId)` → returns `({List<int> deletedIds, int added})`
-- **Option B pull logic:** fetch all server IDs → diff → delete orphans → paginated history pull (100/page) advancing cursor per page
-- `hasCertsWithNullCertName()` triggers cursor=0 (full re-pull) for one-time cert_name backfill
-- `insertCertificateFromServer` updates `cert_name` for existing certs missing it; skips re-inserting cert + outputs
-- `pullCertificatesFromRemote` success logged to `AppSyncLog` with deleted IDs and added count
-- **`cert_name` column** (`test_certificates`) — resolved template cert name from Horse API; avoids broken JOIN on historical certs where `TestType=0`
-
-**Presentation:**
-- `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature
-- `certificate_list_screen.dart` — all certs newest first, type chip, pending badge; reads from local SQLite
-- `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`; AppBar has **View PDF** and **Email** action buttons (enabled only when `cert.serverId != null`). View PDF downloads via `GET /certificates/:id/pdf`, caches to `{cacheDir}/certs/cert_{id}.pdf`, opens with `open_file`. Email opens a dialog for recipient address then calls `POST /certificates/:id/email`.
-- `certificate_providers.dart` — `certificateListProvider`, `certificateSummaryProvider`, `certOutputsProvider`, `templatesByTypeProvider`, `templateItemsProvider`
-
-**Android FileProvider** (required by `open_file` to share internal cache files with PDF viewer apps):
-- `android/app/src/main/AndroidManifest.xml` — `<provider>` declared with authority `${applicationId}.file_provider`
-- `android/app/src/main/res/xml/file_paths.xml` — exposes `cache-path` to FileProvider
-
-**Horse API PostgreSQL tables:**
-- `"TestTemplateName"` — 62 templates; key: `TestTemplateNameID`, `TestTemplateType` (1=Test/OVP, 2=QA, 3=Commission)
-- `"TestTemplate"` — 1773 items; FK: `TestTempCertificateNameID`
-- `"TestCertificate"` — completed certs; key: `TestCertificateID`, `TestTechID`, `TestCertType` (template FK), `TestType` (cert category)
-- `"TestOutput"` — test result rows; FK: `TestOutputCertID`
 
 ## Sync Error Logging ✅
 
