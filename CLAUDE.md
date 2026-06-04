@@ -1,5 +1,15 @@
 # Stat Trac Technical — Project Memory
 
+## ⚠️ MANDATORY — Do This Before Anything Else
+
+**Invoke the superpowers skill at the very start of every session, before any other action:**
+
+```
+Skill("superpowers:using-superpowers")
+```
+
+This is non-negotiable. Do not read files, ask questions, or take any action until this skill has been invoked.
+
 ## IMPORTANT — Read This First
 
 **At the start of every session, read the Nextcloud documentation files before doing anything else.** They are the authoritative reference for architecture, production database schema, Horse API endpoints, and all key decisions. CLAUDE.md is a quick-reference memory only — the full detail lives in Nextcloud.
@@ -196,6 +206,8 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | POST | `/certificates` | cert + outputs payload | `{ id: <TestCertificateID> }` |
 | GET | `/certificates/ids?technician_id=<id>` | — | `{ ids: [...] }` all TestCertificateID values for technician (Option B deletion detection) |
 | GET | `/certificates/history?technician_id=<id>&after_id=<cursor>&page_size=<n>` | — | `{ data: [...] }` certs + embedded outputs, paginated (default 100, max 500); loop advancing after_id until page < page_size |
+| GET | `/certificates/:id/pdf` | — | `{ pdf_b64: "..." }` base64-encoded PDF; Horse API proxies to Stat Trac `GET /cert/pdf/:id?db=<db>` which generates via FastReport |
+| POST | `/certificates/:id/email` | `{ to: "email@..." }` | 204 — server-side SMTP send (not yet implemented in Horse API) |
 
 ## Testing
 
@@ -381,6 +393,7 @@ Local dev server lives at `C:\Delphi\StatTracTechAPI\`. Built with RAD Studio 12
 - `src\WorkOrders.Routes.pas` — GET/POST `/workorders`, POST `/workorders/:id/transition`
 - `src\Assets.Routes.pas` — GET `/assets?since=`
 - `src\Certificates.Routes.pas` — GET `/certificates/templates`, GET `/certificates/templates/:id/items`, POST `/certificates`, GET `/certificates/history`
+- `src\PDF.Routes.pas` — GET `/certificates/:id/pdf` (proxy to Stat Trac `/cert/pdf/:id?db=<db>`); JWT required
 - `src\Sync.Routes.pas` — POST `/sync/log`
 - `src\SyncLog.pas` — `WriteSyncLog` shared procedure
 - `src\Contacts.Routes.pas`, `src\Facilities.Routes.pas`, `src\Issues.Routes.pas`, `src\Visits.Routes.pas` — supplementary endpoints
@@ -463,8 +476,12 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 **Presentation:**
 - `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature
 - `certificate_list_screen.dart` — all certs newest first, type chip, pending badge; reads from local SQLite
-- `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`
+- `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`; AppBar has **View PDF** and **Email** action buttons (enabled only when `cert.serverId != null`). View PDF downloads via `GET /certificates/:id/pdf`, caches to `{cacheDir}/certs/cert_{id}.pdf`, opens with `open_file`. Email opens a dialog for recipient address then calls `POST /certificates/:id/email`.
 - `certificate_providers.dart` — `certificateListProvider`, `certificateSummaryProvider`, `certOutputsProvider`, `templatesByTypeProvider`, `templateItemsProvider`
+
+**Android FileProvider** (required by `open_file` to share internal cache files with PDF viewer apps):
+- `android/app/src/main/AndroidManifest.xml` — `<provider>` declared with authority `${applicationId}.file_provider`
+- `android/app/src/main/res/xml/file_paths.xml` — exposes `cache-path` to FileProvider
 
 **Horse API PostgreSQL tables:**
 - `"TestTemplateName"` — 62 templates; key: `TestTemplateNameID`, `TestTemplateType` (1=Test/OVP, 2=QA, 3=Commission)

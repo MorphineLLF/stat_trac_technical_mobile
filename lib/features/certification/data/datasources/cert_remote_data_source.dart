@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../models/test_certificate_model.dart';
@@ -29,6 +32,12 @@ abstract interface class CertRemoteDataSource {
 
   /// GET /assets/test-equipment
   Future<List<TestEquipmentAssetModel>> fetchTestEquipmentAssets();
+
+  /// GET /certificates/:id/pdf — returns decoded PDF bytes.
+  Future<Uint8List> fetchCertificatePdf(int serverId);
+
+  /// POST /certificates/:id/email — sends the PDF to [toEmail] server-side.
+  Future<void> emailCertificate(int serverId, String toEmail);
 }
 
 class CertRemoteDataSourceImpl implements CertRemoteDataSource {
@@ -101,5 +110,26 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
     final data = ((response.data['data'] as List?) ?? [])
         .cast<Map<String, dynamic>>();
     return data.map(TestEquipmentAssetModel.fromJson).toList();
+  }
+
+  @override
+  Future<Uint8List> fetchCertificatePdf(int serverId) async {
+    final response = await _dio.get('/certificates/$serverId/pdf');
+    final Map<String, dynamic> data;
+    if (response.data is String) {
+      data = jsonDecode(response.data as String) as Map<String, dynamic>;
+    } else {
+      data = response.data as Map<String, dynamic>;
+    }
+    final b64 = data['pdf_b64'] as String;
+    return base64Decode(b64);
+  }
+
+  @override
+  Future<void> emailCertificate(int serverId, String toEmail) async {
+    await _dio.post(
+      '/certificates/$serverId/email',
+      data: {'to': toEmail},
+    );
   }
 }

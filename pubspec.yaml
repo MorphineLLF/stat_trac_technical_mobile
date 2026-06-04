@@ -75,6 +75,12 @@ dependencies:
   # Signature capture (technician + customer signatures)
   signature: ^5.3.0
 
+  # PDF viewing — open cached PDF with native Android viewer
+  open_file: ^3.5.0
+
+  # File system paths — cache directory for downloaded PDFs
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data'; // Uint8List used in fetchCertificatePdf return type
 
 import 'package:dio/dio.dart';
 
@@ -226,4 +227,12 @@ class CertificateRepositoryImpl implements CertificateRepository {
     await local.upsertTestEquipmentAssets(assets);
     return assets.length;
   }
+
+  @override
+  Future<Uint8List> fetchCertificatePdf(int serverId) =>
+      remote.fetchCertificatePdf(serverId);
+
+  @override
+  Future<void> emailCertificate(int serverId, String toEmail) =>
+      remote.emailCertificate(serverId, toEmail);
 }

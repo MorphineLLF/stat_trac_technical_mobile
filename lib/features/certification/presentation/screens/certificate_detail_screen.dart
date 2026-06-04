@@ -1,20 +1,86 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../domain/entities/test_output.dart';
 import '../providers/certificate_providers.dart';
 
-class CertificateDetailScreen extends ConsumerWidget {
+class CertificateDetailScreen extends ConsumerStatefulWidget {
   const CertificateDetailScreen({super.key, required this.certId});
   final int certId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final summaryAsync = ref.watch(certificateSummaryProvider(certId));
-    final outputsAsync = ref.watch(certOutputsProvider(certId));
+  ConsumerState<CertificateDetailScreen> createState() =>
+      _CertificateDetailScreenState();
+}
+
+class _CertificateDetailScreenState
+    extends ConsumerState<CertificateDetailScreen> {
+  bool _loadingPdf = false;
+
+  Future<void> _viewPdf(int serverId) async {
+    setState(() => _loadingPdf = true);
+    try {
+      final cacheDir = await getApplicationCacheDirectory();
+      final certDir = Directory('${cacheDir.path}/certs');
+      if (!certDir.existsSync()) certDir.createSync(recursive: true);
+      final filePath = '${certDir.path}/cert_$serverId.pdf';
+
+      if (!File(filePath).existsSync()) {
+        final bytes = await ref
+            .read(certificateRepositoryProvider)
+            .fetchCertificatePdf(serverId);
+        await File(filePath).writeAsBytes(bytes);
+      }
+
+      final result = await OpenFile.open(filePath);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open PDF: ${result.message}')),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('PDF error: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF error: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingPdf = false);
+    }
+  }
+
+  Future<void> _showEmailDialog(int serverId) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _EmailDialog(
+        serverId: serverId,
+        onSend: (email) async {
+          await ref
+              .read(certificateRepositoryProvider)
+              .emailCertificate(serverId, email);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summaryAsync = ref.watch(certificateSummaryProvider(widget.certId));
+    final outputsAsync = ref.watch(certOutputsProvider(widget.certId));
+
+    final serverId = summaryAsync.asData?.value?.certificateNo;
+    final isSynced = serverId != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -23,6 +89,33 @@ class CertificateDetailScreen extends ConsumerWidget {
           loading: () => const Text('Certificate'),
           error: (_, _) => const Text('Certificate'),
         ),
+        actions: [
+          // ── View PDF ─────────────────────────────────────────
+          Tooltip(
+            message: isSynced ? 'View PDF' : 'Sync first to generate PDF',
+            child: IconButton(
+              icon: _loadingPdf
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.picture_as_pdf_outlined),
+              onPressed:
+                  isSynced && !_loadingPdf ? () => _viewPdf(serverId) : null,
+            ),
+          ),
+          // ── Email ─────────────────────────────────────────────
+          Tooltip(
+            message: isSynced ? 'Email certificate' : 'Sync first to email',
+            child: IconButton(
+              icon: const Icon(Icons.email_outlined),
+              onPressed:
+                  isSynced ? () => _showEmailDialog(serverId) : null,
+            ),
+          ),
+        ],
       ),
       body: summaryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -31,6 +124,99 @@ class CertificateDetailScreen extends ConsumerWidget {
             ? const Center(child: Text('Certificate not found'))
             : _DetailBody(summary: summary, outputsAsync: outputsAsync),
       ),
+    );
+  }
+}
+
+// ── Email dialog ──────────────────────────────────────────────────────────────
+
+class _EmailDialog extends StatefulWidget {
+  const _EmailDialog({required this.serverId, required this.onSend});
+  final int serverId;
+  final Future<void> Function(String email) onSend;
+
+  @override
+  State<_EmailDialog> createState() => _EmailDialogState();
+}
+
+class _EmailDialogState extends State<_EmailDialog> {
+  final _controller = TextEditingController();
+  bool _sending = false;
+  String? _error;
+
+  bool get _valid =>
+      _controller.text.contains('@') && _controller.text.contains('.');
+
+  Future<void> _submit() async {
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await widget.onSend(_controller.text.trim());
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Certificate emailed to ${_controller.text.trim()}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Email Certificate'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Recipient email',
+              hintText: 'name@example.com',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            onChanged: (_) => setState(() {}),
+            enabled: !_sending,
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!,
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.error, fontSize: 12)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _sending ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _valid && !_sending ? _submit : null,
+          child: _sending
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Send'),
+        ),
+      ],
     );
   }
 }

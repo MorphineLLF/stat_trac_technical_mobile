@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../entities/test_template_name.dart';
 import '../entities/test_template_item.dart';
 import '../entities/test_certificate.dart';
@@ -30,4 +32,10 @@ abstract class CertificateRepository {
   /// Fetches test equipment asset list from the server and upserts locally.
   /// Returns the number of assets synced.
   Future<int> syncTestEquipmentAssets();
+
+  /// Downloads the PDF for [serverId] from the server. Returns raw bytes.
+  Future<Uint8List> fetchCertificatePdf(int serverId);
+
+  /// Sends the certificate PDF to [toEmail] via server-side SMTP.
+  Future<void> emailCertificate(int serverId, String toEmail);
 }

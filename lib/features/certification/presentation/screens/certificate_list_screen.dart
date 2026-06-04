@@ -108,20 +108,20 @@ class _CertTile extends StatelessWidget {
               cert.equipmentType ?? '—',
               style: TextStyle(color: brandGrey),
             ),
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(dateStr,
                     style: Theme.of(context).textTheme.bodySmall),
-                if (cert.certificateNo != null) ...[
-                  const SizedBox(width: 6),
+                if (cert.certificateNo != null)
                   Text('Cert #${cert.certificateNo}',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
                           ?.copyWith(color: brandGrey)),
-                ],
-                if (cert.isPending) ...[
-                  const SizedBox(width: 8),
+                if (cert.isPending)
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
@@ -138,9 +138,7 @@ class _CertTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
-                if (cert.complianceLabel.isNotEmpty) ...[
-                  const SizedBox(width: 8),
+                if (cert.complianceLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
@@ -159,7 +157,6 @@ class _CertTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
               ],
             ),
           ],

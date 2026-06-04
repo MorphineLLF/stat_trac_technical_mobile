@@ -1,0 +1,212 @@
+<h2>New Step: Certificate Details</h2>
+<p class="subtitle">Inserted between "Select Template" and "Test Items". Sections appear/hide based on the template's flags. Below shows all sections active (qty=2).</p>
+
+<style>
+  .phone {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #F5F7FA;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #DDE3EA;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .appbar {
+    background: #0D2B3E;
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .appbar .back { font-size: 20px; cursor: pointer; opacity: 0.8; }
+  .screen-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 520px;
+  }
+  .section-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #DDE3EA;
+    padding: 14px 16px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8A9BAE;
+    margin-bottom: 10px;
+  }
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #F5F7FA;
+    border: 1px solid #DDE3EA;
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+  .date-row .date-icon { color: #1B7EA6; font-size: 18px; }
+  .date-row .date-val { font-size: 15px; color: #0D2B3E; flex: 1; }
+  .date-row .edit-hint { font-size: 11px; color: #8A9BAE; }
+
+  .info-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(27,126,166,0.08);
+    border: 1px solid rgba(27,126,166,0.3);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .info-banner .info-icon { color: #1B7EA6; font-size: 18px; }
+  .info-banner .info-text { font-size: 13px; color: #0D2B3E; }
+
+  .equip-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px dashed #DDE3EA;
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    background: #FAFBFC;
+    transition: border-color 0.15s;
+  }
+  .equip-slot:last-child { margin-bottom: 0; }
+  .equip-slot.filled {
+    border-style: solid;
+    border-color: rgba(27,126,166,0.4);
+    background: rgba(27,126,166,0.04);
+  }
+  .equip-slot .slot-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #1B7EA6;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .equip-slot .slot-label { font-size: 13px; color: #8A9BAE; flex: 1; }
+  .equip-slot.filled .slot-label { color: #0D2B3E; font-weight: 500; }
+  .equip-slot .slot-sub { font-size: 11px; color: #8A9BAE; }
+  .equip-slot .slot-action { font-size: 11px; color: #1B7EA6; font-weight: 600; }
+
+  .next-btn {
+    background: #1B7EA6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .next-btn:disabled { background: #DDE3EA; color: #8A9BAE; cursor: default; }
+
+  .flag-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .flag-teal { background: rgba(27,126,166,0.12); color: #1B7EA6; }
+</style>
+
+<div class="phone">
+  <div class="appbar">
+    <span class="back">←</span>
+    Certificate Details
+  </div>
+  <div class="screen-body">
+
+    <!-- Test Date — shown when TestTemplateEditDate = 1 -->
+    <div class="section-card">
+      <div class="section-label">
+        Test Date
+        <span class="flag-badge flag-teal">TestTemplateEditDate = 1</span>
+      </div>
+      <div class="date-row">
+        <span class="date-icon">📅</span>
+        <span class="date-val">03 Jun 2026</span>
+        <span class="edit-hint">Tap to change</span>
+      </div>
+    </div>
+
+    <!-- Next Service — shown when TestTemplateNextService = 1 -->
+    <div class="section-card">
+      <div class="section-label">
+        Next Service Date
+        <span class="flag-badge flag-teal">TestTemplateNextService = 1</span>
+      </div>
+      <div class="date-row">
+        <span class="date-icon">🔧</span>
+        <span class="date-val" style="color:#8A9BAE;">Not set — tap to add</span>
+        <span class="edit-hint">Optional</span>
+      </div>
+    </div>
+
+    <!-- Customer Signature — shown when TestTemplateCustomerSig = 1 -->
+    <div class="section-card">
+      <div class="section-label">
+        Signatures
+        <span class="flag-badge flag-teal">TestTemplateCustomerSig = 1</span>
+      </div>
+      <div class="info-banner">
+        <span class="info-icon">✍️</span>
+        <span class="info-text">This template requires a <strong>customer signature</strong> before the certificate can be completed.</span>
+      </div>
+    </div>
+
+    <!-- Test Equipment — shown when TestTemplateTestEquipQty > 0 (qty=2 here) -->
+    <div class="section-card">
+      <div class="section-label">
+        Test Equipment
+        <span class="flag-badge flag-teal">TestTemplateTestEquipQty = 2</span>
+      </div>
+      <!-- Slot 1: filled -->
+      <div class="equip-slot filled">
+        <div class="slot-num">1</div>
+        <div style="flex:1">
+          <div class="slot-label">Fluke ProSim 8</div>
+          <div class="slot-sub">S/N: 2041678 · ICU</div>
+        </div>
+        <span class="slot-action">Change</span>
+      </div>
+      <!-- Slot 2: empty -->
+      <div class="equip-slot">
+        <div class="slot-num">2</div>
+        <div style="flex:1">
+          <div class="slot-label">Select test equipment…</div>
+        </div>
+        <span class="slot-action">Pick</span>
+      </div>
+    </div>
+
+    <button class="next-btn" disabled>Next — select test equipment to continue</button>
+
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px; text-align:center;">
+  When <strong>all required fields are filled</strong> the Next button enables.<br>
+  Sections with flag = 0 are hidden entirely.
+</p>
