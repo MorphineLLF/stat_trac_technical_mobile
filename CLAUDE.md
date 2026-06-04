@@ -37,6 +37,8 @@ Implementation plans live in `docs/superpowers/plans/`. Check this folder at ses
 |---|---|
 | `2026-06-01-sync-certificates-from-master-db.md` | ✅ Complete — implemented 2026-06-02 (plus Option B deletion detection, cert_name backfill, pagination) |
 | `2026-06-02-cert-sync-option-b-display-pagination.md` | ✅ Complete — Option B pull, cert_name backfill, pagination, display fixes, security doc |
+| `2026-06-03-cert-details-step.md` | ✅ Complete — CertDetailsStep integrated into certificate creation wizard |
+| `2026-06-03-certificate-pdf-design.md` | ✅ Complete — FastReport PDF generation working for all cert IDs; View PDF + Email buttons in cert detail screen |
 
 ## What This Is
 

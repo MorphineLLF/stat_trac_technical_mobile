@@ -49,7 +49,7 @@ PDF_TEMPLATE = 'C:\Delphi\StatTracTechAPI\templates\test_certificate.fr3';
 ```
 
 Logo loaded from: `UniServerModule.FilesFolderPath + 'CompanyLogo.jpg'`  
-(resolves to `C:\StatMedical\files\CompanyLogo.jpg`)
+(resolves to `{FilesFolderPath}CompanyLogo.jpg` — check `FilesFolderPath` in the Stat Trac ServerModule config on the production server)
 
 ### SQL queries
 
@@ -66,7 +66,7 @@ WHERE "TestCertificateID" = :cert_id ORDER BY "TestOutPutID"
 SELECT * FROM "TestAnalyser" WHERE "AnalyserTestID" = :cert_id
 ```
 
-### FastReport dataset connection (⚠️ under investigation)
+### FastReport dataset connection ✅ resolved 2026-06-04
 
 The `.fr3` template references two datasets:
 - `DataSet="CertDataset1"` / `DataSetName="Certification"`
@@ -165,6 +165,4 @@ Exported from `TFrmEmailAdd.CertificateReport` (Unit49) in Stat Trac via FastRep
 
 ## 4. What still needs to be done
 
-- Resolve FastReport dataset connection for all cert IDs (investigation in progress)
 - Implement `POST /certificates/:id/email` in Horse API (SMTP send — see spec `docs/superpowers/specs/2026-06-03-certificate-pdf-design.md`)
-- Remove diagnostic files from `C:\Temp\` on server after testing

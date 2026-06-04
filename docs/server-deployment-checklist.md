@@ -31,10 +31,9 @@ This checklist covers everything that must be in place on the production server 
 
 | Dependency | Notes |
 |---|---|
-| `CompanyLogo.jpg` | Must exist at `C:\StatMedical\files\CompanyLogo.jpg` — same path as existing Stat Trac installation |
+| `CompanyLogo.jpg` | Must exist at `{uniServerModule.FilesFolderPath}CompanyLogo.jpg` — check `FilesFolderPath` in the Stat Trac ServerModule config on the production server |
 | FastReport VCL runtime | Must be available to Stat Trac app — already present since existing cert printing works |
 | PostgreSQL | Already running — no changes needed |
-| `C:\Temp\` directory | Can be deleted/cleaned after testing — diagnostic files only |
 
 ---
 
@@ -48,6 +47,4 @@ This checklist covers everything that must be in place on the production server 
 
 ## Known open items
 
-- FastReport dataset connection intermittently produces blank PDFs for some cert IDs — investigation in progress (see `docs/delphi/cert-pdf-generation.md`)
 - Email endpoint (`POST /certificates/:id/email`) not yet implemented in Horse API
-- Temp PDF files (`C:\Temp\cert_*.pdf`) accumulate if delete is commented out during debugging — restore `TFile.Delete(LTempFile)` in `ServerModule.pas` before deploying
