@@ -537,17 +537,75 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                   itemCount: available.length,
                   itemBuilder: (_, i) {
                     final a = available[i];
+                    final expired = a.isCalExpired;
+                    final calText = a.calDate != null
+                        ? 'Next Cal: ${DateFormat('dd MMM yyyy').format(a.calDate!)}'
+                        : null;
+
                     return ListTile(
-                      leading: const Icon(Icons.biotech_outlined,
-                          color: brandTeal),
-                      title: Text(a.displayName),
-                      subtitle: Text([
-                        if (a.serialNo != null) 'S/N: ${a.serialNo}',
-                        if (a.calDate != null) 'Cal: ${a.calDate}',
-                      ].join(' · ')),
-                      onTap: () => Navigator.of(context).pop(
-                        TestEquipmentSelection.fromAsset(a),
+                      enabled: !expired,
+                      leading: Icon(
+                        Icons.biotech_outlined,
+                        color: expired ? const Color(0xFFC62828) : brandTeal,
                       ),
+                      title: Text(
+                        a.equipmentType ?? a.displayName,
+                        style: TextStyle(
+                          color: expired ? const Color(0xFFC62828) : null,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (a.displayName.isNotEmpty && a.equipmentType != null)
+                            Text(a.displayName,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: expired
+                                        ? const Color(0xFFC62828)
+                                        : brandGrey)),
+                          if (a.serialNo != null)
+                            Text('S/N: ${a.serialNo}',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: expired
+                                        ? const Color(0xFFC62828)
+                                        : brandGrey)),
+                          if (calText != null)
+                            Text(calText,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: expired
+                                        ? const Color(0xFFC62828)
+                                        : brandGrey)),
+                        ],
+                      ),
+                      isThreeLine: true,
+                      trailing: expired
+                          ? Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC62828).withAlpha(20),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFC62828)),
+                              ),
+                              child: const Text(
+                                'EXPIRED',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFC62828),
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.chevron_right, size: 18),
+                      onTap: expired
+                          ? null
+                          : () => Navigator.of(context).pop(
+                                TestEquipmentSelection.fromAsset(a),
+                              ),
                     );
                   },
                 );
