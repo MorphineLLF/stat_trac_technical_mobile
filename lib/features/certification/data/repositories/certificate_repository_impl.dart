@@ -55,6 +55,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
       notes: cert.notes,
       patientSafe: cert.patientSafe,
       certName: cert.certName,
+      pmTaskDescription: cert.pmTaskDescription,
     );
     final certId = await local.saveCertificate(certModel);
 
@@ -110,13 +111,14 @@ class CertificateRepositoryImpl implements CertificateRepository {
       'client_name': cert.clientName,
       'patient_safe': cert.patientSafe,
       'notes': cert.notes,
+      'pm_task_description': cert.pmTaskDescription,
       'test_equipment': equipment
           .map((e) => {
                 'asset_id': e.assetId,
                 'serial_no': e.serialNo,
                 'model': e.model,
                 'manufacturer': e.manufacturer,
-                'cal_date': e.calDate,
+                'cal_date': e.calDate?.toIso8601String().substring(0, 10),
               })
           .toList(),
       'description': cert.certName,
@@ -226,6 +228,13 @@ class CertificateRepositoryImpl implements CertificateRepository {
     final assets = await remote.fetchTestEquipmentAssets();
     await local.upsertTestEquipmentAssets(assets);
     return assets.length;
+  }
+
+  @override
+  Future<int> syncAssetPmTasks() async {
+    final tasks = await remote.fetchAssetPmTasks();
+    await local.upsertAssetPmTasks(tasks);
+    return tasks.length;
   }
 
   @override

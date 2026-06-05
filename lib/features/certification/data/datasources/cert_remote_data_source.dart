@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../models/asset_pm_task_model.dart';
 import '../models/test_certificate_model.dart';
 import '../models/test_equipment_asset_model.dart';
 import '../models/test_output_model.dart';
@@ -32,6 +33,9 @@ abstract interface class CertRemoteDataSource {
 
   /// GET /assets/test-equipment
   Future<List<TestEquipmentAssetModel>> fetchTestEquipmentAssets();
+
+  /// GET /assets/pm-tasks
+  Future<List<AssetPmTaskModel>> fetchAssetPmTasks();
 
   /// GET /certificates/:id/pdf — returns decoded PDF bytes.
   Future<Uint8List> fetchCertificatePdf(int serverId);
@@ -110,6 +114,14 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
     final data = ((response.data['data'] as List?) ?? [])
         .cast<Map<String, dynamic>>();
     return data.map(TestEquipmentAssetModel.fromJson).toList();
+  }
+
+  @override
+  Future<List<AssetPmTaskModel>> fetchAssetPmTasks() async {
+    final response = await _dio.get('/assets/pm-tasks');
+    final data = ((response.data['data'] as List?) ?? [])
+        .cast<Map<String, dynamic>>();
+    return data.map(AssetPmTaskModel.fromJson).toList();
   }
 
   @override

@@ -33,6 +33,10 @@ abstract class CertificateRepository {
   /// Returns the number of assets synced.
   Future<int> syncTestEquipmentAssets();
 
+  /// Fetches PM task list from the server and upserts locally.
+  /// Returns the number of tasks synced.
+  Future<int> syncAssetPmTasks();
+
   /// Downloads the PDF for [serverId] from the server. Returns raw bytes.
   Future<Uint8List> fetchCertificatePdf(int serverId);
 
