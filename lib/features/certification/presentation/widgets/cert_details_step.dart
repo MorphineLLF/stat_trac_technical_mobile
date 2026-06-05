@@ -540,7 +540,11 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
               data: (assets) {
                 final available = assets
                     .where((a) => !excludeAssetIds.contains(a.assetId))
-                    .toList();
+                    .toList()
+                  ..sort((a, b) {
+                    if (a.isCalExpired == b.isCalExpired) return 0;
+                    return a.isCalExpired ? 1 : -1;
+                  });
                 if (available.isEmpty) {
                   return Center(
                     child: Column(
