@@ -389,7 +389,9 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
               manufacturer: r['manufacturer'] as String?,
               model: r['model'] as String?,
               serialNo: r['serial_no'] as String?,
-              calDate: r['cal_date'] as String?,
+              calDate: r['cal_date'] != null
+                  ? DateTime.tryParse(r['cal_date'] as String)
+                  : null,
             ))
         .toList();
   }
