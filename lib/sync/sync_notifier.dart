@@ -161,6 +161,34 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
+    state = const SyncInProgress(progress: 0.75, message: 'Syncing PM tasks…');
+    try {
+      final pmCount =
+          await ref.read(certificateRepositoryProvider).syncAssetPmTasks();
+      await syncRemote.postSyncLog(
+        operation: 'sync_pm_tasks',
+        entity: 'asset_pm_tasks',
+        rowCount: pmCount,
+        status: 'success',
+        message: 'Synced $pmCount PM tasks',
+      );
+      await errorLog.markResolved('sync_pm_tasks');
+    } on Exception catch (e, st) {
+      await errorLog.logError(
+        operation: 'sync_pm_tasks',
+        entityTable: 'asset_pm_tasks',
+        errorMessage: e.toString(),
+        stackTrace: st.toString(),
+      );
+      await syncRemote.postSyncLog(
+        operation: 'sync_pm_tasks',
+        entity: 'asset_pm_tasks',
+        rowCount: 0,
+        status: 'error',
+        message: e.toString(),
+      );
+    }
+
     state = const SyncInProgress(progress: 0.80, message: 'Uploading certificates...');
 
     // Push pending certificates to the server.
