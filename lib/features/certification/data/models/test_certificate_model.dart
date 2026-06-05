@@ -91,6 +91,7 @@ class TestCertificateModel extends TestCertificate {
       createdAt: testDate ?? DateTime.now(),
       patientSafe: j['patient_safe'] as int?,
       certName: j['cert_name'] as String?,
+      pmTaskDescription: j['service_description'] as String?,
     );
   }
 
