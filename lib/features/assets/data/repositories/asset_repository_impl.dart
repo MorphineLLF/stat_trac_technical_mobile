@@ -76,20 +76,24 @@ class AssetRepositoryImpl implements AssetRepository {
 
   static List<String> _diffAsset(AssetModel current, AssetModel incoming) {
     final changed = <String>[];
-    if (current.serialNumber != incoming.serialNumber)
+    if (current.serialNumber != incoming.serialNumber) {
       changed.add('serial_number');
+    }
     if (current.hospital != incoming.hospital) changed.add('hospital');
-    if (current.manufacturer != incoming.manufacturer)
+    if (current.manufacturer != incoming.manufacturer) {
       changed.add('manufacturer');
+    }
     if (current.model != incoming.model) changed.add('model');
-    if (current.equipmentType != incoming.equipmentType)
+    if (current.equipmentType != incoming.equipmentType) {
       changed.add('equipment_type');
+    }
     if (current.barcode != incoming.barcode) changed.add('barcode');
     if (current.location != incoming.location) changed.add('location');
     if (current.condition != incoming.condition) changed.add('condition');
     if (current.isActive != incoming.isActive) changed.add('is_active');
-    if (current.isCondemned != incoming.isCondemned)
+    if (current.isCondemned != incoming.isCondemned) {
       changed.add('is_condemned');
+    }
     return changed;
   }
 
