@@ -5,6 +5,7 @@ class TestEquipmentAsset {
   const TestEquipmentAsset({
     required this.id,
     required this.assetId,
+    this.equipmentType,
     this.manufacturer,
     this.model,
     this.serialNo,
@@ -14,12 +15,16 @@ class TestEquipmentAsset {
 
   final int id;
   final int assetId;
+  final String? equipmentType;
   final String? manufacturer;
   final String? model;
   final String? serialNo;
-  final String? calDate;
+  final DateTime? calDate;
   final DateTime syncedAt;
 
   String get displayName =>
       [manufacturer, model].where((s) => s != null && s.isNotEmpty).join(' ');
+
+  bool get isCalExpired =>
+      calDate != null && calDate!.isBefore(DateTime.now());
 }
