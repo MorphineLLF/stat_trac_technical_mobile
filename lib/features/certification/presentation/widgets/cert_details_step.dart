@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../../assets/domain/entities/asset.dart';
+import '../../domain/entities/asset_pm_task.dart';
 import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../providers/certificate_providers.dart';
@@ -11,6 +13,7 @@ class CertDetailsStep extends ConsumerStatefulWidget {
   const CertDetailsStep({
     super.key,
     required this.template,
+    required this.selectedAsset,
     required this.initialDate,
     required this.initialEquipment,
     required this.onChanged,
@@ -18,9 +21,14 @@ class CertDetailsStep extends ConsumerStatefulWidget {
   });
 
   final TestTemplateName template;
+  final Asset? selectedAsset;
   final DateTime initialDate;
   final List<TestEquipmentSelection?> initialEquipment;
-  final void Function(DateTime testDate, List<TestEquipmentSelection?> equipment) onChanged;
+  final void Function(
+    DateTime testDate,
+    List<TestEquipmentSelection?> equipment,
+    String? pmTaskDescription,
+  ) onChanged;
   final VoidCallback onNext;
 
   @override
@@ -30,6 +38,7 @@ class CertDetailsStep extends ConsumerStatefulWidget {
 class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
   late DateTime _testDate;
   late List<TestEquipmentSelection?> _equipment;
+  String? _pmTaskDescription;
 
   @override
   void initState() {
@@ -53,7 +62,7 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
       (_equipment.length == widget.template.testEquipQty &&
           _equipment.every((e) => e != null));
 
-  void _notify() => widget.onChanged(_testDate, _equipment);
+  void _notify() => widget.onChanged(_testDate, _equipment, _pmTaskDescription);
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -86,6 +95,18 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('dd MMM yyyy').format(_testDate);
+
+    if (widget.selectedAsset?.assetId != null) {
+      ref.listen(assetPmTasksProvider(widget.selectedAsset!.assetId!),
+          (_, next) {
+        next.whenData((tasks) {
+          if (tasks.length == 1 && _pmTaskDescription == null) {
+            setState(() => _pmTaskDescription = tasks.first.description);
+            _notify();
+          }
+        });
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -188,13 +209,31 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
             ),
           ],
 
+          const SizedBox(height: 12),
+          if (widget.selectedAsset?.assetId != null)
+            _PmTaskCard(
+              assetId: widget.selectedAsset!.assetId!,
+              selected: _pmTaskDescription,
+              onSelected: (desc) {
+                setState(() => _pmTaskDescription = desc);
+                _notify();
+              },
+            ),
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _isValid ? widget.onNext : null,
-            child: Text(_isValid
-                ? 'Next'
-                : 'Select all test equipment to continue'),
-          ),
+          if (widget.selectedAsset?.assetId != null)
+            _PmTaskNextButton(
+              assetId: widget.selectedAsset!.assetId!,
+              equipValid: _isValid,
+              pmTaskDescription: _pmTaskDescription,
+              onNext: widget.onNext,
+            )
+          else
+            FilledButton(
+              onPressed: _isValid ? widget.onNext : null,
+              child: Text(_isValid
+                  ? 'Next'
+                  : 'Select all test equipment to continue'),
+            ),
         ],
       ),
     );
@@ -271,6 +310,160 @@ class _EquipmentSlot extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── PM Task card ──────────────────────────────────────────────────────────────
+
+class _PmTaskCard extends ConsumerWidget {
+  const _PmTaskCard({
+    required this.assetId,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final int assetId;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(assetPmTasksProvider(assetId));
+
+    return tasksAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (tasks) {
+        if (tasks.isEmpty) return const SizedBox.shrink();
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('PM Task',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(color: brandGrey)),
+                const SizedBox(height: 8),
+                if (tasks.length == 1)
+                  _LockedPmTask(description: tasks.first.description)
+                else
+                  _PmTaskChips(
+                    tasks: tasks,
+                    selected: selected,
+                    onSelected: onSelected,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LockedPmTask extends StatelessWidget {
+  const _LockedPmTask({required this.description});
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F2F5),
+        border: Border.all(color: const Color(0xFFDDE3EA)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, size: 16, color: brandGrey),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(description,
+                style: const TextStyle(color: brandGrey)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PmTaskChips extends StatelessWidget {
+  const _PmTaskChips({
+    required this.tasks,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<AssetPmTask> tasks;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: tasks.map((t) {
+        final isSelected = selected == t.description;
+        return ChoiceChip(
+          label: Text(t.description),
+          selected: isSelected,
+          selectedColor: brandTeal.withAlpha(30),
+          side: BorderSide(
+            color: isSelected ? brandTeal : const Color(0xFFDDE3EA),
+          ),
+          labelStyle: TextStyle(
+            color: isSelected ? brandTeal : null,
+            fontWeight:
+                isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+          onSelected: (_) => onSelected(t.description),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── PM Task Next Button ───────────────────────────────────────────────────────
+
+class _PmTaskNextButton extends ConsumerWidget {
+  const _PmTaskNextButton({
+    required this.assetId,
+    required this.equipValid,
+    required this.pmTaskDescription,
+    required this.onNext,
+  });
+
+  final int assetId;
+  final bool equipValid;
+  final String? pmTaskDescription;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(assetPmTasksProvider(assetId));
+    final hasTasks = tasksAsync.asData?.value.isNotEmpty ?? false;
+    final pmValid = !hasTasks || pmTaskDescription != null;
+    final canProceed = equipValid && pmValid;
+
+    String label;
+    if (!equipValid) {
+      label = 'Select all test equipment to continue';
+    } else if (!pmValid) {
+      label = 'Select a PM task to continue';
+    } else {
+      label = 'Next';
+    }
+
+    return FilledButton(
+      onPressed: canProceed ? onNext : null,
+      child: Text(label),
     );
   }
 }
