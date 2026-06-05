@@ -39,6 +39,7 @@ Implementation plans live in `docs/superpowers/plans/`. Check this folder at ses
 | `2026-06-02-cert-sync-option-b-display-pagination.md` | ✅ Complete — Option B pull, cert_name backfill, pagination, display fixes, security doc |
 | `2026-06-03-cert-details-step.md` | ✅ Complete — CertDetailsStep integrated into certificate creation wizard |
 | `2026-06-03-certificate-pdf-design.md` | ✅ Complete — FastReport PDF generation working for all cert IDs; View PDF + Email buttons in cert detail screen |
+| `2026-06-05-pm-task-equipment-picker.md` | ✅ Complete — PM task selector in cert wizard; equipment type + "Next Cal" + EXPIRED badge in picker; `asset_pm_tasks` sync; DB v12 |
 
 ## What This Is
 
@@ -169,7 +170,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 10** — tables below
+- **Current DB version: 12** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
 | Migration | DB version | Tables / changes |
@@ -183,6 +184,8 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | 008 → v8 | 8 | `test_certificates` — adds `patient_safe INTEGER` (compliance status) |
 | 009 → v9 | 9 | `sync_metadata` — key/value store |
 | 010 → v10 | 10 | `test_certificates` — adds `cert_name TEXT` (template cert name stored at pull time) |
+| 011 → v11 | 11 | `test_cert_details` step tables (CertDetailsStep wizard) |
+| 012 → v12 | 12 | NEW `asset_pm_tasks` (id, pm_task_id UNIQUE, asset_id, description, schedule_date, active); ALTER `test_certificates` + `pm_task_description TEXT`; ALTER `test_equipment_assets` + `equipment_type TEXT`; ALTER `test_cert_equipment` + `equipment_type TEXT` |
 
 ## API
 
@@ -209,6 +212,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | GET | `/certificates/ids?technician_id=<id>` | — | `{ ids: [...] }` all TestCertificateID values for technician (Option B deletion detection) |
 | GET | `/certificates/history?technician_id=<id>&after_id=<cursor>&page_size=<n>` | — | `{ data: [...] }` certs + embedded outputs, paginated (default 100, max 500); loop advancing after_id until page < page_size |
 | GET | `/certificates/:id/pdf` | — | `{ pdf_b64: "..." }` base64-encoded PDF; Horse API proxies to Stat Trac `GET /cert/pdf/:id?db=<db>` which generates via FastReport |
+| GET | `/assets/pm-tasks` | — | `{ data: [{ pm_task_id, asset_id, description, schedule_date, active }] }` — full list of active PM tasks (full-pull, no cursor) |
 | POST | `/certificates/:id/email` | `{ to: "email@..." }` | 204 — server-side SMTP send (not yet implemented in Horse API) |
 
 ## Testing

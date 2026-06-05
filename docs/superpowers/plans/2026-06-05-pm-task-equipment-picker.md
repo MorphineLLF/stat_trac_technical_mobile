@@ -1,5 +1,7 @@
 # PM Task Selection & Test Equipment Picker Improvements — Implementation Plan
 
+> **Status: ✅ Complete — implemented 2026-06-05 (all 16 tasks done, flutter analyze clean)**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Sync `AssetPmTask` from the Horse API, show equipment type + "Next Cal" dates (expired = red + blocked) in the test equipment picker, and add a PM task description selector to the Certificate Details wizard step.
