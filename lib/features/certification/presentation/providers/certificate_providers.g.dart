@@ -632,3 +632,80 @@ final class TestEquipmentAssetsProvider
 
 String _$testEquipmentAssetsHash() =>
     r'f34aaf8e8ceae4b32cfe6b2a69671682d31f8b9f';
+
+@ProviderFor(assetPmTasks)
+final assetPmTasksProvider = AssetPmTasksFamily._();
+
+final class AssetPmTasksProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<AssetPmTask>>,
+          List<AssetPmTask>,
+          FutureOr<List<AssetPmTask>>
+        >
+    with
+        $FutureModifier<List<AssetPmTask>>,
+        $FutureProvider<List<AssetPmTask>> {
+  AssetPmTasksProvider._({
+    required AssetPmTasksFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'assetPmTasksProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$assetPmTasksHash();
+
+  @override
+  String toString() {
+    return r'assetPmTasksProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<AssetPmTask>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<AssetPmTask>> create(Ref ref) {
+    final argument = this.argument as int;
+    return assetPmTasks(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AssetPmTasksProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$assetPmTasksHash() => r'e8fc7671dda751bab48f1be915d7a6b630bee9c8';
+
+final class AssetPmTasksFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<AssetPmTask>>, int> {
+  AssetPmTasksFamily._()
+    : super(
+        retry: null,
+        name: r'assetPmTasksProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  AssetPmTasksProvider call(int assetId) =>
+      AssetPmTasksProvider._(argument: assetId, from: this);
+
+  @override
+  String toString() => r'assetPmTasksProvider';
+}
