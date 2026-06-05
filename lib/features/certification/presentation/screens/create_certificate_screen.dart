@@ -73,7 +73,7 @@ class _CreateCertificateScreenState
       final cert = TestCertificate(
         id: 0,
         certType: TestTemplateName.typeToInt(_selectedType!),
-        syncStatus: 'pending',
+        syncStatus: 'draft',
         createdAt: DateTime.now(),
         assetId: _selectedAsset?.assetId,
         testDate: _testDate,
@@ -85,11 +85,12 @@ class _CreateCertificateScreenState
             : _notesController.text.trim(),
         technician: user?.name,
         technicianId: user?.id,
-        certName: _selectedTemplate?.certName,
+        certName: _selectedTemplate?.templateName,
         pmTaskDescription: _pmTaskDescription,
         serviceInterval: _serviceInterval,
         serviceType: _serviceType,
         serviceId: _serviceId,
+        testType: (_selectedTemplate?.customerSigRequired == true) ? 1 : null,
       );
       final certId = await ref
           .read(certificateRepositoryProvider)
@@ -378,7 +379,7 @@ class _ComplianceSelector extends StatelessWidget {
   }
 }
 
-class _AssetPickStep extends StatelessWidget {
+class _AssetPickStep extends ConsumerWidget {
   const _AssetPickStep({
     required this.selectedAsset,
     required this.onPickTap,
@@ -388,8 +389,19 @@ class _AssetPickStep extends StatelessWidget {
   final VoidCallback onPickTap;
   final VoidCallback? onNext;
 
+  static const _red = Color(0xFFC62828);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Check if the selected asset has PM tasks — required for certification.
+    final pmTasksAsync = selectedAsset?.assetId != null
+        ? ref.watch(assetPmTasksProvider(selectedAsset!.assetId!))
+        : null;
+    final loading = pmTasksAsync != null && !pmTasksAsync.hasValue;
+    final hasPmTasks =
+        pmTasksAsync == null || (pmTasksAsync.asData?.value.isNotEmpty ?? false);
+    final showWarning = !loading && selectedAsset != null && !hasPmTasks;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -399,24 +411,61 @@ class _AssetPickStep extends StatelessWidget {
           const SizedBox(height: 16),
           if (selectedAsset != null)
             Card(
-              child: ListTile(
-                leading: const Icon(
-                  Icons.medical_services_outlined,
-                  color: brandTeal,
-                ),
-                title: Text(selectedAsset!.equipmentType),
-                subtitle: Text(
-                  [
-                    if (selectedAsset!.hospital != null)
-                      selectedAsset!.hospital!,
-                    if (selectedAsset!.serialNumber != null)
-                      'S/N: ${selectedAsset!.serialNumber!}',
-                  ].join(' · '),
-                ),
-                trailing: TextButton(
-                  onPressed: onPickTap,
-                  child: const Text('Change'),
-                ),
+              shape: showWarning
+                  ? RoundedRectangleBorder(
+                      side: const BorderSide(color: _red, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      Icons.medical_services_outlined,
+                      color: showWarning ? _red : brandTeal,
+                    ),
+                    title: Text(
+                      selectedAsset!.equipmentType,
+                      style: TextStyle(
+                        color: showWarning ? _red : null,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      [
+                        if (selectedAsset!.hospital != null)
+                          selectedAsset!.hospital!,
+                        if (selectedAsset!.serialNumber != null)
+                          'S/N: ${selectedAsset!.serialNumber!}',
+                      ].join(' · '),
+                    ),
+                    trailing: TextButton(
+                      onPressed: onPickTap,
+                      child: const Text('Change'),
+                    ),
+                  ),
+                  if (showWarning)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.warning_amber_outlined,
+                            size: 15,
+                            color: _red,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'No PM tasks configured — this asset cannot be certified',
+                              style: TextStyle(fontSize: 12, color: _red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             )
           else
@@ -426,8 +475,17 @@ class _AssetPickStep extends StatelessWidget {
               label: const Text('Pick Asset'),
             ),
           const Spacer(),
-          if (onNext != null)
-            FilledButton(onPressed: onNext, child: const Text('Next')),
+          if (selectedAsset != null)
+            FilledButton(
+              onPressed: (onNext != null && !loading && hasPmTasks) ? onNext : null,
+              child: Text(
+                loading
+                    ? 'Checking PM tasks…'
+                    : showWarning
+                        ? 'No PM tasks — cannot certify'
+                        : 'Next',
+              ),
+            ),
         ],
       ),
     );

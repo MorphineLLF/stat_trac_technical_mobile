@@ -95,22 +95,25 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
         const SizedBox(height: 8),
         _SignaturePad(controller: _techController),
         const SizedBox(height: 24),
+        Text(
+          'Facility Contact',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _clientNameController,
+          decoration: const InputDecoration(
+            labelText: 'Facility Contact Name',
+            hintText: 'Optional',
+          ),
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+        ),
         if (widget.requiresCustomerSig) ...[
-          Text(
-            'Facility Signature',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _clientNameController,
-            decoration: const InputDecoration(
-              labelText: 'Facility Contact Name',
-            ),
-          ),
           const SizedBox(height: 8),
           _SignaturePad(controller: _clientController),
-          const SizedBox(height: 24),
         ],
+        const SizedBox(height: 24),
         FilledButton.icon(
           onPressed: _submit,
           icon: const Icon(Icons.check),

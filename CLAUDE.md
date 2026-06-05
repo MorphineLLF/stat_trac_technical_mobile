@@ -170,7 +170,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 12** — tables below
+- **Current DB version: 15** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
 | Migration | DB version | Tables / changes |
@@ -186,6 +186,9 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | 010 → v10 | 10 | `test_certificates` — adds `cert_name TEXT` (template cert name stored at pull time) |
 | 011 → v11 | 11 | `test_cert_details` step tables (CertDetailsStep wizard) |
 | 012 → v12 | 12 | NEW `asset_pm_tasks` (id, pm_task_id UNIQUE, asset_id, description, schedule_date, active); ALTER `test_certificates` + `pm_task_description TEXT`; ALTER `test_equipment_assets` + `equipment_type TEXT`; ALTER `test_cert_equipment` + `equipment_type TEXT` |
+| 013 → v13 | 13 | `asset_pm_tasks` — adds `interval TEXT`, `interval_type TEXT` |
+| 014 → v14 | 14 | `test_certificates` — adds `service_id INTEGER` (FK to AssetPmTask.pm_task_id; maps `TestServiceID`) |
+| 015 → v15 | 15 | `test_certificates` — adds `test_type INTEGER` (1 = client signature required, NULL otherwise; maps `TestType`) |
 
 ## API
 

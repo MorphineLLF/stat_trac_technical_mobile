@@ -26,6 +26,7 @@ class TestCertificateModel extends TestCertificate {
     super.patientSafe,
     super.certName,
     super.pmTaskDescription,
+    super.testType,
   });
 
   factory TestCertificateModel.fromMap(Map<String, dynamic> m) =>
@@ -62,6 +63,7 @@ class TestCertificateModel extends TestCertificate {
         patientSafe: m['patient_safe'] as int?,
         certName: m['cert_name'] as String?,
         pmTaskDescription: m['pm_task_description'] as String?,
+        testType: m['test_type'] as int?,
       );
 
   factory TestCertificateModel.fromJson(Map<String, dynamic> j) {
@@ -95,6 +97,7 @@ class TestCertificateModel extends TestCertificate {
       patientSafe: j['patient_safe'] as int?,
       certName: j['cert_name'] as String?,
       pmTaskDescription: j['service_description'] as String?,
+      testType: j['test_type'] as int?,
     );
   }
 
@@ -123,5 +126,6 @@ class TestCertificateModel extends TestCertificate {
     'patient_safe': patientSafe,
     'cert_name': certName,
     'pm_task_description': pmTaskDescription,
+    'test_type': testType,
   };
 }

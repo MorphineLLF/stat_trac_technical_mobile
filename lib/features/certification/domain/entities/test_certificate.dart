@@ -27,6 +27,7 @@ class TestCertificate {
     this.certName,
     this.pmTaskDescription,
     this.serviceId,
+    this.testType,
   });
 
   final int id;
@@ -48,10 +49,12 @@ class TestCertificate {
   final List<int>? clientSignature; // PNG bytes
   final String? clientName;
   final String? notes;
-  final String syncStatus; // 'pending' | 'synced' | 'error'
+  final String syncStatus; // 'draft' | 'pending' | 'synced' | 'error'
   final DateTime createdAt;
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete (maps TestCertPatientSafe)
   final int? patientSafe;
   final String? certName;
   final String? pmTaskDescription;
+  // 1 = client signature required, null otherwise (maps TestType)
+  final int? testType;
 }

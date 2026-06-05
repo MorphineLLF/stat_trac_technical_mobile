@@ -52,6 +52,27 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
     super.initState();
     _testDate = widget.initialDate;
     _equipment = List.from(widget.initialEquipment);
+    // Fallback: if the provider is already loaded when the widget builds,
+    // ref.listen won't fire (no state change). Read synchronously after the
+    // first frame so the single-task locked case is always auto-selected.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryAutoSelect());
+  }
+
+  void _tryAutoSelect() {
+    if (!mounted || widget.selectedAsset?.assetId == null) return;
+    final tasks = ref
+        .read(assetPmTasksProvider(widget.selectedAsset!.assetId!))
+        .asData
+        ?.value;
+    if (tasks != null && tasks.length == 1 && _pmTaskDescription == null) {
+      setState(() {
+        _pmTaskDescription = tasks.first.description;
+        _serviceInterval = tasks.first.interval;
+        _serviceType = tasks.first.intervalType;
+        _serviceId = tasks.first.pmTaskId;
+      });
+      _notify();
+    }
   }
 
   @override
@@ -497,12 +518,18 @@ class _PmTaskNextButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(assetPmTasksProvider(assetId));
+    // Block proceed while tasks are still loading — prevents bypassing PM
+    // task selection during the async load window (hasTasks would be false
+    // while loading, making pmValid true prematurely).
+    final loading = !tasksAsync.hasValue;
     final hasTasks = tasksAsync.asData?.value.isNotEmpty ?? false;
     final pmValid = !hasTasks || pmTaskDescription != null;
-    final canProceed = equipValid && pmValid;
+    final canProceed = !loading && equipValid && pmValid;
 
     String label;
-    if (!equipValid) {
+    if (loading) {
+      label = 'Loading…';
+    } else if (!equipValid) {
       label = 'Select all test equipment to continue';
     } else if (!pmValid) {
       label = 'Select a PM task to continue';

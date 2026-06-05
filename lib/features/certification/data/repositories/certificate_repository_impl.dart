@@ -56,6 +56,8 @@ class CertificateRepositoryImpl implements CertificateRepository {
       patientSafe: cert.patientSafe,
       certName: cert.certName,
       pmTaskDescription: cert.pmTaskDescription,
+      serviceId: cert.serviceId,
+      testType: cert.testType,
     );
     final certId = await local.saveCertificate(certModel);
 
@@ -96,6 +98,23 @@ class CertificateRepositoryImpl implements CertificateRepository {
   Future<void> _pushSingleCertificate(TestCertificate cert) async {
     final outputs = await local.getOutputsByCertId(cert.id);
     final equipment = await local.getEquipmentForCert(cert.id);
+    final totalTest = outputs.length;
+    final totalDone = outputs.where((o) => o.pass == true).length;
+
+    // If serviceId was not captured in UI state, recover it from local PM
+    // tasks by matching on description. This is a safety net for any race
+    // between provider loading and the save button.
+    int? resolvedServiceId = cert.serviceId;
+    if (resolvedServiceId == null &&
+        cert.pmTaskDescription != null &&
+        cert.assetId != null) {
+      final tasks = await local.getAssetPmTasks(cert.assetId!);
+      resolvedServiceId = tasks
+          .where((t) => t.description == cert.pmTaskDescription)
+          .map((t) => t.pmTaskId)
+          .firstOrNull;
+    }
+
     final payload = {
       'asset_id': cert.assetId,
       'cert_type': cert.certType,
@@ -116,7 +135,10 @@ class CertificateRepositoryImpl implements CertificateRepository {
       'pm_task_description': cert.pmTaskDescription,
       'service_interval': cert.serviceInterval,
       'service_type': cert.serviceType,
-      'pm_task_id': cert.serviceId,
+      'pm_task_id': resolvedServiceId,
+      'test_type': cert.testType,
+      'total_test': totalTest,
+      'total_done': totalDone,
       'test_equipment': equipment
           .map(
             (e) => {

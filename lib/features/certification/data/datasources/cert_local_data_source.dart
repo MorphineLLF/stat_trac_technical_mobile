@@ -205,6 +205,9 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
         'tech_signature': techSignature,
         'client_signature': clientSignature,
         'client_name': clientName,
+        // Advance from 'draft' to 'pending' so sync picks up the complete cert
+        // (with signatures and client name) rather than the partial save.
+        'sync_status': 'pending',
       },
       where: 'id = ?',
       whereArgs: [certId],
