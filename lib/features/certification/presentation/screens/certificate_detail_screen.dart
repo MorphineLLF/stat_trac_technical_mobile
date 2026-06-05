@@ -352,6 +352,20 @@ class _HeaderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(dateStr,
                 style: Theme.of(context).textTheme.bodySmall),
+            if (summary.pmTaskDescription != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text('PM Task: ',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: brandGrey)),
+                  Text(summary.pmTaskDescription!,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ],
           ],
         ),
       ),
