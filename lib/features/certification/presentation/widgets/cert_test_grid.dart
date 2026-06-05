@@ -18,6 +18,7 @@ class CertTestGrid extends ConsumerStatefulWidget {
   final int templateNameId;
   final int assetId;
   final ValueChanged<List<TestOutput>> onOutputsChanged;
+
   /// Called whenever validation state changes — true when all required actual
   /// values are filled in.
   final ValueChanged<bool> onValidityChanged;
@@ -85,8 +86,10 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
       data: (items) {
         if (items.isEmpty) {
           return Center(
-            child: Text('No test items for this template',
-                style: TextStyle(color: brandGrey)),
+            child: Text(
+              'No test items for this template',
+              style: TextStyle(color: brandGrey),
+            ),
           );
         }
 
@@ -107,8 +110,9 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           final s = _states[item.id] ?? _OutputState();
           return s.pass || s.fail || s.na;
         }).length;
-        final itemsNeedingActual =
-            items.where((item) => !item.noActualRequired).toList();
+        final itemsNeedingActual = items
+            .where((item) => !item.noActualRequired)
+            .toList();
         final actualCount = itemsNeedingActual.where((item) {
           final s = _states[item.id] ?? _OutputState();
           return s.actualValue != null && s.actualValue!.trim().isNotEmpty;
@@ -240,10 +244,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         title,
-        style: Theme.of(context)
-            .textTheme
-            .titleSmall
-            ?.copyWith(color: brandTeal, fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: brandTeal,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -281,14 +285,31 @@ class _TestItemRow extends StatelessWidget {
           // Column labels
           Row(
             children: [
-              Expanded(flex: 3, child: Text('Test Description', style: labelStyle)),
+              Expanded(
+                flex: 3,
+                child: Text('Test Description', style: labelStyle),
+              ),
               if (!_noExpectedValue) ...[
                 const SizedBox(width: 8),
-                Expanded(flex: 2, child: Text('Test Value', style: labelStyle, textAlign: TextAlign.center)),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Test Value',
+                    style: labelStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ],
               if (!_noActualRequired) ...[
                 const SizedBox(width: 8),
-                Expanded(flex: 2, child: Text('Actual', style: labelStyle, textAlign: TextAlign.center)),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Actual',
+                    style: labelStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ],
             ],
           ),
@@ -298,8 +319,10 @@ class _TestItemRow extends StatelessWidget {
             children: [
               Expanded(
                 flex: 3,
-                child: Text(item.description ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium),
+                child: Text(
+                  item.description ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
               if (!_noExpectedValue) ...[
                 const SizedBox(width: 8),
@@ -324,15 +347,19 @@ class _TestItemRow extends StatelessWidget {
                       isDense: true,
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true, signed: true),
+                      decimal: true,
+                      signed: true,
+                    ),
                     inputFormatters: [LengthLimitingTextInputFormatter(15)],
                     onChanged: (v) {
-                      onChanged(_OutputState()
-                        ..actualValue = v
-                        ..notes = state.notes
-                        ..pass = state.pass
-                        ..fail = state.fail
-                        ..na = state.na);
+                      onChanged(
+                        _OutputState()
+                          ..actualValue = v
+                          ..notes = state.notes
+                          ..pass = state.pass
+                          ..fail = state.fail
+                          ..na = state.na,
+                      );
                     },
                   ),
                 ),
@@ -348,12 +375,14 @@ class _TestItemRow extends StatelessWidget {
                 icon: Icons.check_circle,
                 color: const Color(0xFF2E7D32),
                 selected: state.pass,
-                onTap: () => onChanged(_OutputState()
-                  ..actualValue = state.actualValue
-                  ..notes = state.notes
-                  ..pass = !state.pass
-                  ..fail = false
-                  ..na = false),
+                onTap: () => onChanged(
+                  _OutputState()
+                    ..actualValue = state.actualValue
+                    ..notes = state.notes
+                    ..pass = !state.pass
+                    ..fail = false
+                    ..na = false,
+                ),
               ),
               const SizedBox(width: 8),
               _ResultChip(
@@ -361,12 +390,14 @@ class _TestItemRow extends StatelessWidget {
                 icon: Icons.cancel,
                 color: const Color(0xFFC62828),
                 selected: state.fail,
-                onTap: () => onChanged(_OutputState()
-                  ..actualValue = state.actualValue
-                  ..notes = state.notes
-                  ..pass = false
-                  ..fail = !state.fail
-                  ..na = false),
+                onTap: () => onChanged(
+                  _OutputState()
+                    ..actualValue = state.actualValue
+                    ..notes = state.notes
+                    ..pass = false
+                    ..fail = !state.fail
+                    ..na = false,
+                ),
               ),
               const SizedBox(width: 8),
               _ResultChip(
@@ -374,12 +405,14 @@ class _TestItemRow extends StatelessWidget {
                 icon: Icons.remove_circle,
                 color: const Color(0xFF37474F),
                 selected: state.na,
-                onTap: () => onChanged(_OutputState()
-                  ..actualValue = state.actualValue
-                  ..notes = state.notes
-                  ..pass = false
-                  ..fail = false
-                  ..na = !state.na),
+                onTap: () => onChanged(
+                  _OutputState()
+                    ..actualValue = state.actualValue
+                    ..notes = state.notes
+                    ..pass = false
+                    ..fail = false
+                    ..na = !state.na,
+                ),
               ),
             ],
           ),
@@ -401,21 +434,20 @@ class _TestItemRow extends StatelessWidget {
           TextFormField(
             key: ValueKey('notes_${item.id}'),
             initialValue: state.notes,
-            decoration: const InputDecoration(
-              hintText: 'Notes',
-              isDense: true,
-            ),
+            decoration: const InputDecoration(hintText: 'Notes', isDense: true),
             maxLines: 2,
             minLines: 1,
             style: const TextStyle(fontSize: 13),
             inputFormatters: [LengthLimitingTextInputFormatter(30)],
             onChanged: (v) {
-              onChanged(_OutputState()
-                ..actualValue = state.actualValue
-                ..notes = v
-                ..pass = state.pass
-                ..fail = state.fail
-                ..na = state.na);
+              onChanged(
+                _OutputState()
+                  ..actualValue = state.actualValue
+                  ..notes = v
+                  ..pass = state.pass
+                  ..fail = state.fail
+                  ..na = state.na,
+              );
             },
           ),
           const SizedBox(height: 8),

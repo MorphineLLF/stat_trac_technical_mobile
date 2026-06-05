@@ -20,12 +20,12 @@ class UserModel extends User {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'role': role.name,
-        'technician_code': technicianCode,
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'role': role.name,
+    'technician_code': technicianCode,
+  };
 
   static UserRole _parseRole(String value) {
     return switch (value) {

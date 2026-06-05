@@ -25,9 +25,9 @@ AssetRemoteDataSource assetRemoteDataSource(Ref ref) {
 
 @riverpod
 AssetRepository assetRepository(Ref ref) => AssetRepositoryImpl(
-      local: ref.watch(assetLocalDataSourceProvider),
-      remote: ref.watch(assetRemoteDataSourceProvider),
-    );
+  local: ref.watch(assetLocalDataSourceProvider),
+  remote: ref.watch(assetRemoteDataSourceProvider),
+);
 
 // ── Browse ────────────────────────────────────────────────────────────────────
 
@@ -42,11 +42,7 @@ Future<List<String>> hospitalList(Ref ref) =>
 // ── Search ────────────────────────────────────────────────────────────────────
 
 @riverpod
-Future<List<Asset>> assetSearch(
-  Ref ref,
-  String query, {
-  String? hospital,
-}) =>
+Future<List<Asset>> assetSearch(Ref ref, String query, {String? hospital}) =>
     ref.watch(assetRepositoryProvider).searchAssets(query, hospital: hospital);
 
 // ── Stats ─────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
@@ -16,8 +16,7 @@ class CreateWorkOrderScreen extends ConsumerStatefulWidget {
       _CreateWorkOrderScreenState();
 }
 
-class _CreateWorkOrderScreenState
-    extends ConsumerState<CreateWorkOrderScreen> {
+class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   final _formKey = GlobalKey<FormState>();
   final _symptomCtrl = TextEditingController();
 
@@ -72,9 +71,9 @@ class _CreateWorkOrderScreenState
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedAsset == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an asset')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select an asset')));
       return;
     }
 
@@ -142,8 +141,9 @@ class _CreateWorkOrderScreenState
                     selectedColor: color.withAlpha(40),
                     labelStyle: TextStyle(
                       color: selected ? color : brandGrey,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w700
+                          : FontWeight.normal,
                     ),
                     side: BorderSide(
                       color: selected ? color : const Color(0xFFDDE3EA),
@@ -157,10 +157,7 @@ class _CreateWorkOrderScreenState
               // Asset
               _SectionLabel(label: 'Asset'),
               const SizedBox(height: 8),
-              _AssetPickerField(
-                asset: _selectedAsset,
-                onTap: _pickAsset,
-              ),
+              _AssetPickerField(asset: _selectedAsset, onTap: _pickAsset),
               const SizedBox(height: 20),
 
               // Description
@@ -200,7 +197,9 @@ class _CreateWorkOrderScreenState
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
                         _type == WoType.cm
@@ -324,19 +323,22 @@ class _AssetPickerField extends StatelessWidget {
               child: asset == null
                   ? Text(
                       'Tap to select hospital & asset',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: brandGrey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: brandGrey),
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(asset!.equipmentType,
-                            style: Theme.of(context).textTheme.bodyLarge),
+                        Text(
+                          asset!.equipmentType,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
                         Text(
                           [
-                            asset!.assetId != null ? '#${asset!.assetId}' : 'Provisional',
+                            asset!.assetId != null
+                                ? '#${asset!.assetId}'
+                                : 'Provisional',
                             if (asset!.serialNumber != null)
                               'S/N: ${asset!.serialNumber}',
                             asset!.hospital ?? '',
@@ -392,10 +394,9 @@ class _InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],
@@ -412,10 +413,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: Theme.of(context)
-          .textTheme
-          .titleSmall
-          ?.copyWith(color: brandGrey),
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: brandGrey),
     );
   }
 }

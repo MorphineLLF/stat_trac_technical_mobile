@@ -65,8 +65,12 @@ class TestCertificateModel extends TestCertificate {
   factory TestCertificateModel.fromJson(Map<String, dynamic> j) {
     final testDateStr = j['test_date'] as String?;
     final nextServiceStr = j['next_service'] as String?;
-    final testDate = testDateStr != null ? DateTime.tryParse(testDateStr) : null;
-    final nextService = nextServiceStr != null ? DateTime.tryParse(nextServiceStr) : null;
+    final testDate = testDateStr != null
+        ? DateTime.tryParse(testDateStr)
+        : null;
+    final nextService = nextServiceStr != null
+        ? DateTime.tryParse(nextServiceStr)
+        : null;
     return TestCertificateModel(
       id: 0,
       serverId: j['id'] as int?,
@@ -91,28 +95,28 @@ class TestCertificateModel extends TestCertificate {
   }
 
   Map<String, dynamic> toMap() => {
-        if (id != 0) 'id': id,
-        'server_id': serverId,
-        'asset_id': assetId,
-        'test_date': testDate?.toIso8601String(),
-        'cert_type': certType,
-        'template_name_id': templateNameId,
-        'technician': technician,
-        'technician_id': technicianId,
-        'next_service': nextService?.toIso8601String(),
-        'wo_number': woNumber,
-        'jobcard_no': jobcardNo,
-        'doc_no': docNo,
-        'service_interval': serviceInterval,
-        'service_type': serviceType,
-        'tech_signature': techSignature,
-        'client_signature': clientSignature,
-        'client_name': clientName,
-        'notes': notes,
-        'sync_status': syncStatus,
-        'created_at': createdAt.toIso8601String(),
-        'patient_safe': patientSafe,
-        'cert_name': certName,
-        'pm_task_description': pmTaskDescription,
-      };
+    if (id != 0) 'id': id,
+    'server_id': serverId,
+    'asset_id': assetId,
+    'test_date': testDate?.toIso8601String(),
+    'cert_type': certType,
+    'template_name_id': templateNameId,
+    'technician': technician,
+    'technician_id': technicianId,
+    'next_service': nextService?.toIso8601String(),
+    'wo_number': woNumber,
+    'jobcard_no': jobcardNo,
+    'doc_no': docNo,
+    'service_interval': serviceInterval,
+    'service_type': serviceType,
+    'tech_signature': techSignature,
+    'client_signature': clientSignature,
+    'client_name': clientName,
+    'notes': notes,
+    'sync_status': syncStatus,
+    'created_at': createdAt.toIso8601String(),
+    'patient_safe': patientSafe,
+    'cert_name': certName,
+    'pm_task_description': pmTaskDescription,
+  };
 }

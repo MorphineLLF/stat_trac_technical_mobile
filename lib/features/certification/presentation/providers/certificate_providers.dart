@@ -56,7 +56,6 @@ Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
 Future<List<CertificateSummary>> certificateList(Ref ref) =>
     ref.watch(certLocalDataSourceProvider).getCertificates();
 
-
 @riverpod
 Future<CertificateSummary?> certificateSummary(Ref ref, int id) =>
     ref.watch(certLocalDataSourceProvider).getCertificateById(id);

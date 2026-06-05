@@ -23,28 +23,28 @@ class AssetModel extends Asset {
 
   /// From SQLite row.
   factory AssetModel.fromMap(Map<String, dynamic> m) => AssetModel(
-        id: m['id'] as int,
-        assetId: m['asset_id'] as int?,
-        equipmentType: m['equipment_type'] as String,
-        model: m['model'] as String?,
-        manufacturer: m['manufacturer'] as String?,
-        serialNumber: m['serial_number'] as String?,
-        barcode: m['barcode'] as String?,
-        hospital: m['hospital'] as String?,
-        location: m['location'] as String?,
-        condition: m['condition'] as String?,
-        isActive: (m['is_active'] as int? ?? 1) == 1,
-        isCondemned: (m['is_condemned'] as int? ?? 0) == 1,
-        nextServiceDate: m['next_service_date'] != null
-            ? DateTime.parse(m['next_service_date'] as String)
-            : null,
-        isProvisional: (m['is_provisional'] as int? ?? 0) == 1,
-        syncedAt: m['synced_at'] != null
-            ? DateTime.parse(m['synced_at'] as String)
-            : null,
-        createdAt: DateTime.parse(m['created_at'] as String),
-        updatedAt: DateTime.parse(m['updated_at'] as String),
-      );
+    id: m['id'] as int,
+    assetId: m['asset_id'] as int?,
+    equipmentType: m['equipment_type'] as String,
+    model: m['model'] as String?,
+    manufacturer: m['manufacturer'] as String?,
+    serialNumber: m['serial_number'] as String?,
+    barcode: m['barcode'] as String?,
+    hospital: m['hospital'] as String?,
+    location: m['location'] as String?,
+    condition: m['condition'] as String?,
+    isActive: (m['is_active'] as int? ?? 1) == 1,
+    isCondemned: (m['is_condemned'] as int? ?? 0) == 1,
+    nextServiceDate: m['next_service_date'] != null
+        ? DateTime.parse(m['next_service_date'] as String)
+        : null,
+    isProvisional: (m['is_provisional'] as int? ?? 0) == 1,
+    syncedAt: m['synced_at'] != null
+        ? DateTime.parse(m['synced_at'] as String)
+        : null,
+    createdAt: DateTime.parse(m['created_at'] as String),
+    updatedAt: DateTime.parse(m['updated_at'] as String),
+  );
 
   /// From Horse API slim list response (GET /assets?page=N).
   factory AssetModel.fromJson(Map<String, dynamic> j) {
@@ -73,22 +73,22 @@ class AssetModel extends Asset {
   }
 
   Map<String, dynamic> toMap() => {
-        if (id != 0) 'id': id,
-        'asset_id': assetId,
-        'equipment_type': equipmentType,
-        'model': model,
-        'manufacturer': manufacturer,
-        'serial_number': serialNumber,
-        'barcode': barcode,
-        'hospital': hospital,
-        'location': location,
-        'condition': condition,
-        'is_active': isActive ? 1 : 0,
-        'is_condemned': isCondemned ? 1 : 0,
-        'next_service_date': nextServiceDate?.toIso8601String(),
-        'is_provisional': isProvisional ? 1 : 0,
-        'synced_at': syncedAt?.toIso8601String(),
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-      };
+    if (id != 0) 'id': id,
+    'asset_id': assetId,
+    'equipment_type': equipmentType,
+    'model': model,
+    'manufacturer': manufacturer,
+    'serial_number': serialNumber,
+    'barcode': barcode,
+    'hospital': hospital,
+    'location': location,
+    'condition': condition,
+    'is_active': isActive ? 1 : 0,
+    'is_condemned': isCondemned ? 1 : 0,
+    'next_service_date': nextServiceDate?.toIso8601String(),
+    'is_provisional': isProvisional ? 1 : 0,
+    'synced_at': syncedAt?.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
 }

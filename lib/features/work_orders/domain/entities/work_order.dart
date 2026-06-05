@@ -81,8 +81,7 @@ class WorkOrder {
       status != WoStatus.closed &&
       status != WoStatus.cancelled;
 
-  Duration? get slaDuration =>
-      slaDueAt?.difference(DateTime.now());
+  Duration? get slaDuration => slaDueAt?.difference(DateTime.now());
 
   @override
   bool operator ==(Object other) =>

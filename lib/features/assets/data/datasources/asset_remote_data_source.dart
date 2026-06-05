@@ -25,19 +25,17 @@ class AssetRemoteDataSourceImpl implements AssetRemoteDataSource {
       '/assets',
       queryParameters: {'page': page, 'page_size': pageSize},
     );
-    debugPrint('[AssetRemote] GET /assets page=$page → keys: ${response.data?.keys.toList()}, status: ${response.statusCode}');
+    debugPrint(
+      '[AssetRemote] GET /assets page=$page → keys: ${response.data?.keys.toList()}, status: ${response.statusCode}',
+    );
     final items = (response.data?['data'] as List<dynamic>?) ?? [];
     debugPrint('[AssetRemote] parsed ${items.length} items');
-    return items
-        .cast<Map<String, dynamic>>()
-        .map(AssetModel.fromJson)
-        .toList();
+    return items.cast<Map<String, dynamic>>().map(AssetModel.fromJson).toList();
   }
 
   @override
   Future<AssetDetailModel> getAssetDetail(int assetId) async {
-    final response =
-        await _dio.get<Map<String, dynamic>>('/assets/$assetId');
+    final response = await _dio.get<Map<String, dynamic>>('/assets/$assetId');
     if (response.data == null) {
       throw Exception('Empty response for asset $assetId');
     }

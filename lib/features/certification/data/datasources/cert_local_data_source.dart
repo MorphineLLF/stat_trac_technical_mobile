@@ -48,7 +48,9 @@ abstract interface class CertLocalDataSource {
   /// insertCertificateFromServer. certificateId in each model is ignored —
   /// localCertId is used instead.
   Future<void> insertOutputsForCert(
-      int localCertId, List<TestOutputModel> outputs);
+    int localCertId,
+    List<TestOutputModel> outputs,
+  );
 
   /// Deletes a certificate and its outputs from local SQLite by server_id.
   Future<void> deleteCertificateByServerId(int serverId);
@@ -69,7 +71,9 @@ abstract interface class CertLocalDataSource {
 
   /// Saves equipment selections to test_cert_equipment for [certId].
   Future<void> saveEquipmentSelections(
-      int certId, List<TestEquipmentSelection> equipment);
+    int certId,
+    List<TestEquipmentSelection> equipment,
+  );
 
   /// Returns equipment selections for [certId] ordered by slot_no.
   Future<List<TestEquipmentSelection>> getEquipmentForCert(int certId);
@@ -242,10 +246,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   @override
   Future<CertificateSummary?> getCertificateById(int id) async {
     final db = await _db.database;
-    final rows = await db.rawQuery(
-      '$_certSummarySelect WHERE tc.id = ?',
-      [id],
-    );
+    final rows = await db.rawQuery('$_certSummarySelect WHERE tc.id = ?', [id]);
     return rows.isEmpty ? null : CertificateSummary.fromMap(rows.first);
   }
 
@@ -285,11 +286,16 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
 
   @override
   Future<void> insertOutputsForCert(
-      int localCertId, List<TestOutputModel> outputs) async {
+    int localCertId,
+    List<TestOutputModel> outputs,
+  ) async {
     final db = await _db.database;
     final batch = db.batch();
     for (final o in outputs) {
-      batch.insert('test_outputs', {...o.toMap(), 'certificate_id': localCertId});
+      batch.insert('test_outputs', {
+        ...o.toMap(),
+        'certificate_id': localCertId,
+      });
     }
     await batch.commit(noResult: true);
   }
@@ -305,10 +311,12 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
     );
     if (rows.isEmpty) return;
     final localId = rows.first['id'] as int;
-    await db.delete('test_outputs',
-        where: 'certificate_id = ?', whereArgs: [localId]);
-    await db.delete('test_certificates',
-        where: 'id = ?', whereArgs: [localId]);
+    await db.delete(
+      'test_outputs',
+      where: 'certificate_id = ?',
+      whereArgs: [localId],
+    );
+    await db.delete('test_certificates', where: 'id = ?', whereArgs: [localId]);
   }
 
   @override
@@ -334,15 +342,19 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
 
   @override
   Future<void> upsertTestEquipmentAssets(
-      List<TestEquipmentAssetModel> assets) async {
+    List<TestEquipmentAssetModel> assets,
+  ) async {
     final db = await _db.database;
     await db.transaction((txn) async {
       await txn.delete('test_equipment_assets');
       if (assets.isEmpty) return;
       final batch = txn.batch();
       for (final a in assets) {
-        batch.insert('test_equipment_assets', a.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        batch.insert(
+          'test_equipment_assets',
+          a.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       await batch.commit(noResult: true);
     });
@@ -360,26 +372,24 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
 
   @override
   Future<void> saveEquipmentSelections(
-      int certId, List<TestEquipmentSelection> equipment) async {
+    int certId,
+    List<TestEquipmentSelection> equipment,
+  ) async {
     if (equipment.isEmpty) return;
     final db = await _db.database;
     final batch = db.batch();
     for (var i = 0; i < equipment.length; i++) {
       final e = equipment[i];
-      batch.insert(
-        'test_cert_equipment',
-        {
-          'certificate_id': certId,
-          'slot_no': i + 1,
-          'asset_id': e.assetId,
-          'equipment_type': e.equipmentType,
-          'manufacturer': e.manufacturer,
-          'model': e.model,
-          'serial_no': e.serialNo,
-          'cal_date': e.calDate?.toIso8601String().substring(0, 10),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      batch.insert('test_cert_equipment', {
+        'certificate_id': certId,
+        'slot_no': i + 1,
+        'asset_id': e.assetId,
+        'equipment_type': e.equipmentType,
+        'manufacturer': e.manufacturer,
+        'model': e.model,
+        'serial_no': e.serialNo,
+        'cal_date': e.calDate?.toIso8601String().substring(0, 10),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
     await batch.commit(noResult: true);
   }
@@ -394,16 +404,18 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       orderBy: 'slot_no ASC',
     );
     return rows
-        .map((r) => TestEquipmentSelection(
-              assetId: r['asset_id'] as int,
-              equipmentType: r['equipment_type'] as String?,
-              manufacturer: r['manufacturer'] as String?,
-              model: r['model'] as String?,
-              serialNo: r['serial_no'] as String?,
-              calDate: r['cal_date'] != null
-                  ? DateTime.tryParse(r['cal_date'] as String)
-                  : null,
-            ))
+        .map(
+          (r) => TestEquipmentSelection(
+            assetId: r['asset_id'] as int,
+            equipmentType: r['equipment_type'] as String?,
+            manufacturer: r['manufacturer'] as String?,
+            model: r['model'] as String?,
+            serialNo: r['serial_no'] as String?,
+            calDate: r['cal_date'] != null
+                ? DateTime.tryParse(r['cal_date'] as String)
+                : null,
+          ),
+        )
         .toList();
   }
 
@@ -415,8 +427,11 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       if (tasks.isEmpty) return;
       final batch = txn.batch();
       for (final t in tasks) {
-        batch.insert('asset_pm_tasks', t.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        batch.insert(
+          'asset_pm_tasks',
+          t.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       await batch.commit(noResult: true);
     });

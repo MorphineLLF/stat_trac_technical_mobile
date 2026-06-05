@@ -24,15 +24,17 @@ class _AssetBarcodeScannerScreenState
 
     _handled = true;
 
-    final asset = await ref.read(assetRepositoryProvider).getAssetByBarcode(barcode);
+    final asset = await ref
+        .read(assetRepositoryProvider)
+        .getAssetByBarcode(barcode);
 
     if (!mounted) return;
 
     if (asset != null && asset.assetId != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => AssetDetailScreen(
-              assetId: asset.assetId!, localAsset: asset),
+          builder: (_) =>
+              AssetDetailScreen(assetId: asset.assetId!, localAsset: asset),
         ),
       );
     } else {
@@ -42,8 +44,9 @@ class _AssetBarcodeScannerScreenState
         builder: (_) => AlertDialog(
           title: const Text('Asset Not Found'),
           content: Text(
-              'No asset with barcode "$barcode" in local database.\n\n'
-              'Register as a provisional asset?'),
+            'No asset with barcode "$barcode" in local database.\n\n'
+            'Register as a provisional asset?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -81,7 +84,9 @@ class _AssetBarcodeScannerScreenState
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 10),
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(8),

@@ -29,9 +29,8 @@ class WorkOrderListScreen extends ConsumerWidget {
       body: woAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorView(message: e.toString()),
-        data: (wos) => wos.isEmpty
-            ? const _EmptyView()
-            : _WorkOrderList(workOrders: wos),
+        data: (wos) =>
+            wos.isEmpty ? const _EmptyView() : _WorkOrderList(workOrders: wos),
       ),
     );
   }
@@ -113,9 +112,9 @@ class _PriorityHeader extends StatelessWidget {
           Text(
             priority.value,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: _colors[priority],
-                  fontWeight: FontWeight.bold,
-                ),
+              color: _colors[priority],
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -150,8 +149,8 @@ class _WorkOrderCard extends StatelessWidget {
                   Text(
                     wo.woNumber,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   _TypeChip(type: wo.type),
@@ -174,14 +173,12 @@ class _WorkOrderCard extends StatelessWidget {
                   const Icon(Icons.access_time, size: 14),
                   const SizedBox(width: 4),
                   Text(
-                    wo.slaDueAt != null
-                        ? _slaLabel(wo)
-                        : 'No SLA',
+                    wo.slaDueAt != null ? _slaLabel(wo) : 'No SLA',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: wo.isOverdue
-                              ? Theme.of(context).colorScheme.error
-                              : null,
-                        ),
+                      color: wo.isOverdue
+                          ? Theme.of(context).colorScheme.error
+                          : null,
+                    ),
                   ),
                 ],
               ),
@@ -227,8 +224,8 @@ class _TypeChip extends StatelessWidget {
       child: Text(
         type.value,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSecondaryContainer,
-            ),
+          color: Theme.of(context).colorScheme.onSecondaryContainer,
+        ),
       ),
     );
   }
@@ -258,10 +255,10 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         status.value.replaceAll('_', ' '),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: isActive
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+          color: isActive
+              ? Theme.of(context).colorScheme.onPrimaryContainer
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -278,11 +275,16 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_outline,
-              size: 64, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            Icons.check_circle_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(height: 16),
-          Text('No work orders for today',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'No work orders for today',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ],
       ),
     );
@@ -298,8 +300,10 @@ class _ErrorView extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(message,
-            style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        child: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
     );
   }

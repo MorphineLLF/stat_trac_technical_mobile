@@ -31,8 +31,7 @@ class TestEquipmentSelection {
   final String? serialNo;
   final DateTime? calDate;
 
-  bool get isCalExpired =>
-      calDate != null && calDate!.isBefore(DateTime.now());
+  bool get isCalExpired => calDate != null && calDate!.isBefore(DateTime.now());
 
   String get displayName =>
       [manufacturer, model].where((s) => s != null && s.isNotEmpty).join(' ');

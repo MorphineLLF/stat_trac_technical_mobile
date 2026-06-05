@@ -59,9 +59,19 @@ class WoLocalDataSourceImpl implements WoLocalDataSource {
   Future<List<WorkOrderModel>> getTodays() async {
     final db = await _db;
     final today = DateTime.now();
-    final start = DateTime(today.year, today.month, today.day).toIso8601String();
-    final end =
-        DateTime(today.year, today.month, today.day, 23, 59, 59).toIso8601String();
+    final start = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String();
+    final end = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
     final rows = await db.query(
       'work_orders',
       where: '''
@@ -81,8 +91,11 @@ class WoLocalDataSourceImpl implements WoLocalDataSource {
   @override
   Future<WorkOrderModel?> getById(int id) async {
     final db = await _db;
-    final rows =
-        await db.query('work_orders', where: 'id = ?', whereArgs: [id]);
+    final rows = await db.query(
+      'work_orders',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
     if (rows.isEmpty) return null;
     return WorkOrderModel.fromMap(rows.first);
   }
@@ -128,8 +141,7 @@ class WoLocalDataSourceImpl implements WoLocalDataSource {
   }
 
   @override
-  Future<List<WorkOrderStatusHistory>> getStatusHistory(
-      int workOrderId) async {
+  Future<List<WorkOrderStatusHistory>> getStatusHistory(int workOrderId) async {
     final db = await _db;
     final rows = await db.query(
       'work_order_status_history',
@@ -138,19 +150,21 @@ class WoLocalDataSourceImpl implements WoLocalDataSource {
       orderBy: 'changed_at ASC',
     );
     return rows
-        .map((r) => WorkOrderStatusHistory(
-              id: r['id'] as int,
-              workOrderId: r['work_order_id'] as int,
-              oldStatus: r['old_status'] != null
-                  ? WoStatus.fromValue(r['old_status'] as String)
-                  : null,
-              newStatus: WoStatus.fromValue(r['new_status'] as String),
-              changedBy: r['changed_by'] as int,
-              notes: r['notes'] as String?,
-              gpsLat: r['gps_lat'] as double?,
-              gpsLng: r['gps_lng'] as double?,
-              changedAt: DateTime.parse(r['changed_at'] as String),
-            ))
+        .map(
+          (r) => WorkOrderStatusHistory(
+            id: r['id'] as int,
+            workOrderId: r['work_order_id'] as int,
+            oldStatus: r['old_status'] != null
+                ? WoStatus.fromValue(r['old_status'] as String)
+                : null,
+            newStatus: WoStatus.fromValue(r['new_status'] as String),
+            changedBy: r['changed_by'] as int,
+            notes: r['notes'] as String?,
+            gpsLat: r['gps_lat'] as double?,
+            gpsLng: r['gps_lng'] as double?,
+            changedAt: DateTime.parse(r['changed_at'] as String),
+          ),
+        )
         .toList();
   }
 

@@ -22,8 +22,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   final FlutterSecureStorage _storage;
 
-  static const _tokenKey  = 'auth_token';
-  static const _userKey   = 'auth_user';
+  static const _tokenKey = 'auth_token';
+  static const _userKey = 'auth_user';
   static const _dbNameKey = 'db_name';
 
   @override

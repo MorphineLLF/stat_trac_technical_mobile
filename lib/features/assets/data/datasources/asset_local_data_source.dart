@@ -71,29 +71,32 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
     final batch = db.batch();
     final now = DateTime.now().toIso8601String();
     for (final a in assets) {
-      batch.rawInsert('''
+      batch.rawInsert(
+        '''
         INSERT OR REPLACE INTO $_table
           (asset_id, equipment_type, model, manufacturer, serial_number,
            barcode, hospital, location, condition, is_active, is_condemned,
            next_service_date, is_provisional, synced_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
-      ''', [
-        a.assetId,
-        a.equipmentType,
-        a.model,
-        a.manufacturer,
-        a.serialNumber,
-        a.barcode,
-        a.hospital,
-        a.location,
-        a.condition,
-        a.isActive ? 1 : 0,
-        a.isCondemned ? 1 : 0,
-        a.nextServiceDate?.toIso8601String(),
-        // synced_at, created_at, updated_at — all set to local sync time.
-        // AssetModel.fromJson also stamps these as now(), so this is consistent.
-        now, now, now,
-      ]);
+      ''',
+        [
+          a.assetId,
+          a.equipmentType,
+          a.model,
+          a.manufacturer,
+          a.serialNumber,
+          a.barcode,
+          a.hospital,
+          a.location,
+          a.condition,
+          a.isActive ? 1 : 0,
+          a.isCondemned ? 1 : 0,
+          a.nextServiceDate?.toIso8601String(),
+          // synced_at, created_at, updated_at — all set to local sync time.
+          // AssetModel.fromJson also stamps these as now(), so this is consistent.
+          now, now, now,
+        ],
+      );
     }
     await batch.commit(noResult: true);
   }
@@ -146,8 +149,11 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
   @override
   Future<Asset?> getAssetByAssetId(int assetId) async {
     final db = await _db.database;
-    final rows =
-        await db.query(_table, where: 'asset_id = ?', whereArgs: [assetId]);
+    final rows = await db.query(
+      _table,
+      where: 'asset_id = ?',
+      whereArgs: [assetId],
+    );
     if (rows.isEmpty) return null;
     return AssetModel.fromMap(rows.first);
   }
@@ -155,8 +161,11 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
   @override
   Future<Asset?> getAssetByBarcode(String barcode) async {
     final db = await _db.database;
-    final rows =
-        await db.query(_table, where: 'barcode = ?', whereArgs: [barcode]);
+    final rows = await db.query(
+      _table,
+      where: 'barcode = ?',
+      whereArgs: [barcode],
+    );
     if (rows.isEmpty) return null;
     return AssetModel.fromMap(rows.first);
   }
@@ -189,10 +198,10 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
     ''');
     final r = rows.first;
     return AssetStats(
-      total:      (r['total']       as int?) ?? 0,
-      active:     (r['active']      as int?) ?? 0,
+      total: (r['total'] as int?) ?? 0,
+      active: (r['active'] as int?) ?? 0,
       serviceDue: (r['service_due'] as int?) ?? 0,
-      condemned:  (r['condemned']   as int?) ?? 0,
+      condemned: (r['condemned'] as int?) ?? 0,
     );
   }
 

@@ -35,16 +35,16 @@ class TestOutput {
     bool? fail,
     bool? na,
   }) => TestOutput(
-        id: id,
-        certificateId: certificateId,
-        assetId: assetId,
-        descriptionId: descriptionId,
-        description: description,
-        expectedValue: expectedValue,
-        actualValue: actualValue ?? this.actualValue,
-        notes: notes ?? this.notes,
-        pass: pass ?? this.pass,
-        fail: fail ?? this.fail,
-        na: na ?? this.na,
-      );
+    id: id,
+    certificateId: certificateId,
+    assetId: assetId,
+    descriptionId: descriptionId,
+    description: description,
+    expectedValue: expectedValue,
+    actualValue: actualValue ?? this.actualValue,
+    notes: notes ?? this.notes,
+    pass: pass ?? this.pass,
+    fail: fail ?? this.fail,
+    na: na ?? this.na,
+  );
 }

@@ -17,13 +17,14 @@ class CertificateSummary {
   });
 
   final int id;
-  final int? certificateNo;     // TestCertificateID on server
-  final int certType;           // 1=Test, 2=QA, 3=Commission
-  final String syncStatus;      // 'pending' | 'synced'
+  final int? certificateNo; // TestCertificateID on server
+  final int certType; // 1=Test, 2=QA, 3=Commission
+  final String syncStatus; // 'pending' | 'synced'
   final DateTime createdAt;
-  final String? certName;       // test_template_names.test_template_cert_name
-  final String? templateName;   // test_template_names.test_template_name (fallback)
-  final String? equipmentType;  // assets.equipment_type
+  final String? certName; // test_template_names.test_template_cert_name
+  final String?
+  templateName; // test_template_names.test_template_name (fallback)
+  final String? equipmentType; // assets.equipment_type
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   final int? patientSafe;
   final int? templateNameId;
@@ -40,32 +41,42 @@ class CertificateSummary {
 
   /// Title shown in lists and headers — template name when available,
   /// otherwise a generic cert-type label for historical certs.
-  String get displayTitle =>
-      resolvedTemplateName ?? '$typeLabel Certificate';
+  String get displayTitle => resolvedTemplateName ?? '$typeLabel Certificate';
 
   String get complianceLabel {
     switch (patientSafe) {
-      case 1: return 'Compliant';
-      case 0: return 'Non-Compliant';
-      case 2: return 'Incomplete';
-      default: return '';
+      case 1:
+        return 'Compliant';
+      case 0:
+        return 'Non-Compliant';
+      case 2:
+        return 'Incomplete';
+      default:
+        return '';
     }
   }
 
   Color get complianceColor {
     switch (patientSafe) {
-      case 1: return const Color(0xFF2E7D32);
-      case 0: return const Color(0xFFC62828);
-      case 2: return const Color(0xFFF57F17);
-      default: return const Color(0xFF8A9BAE);
+      case 1:
+        return const Color(0xFF2E7D32);
+      case 0:
+        return const Color(0xFFC62828);
+      case 2:
+        return const Color(0xFFF57F17);
+      default:
+        return const Color(0xFF8A9BAE);
     }
   }
 
   String get typeLabel {
     switch (certType) {
-      case 2: return 'QA';
-      case 3: return 'CS';
-      default: return 'TEST';
+      case 2:
+        return 'QA';
+      case 3:
+        return 'CS';
+      default:
+        return 'TEST';
     }
   }
 

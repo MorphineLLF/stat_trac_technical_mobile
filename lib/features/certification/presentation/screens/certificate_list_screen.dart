@@ -19,8 +19,10 @@ class CertificateListScreen extends ConsumerWidget {
       body: certsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          child: Text(
+            'Error: $e',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ),
         data: (certs) => certs.isEmpty
             ? const _EmptyView()
@@ -46,8 +48,10 @@ class _EmptyView extends StatelessWidget {
         children: [
           Icon(Icons.workspace_premium_outlined, size: 64, color: brandGrey),
           const SizedBox(height: 16),
-          Text('No certificates yet',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'No certificates yet',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Text(
             'Tap Create Certificate to get started',
@@ -67,16 +71,18 @@ class _CertTile extends StatelessWidget {
 
   Color get _typeColor {
     switch (cert.certType) {
-      case 2: return Colors.amber[700]!;
-      case 3: return Colors.green[700]!;
-      default: return brandTeal;
+      case 2:
+        return Colors.amber[700]!;
+      case 3:
+        return Colors.green[700]!;
+      default:
+        return brandTeal;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateStr =
-        DateFormat('dd MMM yyyy').format(cert.createdAt.toLocal());
+    final dateStr = DateFormat('dd MMM yyyy').format(cert.createdAt.toLocal());
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -104,27 +110,26 @@ class _CertTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              cert.equipmentType ?? '—',
-              style: TextStyle(color: brandGrey),
-            ),
+            Text(cert.equipmentType ?? '—', style: TextStyle(color: brandGrey)),
             Wrap(
               spacing: 6,
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(dateStr,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
                 if (cert.certificateNo != null)
-                  Text('Cert #${cert.certificateNo}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: brandGrey)),
+                  Text(
+                    'Cert #${cert.certificateNo}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: brandGrey),
+                  ),
                 if (cert.isPending)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.amber[100],
                       borderRadius: BorderRadius.circular(4),
@@ -141,12 +146,15 @@ class _CertTile extends StatelessWidget {
                 if (cert.complianceLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: cert.complianceColor.withAlpha(25),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                          color: cert.complianceColor.withAlpha(120)),
+                        color: cert.complianceColor.withAlpha(120),
+                      ),
                     ),
                     child: Text(
                       cert.complianceLabel.toUpperCase(),

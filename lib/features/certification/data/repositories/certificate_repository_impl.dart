@@ -60,19 +60,21 @@ class CertificateRepositoryImpl implements CertificateRepository {
     final certId = await local.saveCertificate(certModel);
 
     final outputModels = outputs
-        .map((o) => TestOutputModel(
-              id: 0,
-              certificateId: certId,
-              assetId: o.assetId,
-              descriptionId: o.descriptionId,
-              description: o.description,
-              expectedValue: o.expectedValue,
-              actualValue: o.actualValue,
-              notes: o.notes,
-              pass: o.pass,
-              fail: o.fail,
-              na: o.na,
-            ))
+        .map(
+          (o) => TestOutputModel(
+            id: 0,
+            certificateId: certId,
+            assetId: o.assetId,
+            descriptionId: o.descriptionId,
+            description: o.description,
+            expectedValue: o.expectedValue,
+            actualValue: o.actualValue,
+            notes: o.notes,
+            pass: o.pass,
+            fail: o.fail,
+            na: o.na,
+          ),
+        )
         .toList();
 
     await local.saveOutputs(outputModels);
@@ -113,25 +115,29 @@ class CertificateRepositoryImpl implements CertificateRepository {
       'notes': cert.notes,
       'pm_task_description': cert.pmTaskDescription,
       'test_equipment': equipment
-          .map((e) => {
-                'asset_id': e.assetId,
-                'serial_no': e.serialNo,
-                'model': e.model,
-                'manufacturer': e.manufacturer,
-                'cal_date': e.calDate?.toIso8601String().substring(0, 10),
-              })
+          .map(
+            (e) => {
+              'asset_id': e.assetId,
+              'serial_no': e.serialNo,
+              'model': e.model,
+              'manufacturer': e.manufacturer,
+              'cal_date': e.calDate?.toIso8601String().substring(0, 10),
+            },
+          )
           .toList(),
       'description': cert.certName,
       'outputs': outputs
-          .map((o) => {
-                'description_id': o.descriptionId,
-                'description': o.description,
-                'expected_value': o.expectedValue,
-                'actual_value': o.actualValue,
-                'pass': o.pass,
-                'fail': o.fail,
-                'na': o.na,
-              })
+          .map(
+            (o) => {
+              'description_id': o.descriptionId,
+              'description': o.description,
+              'expected_value': o.expectedValue,
+              'actual_value': o.actualValue,
+              'pass': o.pass,
+              'fail': o.fail,
+              'na': o.na,
+            },
+          )
           .toList(),
     };
     try {
@@ -149,8 +155,12 @@ class CertificateRepositoryImpl implements CertificateRepository {
     List<int> techSignature,
     List<int>? clientSignature,
     String? clientName,
-  ) =>
-      local.updateSignatures(certId, techSignature, clientSignature, clientName);
+  ) => local.updateSignatures(
+    certId,
+    techSignature,
+    clientSignature,
+    clientName,
+  );
 
   @override
   Future<void> syncTemplatesFromRemote() async {
@@ -175,7 +185,8 @@ class CertificateRepositoryImpl implements CertificateRepository {
 
   @override
   Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(
-      int technicianId) async {
+    int technicianId,
+  ) async {
     // Option B: compare full ID sets to detect server-side deletes.
     final serverIds = (await remote.fetchCertificateIds(technicianId)).toSet();
     final localServerIds = await local.getSyncedServerIds();
@@ -198,7 +209,10 @@ class CertificateRepositoryImpl implements CertificateRepository {
 
     while (true) {
       final page = await remote.fetchCertificateHistory(
-          technicianId, cursor, pageSize: pageSize);
+        technicianId,
+        cursor,
+        pageSize: pageSize,
+      );
 
       for (final (cert, outputs) in page) {
         try {

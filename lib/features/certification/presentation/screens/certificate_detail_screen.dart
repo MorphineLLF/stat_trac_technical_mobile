@@ -99,11 +99,14 @@ class _CertificateDetailScreenState
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.picture_as_pdf_outlined),
-              onPressed:
-                  isSynced && !_loadingPdf ? () => _viewPdf(serverId) : null,
+              onPressed: isSynced && !_loadingPdf
+                  ? () => _viewPdf(serverId)
+                  : null,
             ),
           ),
           // ── Email ─────────────────────────────────────────────
@@ -111,8 +114,7 @@ class _CertificateDetailScreenState
             message: isSynced ? 'Email certificate' : 'Sync first to email',
             child: IconButton(
               icon: const Icon(Icons.email_outlined),
-              onPressed:
-                  isSynced ? () => _showEmailDialog(serverId) : null,
+              onPressed: isSynced ? () => _showEmailDialog(serverId) : null,
             ),
           ),
         ],
@@ -158,8 +160,8 @@ class _EmailDialogState extends State<_EmailDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text('Certificate emailed to ${_controller.text.trim()}')),
+            content: Text('Certificate emailed to ${_controller.text.trim()}'),
+          ),
         );
       }
     } catch (e) {
@@ -196,9 +198,13 @@ class _EmailDialogState extends State<_EmailDialog> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.error, fontSize: 12)),
+            Text(
+              _error!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
           ],
         ],
       ),
@@ -213,7 +219,8 @@ class _EmailDialogState extends State<_EmailDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('Send'),
         ),
       ],
@@ -230,9 +237,12 @@ class _DetailBody extends StatelessWidget {
 
   Color get _typeColor {
     switch (summary.certType) {
-      case 2: return Colors.amber[700]!;
-      case 3: return Colors.green[700]!;
-      default: return brandTeal;
+      case 2:
+        return Colors.amber[700]!;
+      case 3:
+        return Colors.green[700]!;
+      default:
+        return brandTeal;
     }
   }
 
@@ -244,13 +254,14 @@ class _DetailBody extends StatelessWidget {
         const SizedBox(height: 8),
         outputsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) =>
-              Center(child: Text('Error loading results: $e')),
+          error: (e, _) => Center(child: Text('Error loading results: $e')),
           data: (outputs) => outputs.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('No test results recorded.',
-                      style: TextStyle(color: brandGrey)),
+                  child: Text(
+                    'No test results recorded.',
+                    style: TextStyle(color: brandGrey),
+                  ),
                 )
               : _OutputsSection(outputs: outputs),
         ),
@@ -268,8 +279,9 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr =
-        DateFormat('dd MMM yyyy').format(summary.createdAt.toLocal());
+    final dateStr = DateFormat(
+      'dd MMM yyyy',
+    ).format(summary.createdAt.toLocal());
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -282,7 +294,9 @@ class _HeaderCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: typeColor.withAlpha(20),
                     border: Border.all(color: typeColor),
@@ -300,7 +314,9 @@ class _HeaderCard extends StatelessWidget {
                 if (summary.complianceLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: summary.complianceColor.withAlpha(20),
                       border: Border.all(color: summary.complianceColor),
@@ -318,7 +334,9 @@ class _HeaderCard extends StatelessWidget {
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: summary.isPending
                         ? Colors.amber[50]
@@ -339,30 +357,35 @@ class _HeaderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(summary.displayTitle,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              summary.displayTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             if (summary.equipmentType != null) ...[
               const SizedBox(height: 4),
-              Text(summary.equipmentType!,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(color: brandGrey)),
+              Text(
+                summary.equipmentType!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: brandGrey),
+              ),
             ],
             const SizedBox(height: 8),
-            Text(dateStr,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
             if (summary.pmTaskDescription != null) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text('PM Task: ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: brandGrey)),
-                  Text(summary.pmTaskDescription!,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'PM Task: ',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: brandGrey),
+                  ),
+                  Text(
+                    summary.pmTaskDescription!,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ],
@@ -413,9 +436,9 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: brandTeal,
-              fontWeight: FontWeight.bold,
-            ),
+          color: brandTeal,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -436,18 +459,19 @@ class _OutputRow extends StatelessWidget {
             children: [
               Expanded(
                 flex: 3,
-                child: Text(output.description ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium),
+                child: Text(
+                  output.description ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 flex: 2,
                 child: Text(
                   output.expectedValue ?? '',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: brandGrey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: brandGrey),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -466,7 +490,11 @@ class _OutputRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _ResultChip(label: 'P', color: Colors.green, selected: output.pass),
+              _ResultChip(
+                label: 'P',
+                color: Colors.green,
+                selected: output.pass,
+              ),
               const SizedBox(width: 4),
               _ResultChip(label: 'F', color: brandError, selected: output.fail),
               const SizedBox(width: 4),

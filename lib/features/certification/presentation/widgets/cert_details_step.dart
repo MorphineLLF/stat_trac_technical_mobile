@@ -28,7 +28,8 @@ class CertDetailsStep extends ConsumerStatefulWidget {
     DateTime testDate,
     List<TestEquipmentSelection?> equipment,
     String? pmTaskDescription,
-  ) onChanged;
+  )
+  onChanged;
   final VoidCallback onNext;
 
   @override
@@ -85,7 +86,10 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
         .map((e) => e.value!.assetId)
         .toSet();
 
-    final picked = await showTestEquipmentPicker(context, excludeAssetIds: excluded);
+    final picked = await showTestEquipmentPicker(
+      context,
+      excludeAssetIds: excluded,
+    );
     if (picked != null) {
       setState(() => _equipment[slotIndex] = picked);
       _notify();
@@ -97,8 +101,10 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
     final dateStr = DateFormat('dd MMM yyyy').format(_testDate);
 
     if (widget.selectedAsset?.assetId != null) {
-      ref.listen(assetPmTasksProvider(widget.selectedAsset!.assetId!),
-          (_, next) {
+      ref.listen(assetPmTasksProvider(widget.selectedAsset!.assetId!), (
+        _,
+        next,
+      ) {
         next.whenData((tasks) {
           if (tasks.length == 1 && _pmTaskDescription == null) {
             setState(() => _pmTaskDescription = tasks.first.description);
@@ -113,8 +119,10 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Certificate Details',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Certificate Details',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
 
           // Test Date
@@ -124,18 +132,21 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Test Date',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelLarge
-                          ?.copyWith(color: brandGrey)),
+                  Text(
+                    'Test Date',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: brandGrey),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: widget.template.editDate ? _pickDate : null,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: widget.template.editDate
                             ? null
@@ -149,11 +160,13 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today_outlined,
-                              size: 18,
-                              color: widget.template.editDate
-                                  ? brandTeal
-                                  : brandGrey),
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 18,
+                            color: widget.template.editDate
+                                ? brandTeal
+                                : brandGrey,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -166,13 +179,15 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                             ),
                           ),
                           if (widget.template.editDate)
-                            Text('Tap to change',
-                                style: TextStyle(
-                                    fontSize: 11, color: brandTeal)),
+                            Text(
+                              'Tap to change',
+                              style: TextStyle(fontSize: 11, color: brandTeal),
+                            ),
                           if (!widget.template.editDate)
-                            Text('Auto — today',
-                                style: TextStyle(
-                                    fontSize: 11, color: brandGrey)),
+                            Text(
+                              'Auto — today',
+                              style: TextStyle(fontSize: 11, color: brandGrey),
+                            ),
                         ],
                       ),
                     ),
@@ -191,11 +206,12 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Test Equipment',
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(color: brandGrey)),
+                    Text(
+                      'Test Equipment',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelLarge?.copyWith(color: brandGrey),
+                    ),
                     const SizedBox(height: 8),
                     for (var i = 0; i < widget.template.testEquipQty; i++)
                       _EquipmentSlot(
@@ -230,9 +246,9 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
           else
             FilledButton(
               onPressed: _isValid ? widget.onNext : null,
-              child: Text(_isValid
-                  ? 'Next'
-                  : 'Select all test equipment to continue'),
+              child: Text(
+                _isValid ? 'Next' : 'Select all test equipment to continue',
+              ),
             ),
         ],
       ),
@@ -278,11 +294,14 @@ class _EquipmentSlot extends StatelessWidget {
               CircleAvatar(
                 radius: 13,
                 backgroundColor: brandTeal,
-                child: Text('$slotNo',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+                child: Text(
+                  '$slotNo',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -290,22 +309,30 @@ class _EquipmentSlot extends StatelessWidget {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(selection!.displayName,
-                              style: const TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            selection!.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
                           if (selection!.subtitleText.isNotEmpty)
-                            Text(selection!.subtitleText,
-                                style: TextStyle(
-                                    fontSize: 11, color: brandGrey)),
+                            Text(
+                              selection!.subtitleText,
+                              style: TextStyle(fontSize: 11, color: brandGrey),
+                            ),
                         ],
                       )
-                    : Text('Select test equipment…',
-                        style: TextStyle(color: brandGrey)),
+                    : Text(
+                        'Select test equipment…',
+                        style: TextStyle(color: brandGrey),
+                      ),
               ),
-              Text(filled ? 'Change' : 'Pick',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: brandTeal,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                filled ? 'Change' : 'Pick',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: brandTeal,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -343,11 +370,12 @@ class _PmTaskCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('PM Task',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelLarge
-                        ?.copyWith(color: brandGrey)),
+                Text(
+                  'PM Task',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: brandGrey),
+                ),
                 const SizedBox(height: 8),
                 if (tasks.length == 1)
                   _LockedPmTask(description: tasks.first.description)
@@ -384,8 +412,7 @@ class _LockedPmTask extends StatelessWidget {
           const Icon(Icons.lock_outline, size: 16, color: brandGrey),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(description,
-                style: const TextStyle(color: brandGrey)),
+            child: Text(description, style: const TextStyle(color: brandGrey)),
           ),
         ],
       ),
@@ -420,8 +447,7 @@ class _PmTaskChips extends StatelessWidget {
           ),
           labelStyle: TextStyle(
             color: isSelected ? brandTeal : null,
-            fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.normal,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
           onSelected: (_) => onSelected(t.description),
         );
@@ -480,8 +506,7 @@ Future<TestEquipmentSelection?> showTestEquipmentPicker(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (_) =>
-        _TestEquipmentPickerSheet(excludeAssetIds: excludeAssetIds),
+    builder: (_) => _TestEquipmentPickerSheet(excludeAssetIds: excludeAssetIds),
   );
 }
 
@@ -501,14 +526,15 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('Select Test Equipment',
-                style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              'Select Test Equipment',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           const Divider(height: 1),
           Expanded(
             child: assetsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) =>
                   Center(child: Text('Error loading equipment: $e')),
               data: (assets) {
@@ -520,14 +546,17 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.build_outlined,
-                            size: 48, color: brandGrey),
+                        Icon(Icons.build_outlined, size: 48, color: brandGrey),
                         const SizedBox(height: 12),
-                        Text('No test equipment available',
-                            style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          'No test equipment available',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         const SizedBox(height: 4),
-                        Text('Sync to load test equipment',
-                            style: TextStyle(color: brandGrey)),
+                        Text(
+                          'Sync to load test equipment',
+                          style: TextStyle(color: brandGrey),
+                        ),
                       ],
                     ),
                   );
@@ -558,38 +587,52 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (a.displayName.isNotEmpty && a.equipmentType != null)
-                            Text(a.displayName,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: expired
-                                        ? const Color(0xFFC62828)
-                                        : brandGrey)),
+                          if (a.displayName.isNotEmpty &&
+                              a.equipmentType != null)
+                            Text(
+                              a.displayName,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: expired
+                                    ? const Color(0xFFC62828)
+                                    : brandGrey,
+                              ),
+                            ),
                           if (a.serialNo != null)
-                            Text('S/N: ${a.serialNo}',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: expired
-                                        ? const Color(0xFFC62828)
-                                        : brandGrey)),
+                            Text(
+                              'S/N: ${a.serialNo}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: expired
+                                    ? const Color(0xFFC62828)
+                                    : brandGrey,
+                              ),
+                            ),
                           if (calText != null)
-                            Text(calText,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: expired
-                                        ? const Color(0xFFC62828)
-                                        : brandGrey)),
+                            Text(
+                              calText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: expired
+                                    ? const Color(0xFFC62828)
+                                    : brandGrey,
+                              ),
+                            ),
                         ],
                       ),
                       isThreeLine: true,
                       trailing: expired
                           ? Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFC62828).withAlpha(20),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFC62828)),
+                                border: Border.all(
+                                  color: const Color(0xFFC62828),
+                                ),
                               ),
                               child: const Text(
                                 'EXPIRED',
@@ -603,9 +646,9 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                           : const Icon(Icons.chevron_right, size: 18),
                       onTap: expired
                           ? null
-                          : () => Navigator.of(context).pop(
-                                TestEquipmentSelection.fromAsset(a),
-                              ),
+                          : () => Navigator.of(
+                              context,
+                            ).pop(TestEquipmentSelection.fromAsset(a)),
                     );
                   },
                 );

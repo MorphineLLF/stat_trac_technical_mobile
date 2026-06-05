@@ -67,18 +67,24 @@ class SyncNotifier extends _$SyncNotifier {
     state = const SyncInProgress(progress: 0.05, message: 'Syncing assets...');
 
     try {
-      final result = await ref.read(assetRepositoryProvider).syncAssets(
-        onPage: (page) {
-          final p = (0.05 + page * 0.05).clamp(0.05, 0.60);
-          state = SyncInProgress(
-            progress: p,
-            message: 'Syncing assets (page $page)...',
+      final result = await ref
+          .read(assetRepositoryProvider)
+          .syncAssets(
+            onPage: (page) {
+              final p = (0.05 + page * 0.05).clamp(0.05, 0.60);
+              state = SyncInProgress(
+                progress: p,
+                message: 'Syncing assets (page $page)...',
+              );
+            },
           );
-        },
-      );
 
       final message = _buildSyncMessage(
-          result.rowCount, result.pageCount, result.removedIds, result.changes);
+        result.rowCount,
+        result.pageCount,
+        result.removedIds,
+        result.changes,
+      );
       await syncRemote.postSyncLog(
         operation: 'sync_assets',
         entity: 'assets',
@@ -88,7 +94,10 @@ class SyncNotifier extends _$SyncNotifier {
       );
 
       await errorLog.markResolved('sync_assets');
-      state = const SyncInProgress(progress: 0.65, message: 'Syncing templates...');
+      state = const SyncInProgress(
+        progress: 0.65,
+        message: 'Syncing templates...',
+      );
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'sync_assets',
@@ -132,10 +141,14 @@ class SyncNotifier extends _$SyncNotifier {
     }
 
     // Step 5.5 — test equipment assets (~68%)
-    state = const SyncInProgress(progress: 0.68, message: 'Syncing test equipment…');
+    state = const SyncInProgress(
+      progress: 0.68,
+      message: 'Syncing test equipment…',
+    );
     try {
-      final equipCount =
-          await ref.read(certificateRepositoryProvider).syncTestEquipmentAssets();
+      final equipCount = await ref
+          .read(certificateRepositoryProvider)
+          .syncTestEquipmentAssets();
       await syncRemote.postSyncLog(
         operation: 'sync_test_equipment',
         entity: 'test_equipment_assets',
@@ -163,8 +176,9 @@ class SyncNotifier extends _$SyncNotifier {
 
     state = const SyncInProgress(progress: 0.75, message: 'Syncing PM tasks…');
     try {
-      final pmCount =
-          await ref.read(certificateRepositoryProvider).syncAssetPmTasks();
+      final pmCount = await ref
+          .read(certificateRepositoryProvider)
+          .syncAssetPmTasks();
       await syncRemote.postSyncLog(
         operation: 'sync_pm_tasks',
         entity: 'asset_pm_tasks',
@@ -189,7 +203,10 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
-    state = const SyncInProgress(progress: 0.80, message: 'Uploading certificates...');
+    state = const SyncInProgress(
+      progress: 0.80,
+      message: 'Uploading certificates...',
+    );
 
     // Push pending certificates to the server.
     try {
@@ -211,7 +228,10 @@ class SyncNotifier extends _$SyncNotifier {
       );
     }
 
-    state = const SyncInProgress(progress: 0.90, message: 'Downloading certificates...');
+    state = const SyncInProgress(
+      progress: 0.90,
+      message: 'Downloading certificates...',
+    );
 
     // Pull certificates from the server for this technician.
     final authState = ref.read(authProvider);
@@ -282,10 +302,12 @@ String _buildSyncMessage(
 ) {
   final pages = '$pageCount page${pageCount != 1 ? 's' : ''}';
   final buf = StringBuffer(
-      'Synced $rowCount asset${rowCount != 1 ? 's' : ''} in $pages');
+    'Synced $rowCount asset${rowCount != 1 ? 's' : ''} in $pages',
+  );
   if (removedIds.isNotEmpty) {
     buf.write(
-        ', removed ${removedIds.length} deleted (IDs: ${removedIds.join(', ')})');
+      ', removed ${removedIds.length} deleted (IDs: ${removedIds.join(', ')})',
+    );
   }
   if (changes.isNotEmpty) {
     final fieldCounts = <String, int>{};
@@ -294,10 +316,12 @@ String _buildSyncMessage(
         fieldCounts[f] = (fieldCounts[f] ?? 0) + 1;
       }
     }
-    final summary =
-        fieldCounts.entries.map((e) => '${e.key} ×${e.value}').join(', ');
+    final summary = fieldCounts.entries
+        .map((e) => '${e.key} ×${e.value}')
+        .join(', ');
     buf.write(
-        ', ${changes.length} record${changes.length != 1 ? 's' : ''} changed ($summary)');
+      ', ${changes.length} record${changes.length != 1 ? 's' : ''} changed ($summary)',
+    );
   }
   return buf.toString();
 }

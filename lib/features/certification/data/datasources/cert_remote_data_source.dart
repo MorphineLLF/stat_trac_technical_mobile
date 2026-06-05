@@ -24,8 +24,7 @@ abstract interface class CertRemoteDataSource {
   /// Returns up to [pageSize] certs with embedded outputs whose ID > afterId.
   /// When result count == pageSize, more pages exist.
   Future<List<(TestCertificateModel, List<TestOutputModel>)>>
-      fetchCertificateHistory(int technicianId, int afterId,
-          {int pageSize = 100});
+  fetchCertificateHistory(int technicianId, int afterId, {int pageSize = 100});
 
   /// `GET /certificates/ids?technician_id=:id`
   /// Returns all TestCertificateID values for the technician on the server.
@@ -54,17 +53,16 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
       '/certificates/templates',
       queryParameters: {'type': type},
     );
-    final data = (response.data['data'] as List)
-        .cast<Map<String, dynamic>>();
+    final data = (response.data['data'] as List).cast<Map<String, dynamic>>();
     return data.map(TestTemplateNameModel.fromJson).toList();
   }
 
   @override
   Future<List<TestTemplateItemModel>> fetchTemplateItems(int templateId) async {
-    final response =
-        await _dio.get('/certificates/templates/$templateId/items');
-    final data = (response.data['data'] as List)
-        .cast<Map<String, dynamic>>();
+    final response = await _dio.get(
+      '/certificates/templates/$templateId/items',
+    );
+    final data = (response.data['data'] as List).cast<Map<String, dynamic>>();
     return data.map(TestTemplateItemModel.fromJson).toList();
   }
 
@@ -76,8 +74,11 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
 
   @override
   Future<List<(TestCertificateModel, List<TestOutputModel>)>>
-      fetchCertificateHistory(int technicianId, int afterId,
-          {int pageSize = 100}) async {
+  fetchCertificateHistory(
+    int technicianId,
+    int afterId, {
+    int pageSize = 100,
+  }) async {
     final response = await _dio.get(
       '/certificates/history',
       queryParameters: {
@@ -86,8 +87,8 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
         'page_size': pageSize,
       },
     );
-    final data =
-        ((response.data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
+    final data = ((response.data['data'] as List?) ?? [])
+        .cast<Map<String, dynamic>>();
     return data.map((j) {
       final cert = TestCertificateModel.fromJson(j);
       final rawOutputs =
@@ -139,9 +140,6 @@ class CertRemoteDataSourceImpl implements CertRemoteDataSource {
 
   @override
   Future<void> emailCertificate(int serverId, String toEmail) async {
-    await _dio.post(
-      '/certificates/$serverId/email',
-      data: {'to': toEmail},
-    );
+    await _dio.post('/certificates/$serverId/email', data: {'to': toEmail});
   }
 }

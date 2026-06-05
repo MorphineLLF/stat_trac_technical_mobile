@@ -27,7 +27,9 @@ abstract class CertificateRepository {
   /// Uses MAX(server_id) as the cursor for new certs, and diffs the full
   /// server ID set against local to detect and delete orphaned certs.
   /// Returns the IDs of deleted records and count of added records.
-  Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(int technicianId);
+  Future<({List<int> deletedIds, int added})> pullCertificatesFromRemote(
+    int technicianId,
+  );
 
   /// Fetches test equipment asset list from the server and upserts locally.
   /// Returns the number of assets synced.

@@ -42,11 +42,11 @@ class TestCertificate {
   final String? docNo;
   final String? serviceInterval;
   final String? serviceType;
-  final List<int>? techSignature;    // PNG bytes
-  final List<int>? clientSignature;  // PNG bytes
+  final List<int>? techSignature; // PNG bytes
+  final List<int>? clientSignature; // PNG bytes
   final String? clientName;
   final String? notes;
-  final String syncStatus;           // 'pending' | 'synced' | 'error'
+  final String syncStatus; // 'pending' | 'synced' | 'error'
   final DateTime createdAt;
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete (maps TestCertPatientSafe)
   final int? patientSafe;

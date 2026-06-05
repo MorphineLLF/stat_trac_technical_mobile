@@ -85,11 +85,13 @@ class SyncErrorLogDataSourceImpl implements SyncErrorLogDataSource {
       'FROM $_table WHERE resolved = 0 ORDER BY occurred_at DESC',
     );
     return rows
-        .map((r) => SyncErrorEntry(
-              operation: r['operation'] as String,
-              errorMessage: r['error_message'] as String,
-              occurredAt: DateTime.parse(r['occurred_at'] as String).toLocal(),
-            ))
+        .map(
+          (r) => SyncErrorEntry(
+            operation: r['operation'] as String,
+            errorMessage: r['error_message'] as String,
+            occurredAt: DateTime.parse(r['occurred_at'] as String).toLocal(),
+          ),
+        )
         .toList();
   }
 

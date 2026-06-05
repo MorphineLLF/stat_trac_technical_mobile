@@ -25,6 +25,5 @@ class TestEquipmentAsset {
   String get displayName =>
       [manufacturer, model].where((s) => s != null && s.isNotEmpty).join(' ');
 
-  bool get isCalExpired =>
-      calDate != null && calDate!.isBefore(DateTime.now());
+  bool get isCalExpired => calDate != null && calDate!.isBefore(DateTime.now());
 }

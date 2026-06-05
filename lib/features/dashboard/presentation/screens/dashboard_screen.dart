@@ -66,16 +66,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   void _onNavTap(int index) {
     if (index == 1) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AssetListScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AssetListScreen()));
       return;
     }
     if (index > 1) {
       const labels = ['', '', 'Inventory', 'Meter'];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${labels[index]} — coming soon')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${labels[index]} — coming soon')));
       return;
     }
     setState(() => _navIndex = index);
@@ -152,8 +152,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           if (syncState is SyncError)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(Icons.error_outline,
-                  size: 20, color: Theme.of(context).colorScheme.error),
+              child: Icon(
+                Icons.error_outline,
+                size: 20,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           if (syncState is SyncComplete)
             Padding(
@@ -165,12 +168,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             label: Text('$badgeCount'),
             child: IconButton(
               icon: const Icon(Icons.sync),
-              tooltip: badgeCount > 0 ? 'Sync errors — tap to view' : 'Sync now',
+              tooltip: badgeCount > 0
+                  ? 'Sync errors — tap to view'
+                  : 'Sync now',
               onPressed: isSyncing
                   ? null
                   : badgeCount > 0
-                      ? () => _showSyncErrors(context, ref)
-                      : () => ref.read(syncProvider.notifier).triggerSync(),
+                  ? () => _showSyncErrors(context, ref)
+                  : () => ref.read(syncProvider.notifier).triggerSync(),
             ),
           ),
           IconButton(
@@ -246,8 +251,10 @@ class _HomeBody extends ConsumerWidget {
             ),
             error: (e, _) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('Stats unavailable',
-                  style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                'Stats unavailable',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -325,18 +332,17 @@ class _TaskCountCard extends StatelessWidget {
           Text(
             '$count',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 32,
-                ),
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 32,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Pending $label',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: color),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: color),
           ),
         ],
       ),
@@ -482,21 +488,26 @@ class _KpiRow extends StatelessWidget {
       children: [
         Expanded(
           child: _KpiTile(
-              label: 'Overdue', count: stats.overdue, color: brandError),
+            label: 'Overdue',
+            count: stats.overdue,
+            color: brandError,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _KpiTile(
-              label: 'Pending',
-              count: stats.pending,
-              color: Color(0xFFF57F17)),
+            label: 'Pending',
+            count: stats.pending,
+            color: Color(0xFFF57F17),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _KpiTile(
-              label: 'Certs to sync',
-              count: stats.pendingCerts,
-              color: Color(0xFF00838F)),
+            label: 'Certs to sync',
+            count: stats.pendingCerts,
+            color: Color(0xFF00838F),
+          ),
         ),
       ],
     );
@@ -528,10 +539,9 @@ class _KpiTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '$count',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: color),
             ),
             const SizedBox(height: 4),
             Text(label, style: Theme.of(context).textTheme.bodySmall),
@@ -545,7 +555,11 @@ class _KpiTile extends StatelessWidget {
 // ── Module grid ───────────────────────────────────────────────────────────────
 
 class _TileAction {
-  const _TileAction({required this.label, required this.icon, this.destination});
+  const _TileAction({
+    required this.label,
+    required this.icon,
+    this.destination,
+  });
   final String label;
   final IconData icon;
   final WidgetBuilder? destination;
@@ -610,7 +624,10 @@ class _ModuleGrid extends StatelessWidget {
                   label: 'PM Work Order',
                   color: const Color(0xFF2E7D32),
                   actions: [
-                    _TileAction(label: 'Create', icon: Icons.add_circle_outline),
+                    _TileAction(
+                      label: 'Create',
+                      icon: Icons.add_circle_outline,
+                    ),
                     _TileAction(label: 'View', icon: Icons.visibility_outlined),
                   ],
                 ),
@@ -674,10 +691,10 @@ class _ModuleTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(color: color, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -687,7 +704,9 @@ class _ModuleTile extends StatelessWidget {
             children: [
               for (int i = 0; i < actions.length; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
-                Expanded(child: _ActionButton(action: actions[i], color: color)),
+                Expanded(
+                  child: _ActionButton(action: actions[i], color: color),
+                ),
               ],
             ],
           ),
@@ -707,8 +726,9 @@ class _ActionButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: () {
         if (action.destination != null) {
-          Navigator.of(context)
-              .push(MaterialPageRoute(builder: action.destination!));
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: action.destination!));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${action.label} — coming soon')),
@@ -736,11 +756,11 @@ class _SyncErrorSheet extends ConsumerWidget {
   final VoidCallback onRetry;
 
   static const _labels = <String, String>{
-    'sync_assets':         'Asset sync failed',
-    'sync_templates':      'Template sync failed',
+    'sync_assets': 'Asset sync failed',
+    'sync_templates': 'Template sync failed',
     'sync_test_equipment': 'Test equipment sync failed',
-    'push_certificates':   'Certificate upload failed',
-    'pull_certificates':   'Certificate download failed',
+    'push_certificates': 'Certificate upload failed',
+    'pull_certificates': 'Certificate download failed',
   };
 
   @override
@@ -755,22 +775,25 @@ class _SyncErrorSheet extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(width: 8),
-              Text('Sync Errors',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                      )),
+              Text(
+                'Sync Errors',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'These operations failed on the last sync.\nTapping Retry will attempt them again.',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: brandGrey),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: brandGrey),
           ),
           const SizedBox(height: 16),
           errorsAsync.when(
@@ -823,26 +846,27 @@ class _ErrorTile extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(label,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      child: Text(
+                        label,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    Text(ago,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: brandGrey)),
+                    Text(
+                      ago,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: brandGrey),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 2),
                 SelectableText(
                   entry.errorMessage,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: brandGrey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: brandGrey),
                 ),
               ],
             ),

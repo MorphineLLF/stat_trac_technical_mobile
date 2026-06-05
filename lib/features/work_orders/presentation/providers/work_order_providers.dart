@@ -22,14 +22,13 @@ WoLocalDataSource woLocalDataSource(Ref ref) =>
     WoLocalDataSourceImpl(ref.watch(databaseHelperProvider));
 
 @riverpod
-WoRemoteDataSource woRemoteDataSource(Ref ref) =>
-    WoRemoteDataSourceImpl(Dio());
+WoRemoteDataSource woRemoteDataSource(Ref ref) => WoRemoteDataSourceImpl(Dio());
 
 @riverpod
 WorkOrderRepository workOrderRepository(Ref ref) => WorkOrderRepositoryImpl(
-      local: ref.watch(woLocalDataSourceProvider),
-      remote: ref.watch(woRemoteDataSourceProvider),
-    );
+  local: ref.watch(woLocalDataSourceProvider),
+  remote: ref.watch(woRemoteDataSourceProvider),
+);
 
 @riverpod
 AssetLocalDataSource assetLocalDataSource(Ref ref) =>
@@ -57,7 +56,9 @@ Future<WorkOrder?> workOrderDetail(Ref ref, int id) =>
 
 @riverpod
 Future<List<WorkOrderStatusHistory>> workOrderStatusHistory(
-    Ref ref, int workOrderId) async {
+  Ref ref,
+  int workOrderId,
+) async {
   final local = ref.watch(woLocalDataSourceProvider);
   return local.getStatusHistory(workOrderId);
 }
@@ -80,11 +81,9 @@ class WorkOrderActions extends _$WorkOrderActions {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.read(workOrderRepositoryProvider).transitionStatus(
-            workOrderId,
-            toStatus,
-            notes: notes,
-          );
+      await ref
+          .read(workOrderRepositoryProvider)
+          .transitionStatus(workOrderId, toStatus, notes: notes);
       ref.invalidate(workOrderDetailProvider(workOrderId));
       ref.invalidate(workOrderStatusHistoryProvider(workOrderId));
       ref.invalidate(todaysWorkOrdersProvider);
@@ -105,8 +104,9 @@ class WorkOrderActions extends _$WorkOrderActions {
           'WO-${now.year}-${now.month.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch % 100000}';
       // CM created by technician goes straight to in_progress (business rule #9).
       // All other types start as created pending dispatcher scheduling.
-      final initialStatus =
-          type == WoType.cm ? WoStatus.inProgress : WoStatus.created;
+      final initialStatus = type == WoType.cm
+          ? WoStatus.inProgress
+          : WoStatus.created;
       final wo = WorkOrder(
         id: 0,
         woNumber: woNumber,

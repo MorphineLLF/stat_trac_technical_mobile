@@ -45,8 +45,9 @@ class Asset {
 
   bool get isServiceDue {
     if (nextServiceDate == null) return false;
-    return nextServiceDate!
-        .isBefore(DateTime.now().add(const Duration(days: 30)));
+    return nextServiceDate!.isBefore(
+      DateTime.now().add(const Duration(days: 30)),
+    );
   }
 
   @override

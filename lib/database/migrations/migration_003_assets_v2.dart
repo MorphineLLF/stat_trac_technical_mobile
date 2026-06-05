@@ -60,10 +60,8 @@ Future<void> migration003AssetsV2(Database db) async {
     )
   ''');
 
-  await db.execute(
-      'CREATE INDEX assets_barcode_idx ON assets (barcode)');
-  await db.execute(
-      'CREATE INDEX assets_hospital_idx ON assets (hospital)');
+  await db.execute('CREATE INDEX assets_barcode_idx ON assets (barcode)');
+  await db.execute('CREATE INDEX assets_hospital_idx ON assets (hospital)');
 
   // Restore rescued provisionals into the new table.
   await db.rawInsert('''

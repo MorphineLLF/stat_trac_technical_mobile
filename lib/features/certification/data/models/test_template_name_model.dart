@@ -21,7 +21,8 @@ class TestTemplateNameModel extends TestTemplateName {
         certType: TestTemplateName.typeFromInt(m['test_template_type'] as int?),
         templateName: m['test_template_name'] as String?,
         certName: m['test_template_cert_name'] as String?,
-        customerSigRequired: (m['test_template_customer_sig'] as int? ?? 0) != 0,
+        customerSigRequired:
+            (m['test_template_customer_sig'] as int? ?? 0) != 0,
         editDate: (m['test_template_edit_date'] as int? ?? 0) != 0,
         nextService: (m['test_template_next_service'] as int? ?? 0) != 0,
         testEquipQty: m['test_template_test_equip_qty'] as int? ?? 0,
@@ -48,16 +49,16 @@ class TestTemplateNameModel extends TestTemplateName {
       );
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'test_template_name': templateName,
-        'test_template_cert_name': certName,
-        'test_template_type': TestTemplateName.typeToInt(certType),
-        'test_template_customer_sig': customerSigRequired ? 1 : 0,
-        'test_template_edit_date': editDate ? 1 : 0,
-        'test_template_next_service': nextService ? 1 : 0,
-        'test_template_test_equip_qty': testEquipQty,
-        'test_template_doc_no': docNo,
-        'test_template_note': note,
-        'last_synced_at': lastSyncedAt?.toIso8601String(),
-      };
+    'id': id,
+    'test_template_name': templateName,
+    'test_template_cert_name': certName,
+    'test_template_type': TestTemplateName.typeToInt(certType),
+    'test_template_customer_sig': customerSigRequired ? 1 : 0,
+    'test_template_edit_date': editDate ? 1 : 0,
+    'test_template_next_service': nextService ? 1 : 0,
+    'test_template_test_equip_qty': testEquipQty,
+    'test_template_doc_no': docNo,
+    'test_template_note': note,
+    'last_synced_at': lastSyncedAt?.toIso8601String(),
+  };
 }

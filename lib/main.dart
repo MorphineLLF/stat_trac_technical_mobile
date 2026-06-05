@@ -22,9 +22,7 @@ class StatTracApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: appTheme,
       home: const _AuthGate(),
-      routes: {
-        '/dashboard': (_) => const DashboardScreen(),
-      },
+      routes: {'/dashboard': (_) => const DashboardScreen()},
     );
   }
 }

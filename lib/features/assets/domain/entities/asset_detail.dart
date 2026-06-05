@@ -80,11 +80,11 @@ class AssetDetail {
   final DateTime? commissionDate;
 
   String get riskLabel => switch (risk) {
-        1 => 'High',
-        2 => 'Medium',
-        3 => 'Low',
-        _ => 'Unknown',
-      };
+    1 => 'High',
+    2 => 'Medium',
+    3 => 'Low',
+    _ => 'Unknown',
+  };
 
   bool get isUnderWarranty {
     if (warrantyEndDate == null) return false;
@@ -93,6 +93,8 @@ class AssetDetail {
 
   bool get isServiceDueSoon {
     if (nextServiceDate == null) return false;
-    return nextServiceDate!.isBefore(DateTime.now().add(const Duration(days: 30)));
+    return nextServiceDate!.isBefore(
+      DateTime.now().add(const Duration(days: 30)),
+    );
   }
 }

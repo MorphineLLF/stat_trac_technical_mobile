@@ -31,9 +31,7 @@ class WoRemoteDataSourceImpl implements WoRemoteDataSource {
   Future<List<WorkOrderModel>> getWorkOrders({DateTime? since}) async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/workorders',
-      queryParameters: {
-        if (since != null) 'since': since.toIso8601String(),
-      },
+      queryParameters: {if (since != null) 'since': since.toIso8601String()},
     );
     final items = response.data!['data'] as List<dynamic>;
     return items
@@ -44,15 +42,16 @@ class WoRemoteDataSourceImpl implements WoRemoteDataSource {
 
   @override
   Future<WorkOrderModel> getWorkOrderById(int id) async {
-    final response =
-        await _dio.get<Map<String, dynamic>>('/workorders/$id');
+    final response = await _dio.get<Map<String, dynamic>>('/workorders/$id');
     return WorkOrderModel.fromJson(response.data!);
   }
 
   @override
   Future<WorkOrderModel> createWorkOrder(Map<String, dynamic> body) async {
-    final response =
-        await _dio.post<Map<String, dynamic>>('/workorders', data: body);
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/workorders',
+      data: body,
+    );
     return WorkOrderModel.fromJson(response.data!);
   }
 
@@ -64,11 +63,14 @@ class WoRemoteDataSourceImpl implements WoRemoteDataSource {
     double? gpsLat,
     double? gpsLng,
   }) async {
-    await _dio.post<void>('/workorders/$id/transition', data: {
-      'to_state': toStatus,
-      'notes': ?notes,
-      'gps_lat': ?gpsLat,
-      'gps_lng': ?gpsLng,
-    });
+    await _dio.post<void>(
+      '/workorders/$id/transition',
+      data: {
+        'to_state': toStatus,
+        'notes': ?notes,
+        'gps_lat': ?gpsLat,
+        'gps_lng': ?gpsLng,
+      },
+    );
   }
 }

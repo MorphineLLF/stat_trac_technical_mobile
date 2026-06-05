@@ -34,17 +34,23 @@ class TestTemplateName {
 
   static CertType typeFromInt(int? v) {
     switch (v) {
-      case 2: return CertType.qa;
-      case 3: return CertType.commission;
-      default: return CertType.test;
+      case 2:
+        return CertType.qa;
+      case 3:
+        return CertType.commission;
+      default:
+        return CertType.test;
     }
   }
 
   static int typeToInt(CertType t) {
     switch (t) {
-      case CertType.qa: return 2;
-      case CertType.commission: return 3;
-      case CertType.test: return 1;
+      case CertType.qa:
+        return 2;
+      case CertType.commission:
+        return 3;
+      case CertType.test:
+        return 1;
     }
   }
 }

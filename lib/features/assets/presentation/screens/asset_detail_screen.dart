@@ -30,10 +30,10 @@ class AssetDetailScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-          localAsset.serialNumber != null
-              ? 'S/N ${localAsset.serialNumber}'
-              : localAsset.equipmentType,
-        ),
+            localAsset.serialNumber != null
+                ? 'S/N ${localAsset.serialNumber}'
+                : localAsset.equipmentType,
+          ),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Overview'),
@@ -77,8 +77,7 @@ class _HeaderCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.medical_services_outlined,
-                    color: brandTeal),
+                const Icon(Icons.medical_services_outlined, color: brandTeal),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -91,28 +90,27 @@ class _HeaderCard extends StatelessWidget {
             if (asset.model != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(asset.model!,
-                    style: Theme.of(context).textTheme.bodySmall),
+                child: Text(
+                  asset.model!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
             const SizedBox(height: 8),
             _InfoRow(
-                icon: Icons.factory_outlined,
-                text: asset.manufacturer ?? '—'),
+              icon: Icons.factory_outlined,
+              text: asset.manufacturer ?? '—',
+            ),
             if (asset.serialNumber != null)
-              _InfoRow(
-                  icon: Icons.tag, text: 'S/N: ${asset.serialNumber}'),
+              _InfoRow(icon: Icons.tag, text: 'S/N: ${asset.serialNumber}'),
             if (asset.barcode != null)
-              _InfoRow(
-                  icon: Icons.qr_code,
-                  text: 'Barcode: ${asset.barcode}'),
+              _InfoRow(icon: Icons.qr_code, text: 'Barcode: ${asset.barcode}'),
             if (asset.hospital != null)
               _InfoRow(
-                  icon: Icons.local_hospital_outlined,
-                  text: asset.hospital!),
+                icon: Icons.local_hospital_outlined,
+                text: asset.hospital!,
+              ),
             if (asset.location != null)
-              _InfoRow(
-                  icon: Icons.location_on_outlined,
-                  text: asset.location!),
+              _InfoRow(icon: Icons.location_on_outlined, text: asset.location!),
           ],
         ),
       ),
@@ -134,8 +132,7 @@ class _InfoRow extends StatelessWidget {
           Icon(icon, size: 14, color: brandGrey),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(text,
-                style: Theme.of(context).textTheme.bodySmall),
+            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -180,28 +177,20 @@ class _OverviewTab extends StatelessWidget {
           value: detail.isCondemned
               ? 'Condemned'
               : detail.isActive
-                  ? 'Active'
-                  : 'Inactive',
+              ? 'Active'
+              : 'Inactive',
         ),
-        _DetailRow(
-            label: 'Loan Unit',
-            value: detail.isLoan ? 'Yes' : 'No'),
-        _DetailRow(
-            label: 'Demo Unit',
-            value: detail.isDemo ? 'Yes' : 'No'),
+        _DetailRow(label: 'Loan Unit', value: detail.isLoan ? 'Yes' : 'No'),
+        _DetailRow(label: 'Demo Unit', value: detail.isDemo ? 'Yes' : 'No'),
         if (detail.softwareVersion != null)
-          _DetailRow(
-              label: 'Software Version',
-              value: detail.softwareVersion!),
+          _DetailRow(label: 'Software Version', value: detail.softwareVersion!),
         if (detail.accessories != null)
-          _DetailRow(
-              label: 'Accessories', value: detail.accessories!),
+          _DetailRow(label: 'Accessories', value: detail.accessories!),
         if (detail.notes != null) ...[
           const Divider(),
           Text('Notes', style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 4),
-          Text(detail.notes!,
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(detail.notes!, style: Theme.of(context).textTheme.bodySmall),
         ],
       ],
     );
@@ -234,8 +223,9 @@ class _ServiceTab extends StatelessWidget {
           valueColor: detail.isServiceDueSoon ? brandError : null,
         ),
         _DetailRow(
-            label: 'Operating Hours',
-            value: detail.hours?.toString() ?? '—'),
+          label: 'Operating Hours',
+          value: detail.hours?.toString() ?? '—',
+        ),
         const Divider(),
         _DetailRow(
           label: 'Service Plan',
@@ -257,8 +247,7 @@ class _ServiceTab extends StatelessWidget {
           if (detail.servicePlanValue != null)
             _DetailRow(
               label: 'Plan Value',
-              value:
-                  'R ${detail.servicePlanValue!.toStringAsFixed(2)}',
+              value: 'R ${detail.servicePlanValue!.toStringAsFixed(2)}',
             ),
         ],
       ],
@@ -300,9 +289,7 @@ class _WarrantyTab extends StatelessWidget {
               : '—',
         ),
         if (detail.warrantyPeriod != null)
-          _DetailRow(
-              label: 'Period',
-              value: '${detail.warrantyPeriod} months'),
+          _DetailRow(label: 'Period', value: '${detail.warrantyPeriod} months'),
         const Divider(),
         _DetailRow(
           label: 'Manufacture Date',
@@ -330,8 +317,7 @@ class _WarrantyTab extends StatelessWidget {
 // ── Shared row widget ─────────────────────────────────────────────────────────
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow(
-      {required this.label, required this.value, this.valueColor});
+  const _DetailRow({required this.label, required this.value, this.valueColor});
   final String label;
   final String value;
   final Color? valueColor;
@@ -347,19 +333,18 @@ class _DetailRow extends StatelessWidget {
             width: 150,
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: brandGrey),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: brandGrey),
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: valueColor,
-                    fontWeight: valueColor != null ? FontWeight.w600 : null,
-                  ),
+                color: valueColor,
+                fontWeight: valueColor != null ? FontWeight.w600 : null,
+              ),
             ),
           ),
         ],
@@ -411,9 +396,7 @@ class _OfflineBody extends StatelessWidget {
     return TabBarView(
       children: List.generate(
         _kTabCount,
-        (_) => const Center(
-          child: Text('Connect to view full details'),
-        ),
+        (_) => const Center(child: Text('Connect to view full details')),
       ),
     );
   }
@@ -432,16 +415,21 @@ class _HistoryTab extends ConsumerWidget {
     return wosAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Error: $e',
-            style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        child: Text(
+          'Error: $e',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
       data: (wos) => wos.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.history,
-                      size: 40, color: brandGrey.withAlpha(100)),
+                  Icon(
+                    Icons.history,
+                    size: 40,
+                    color: brandGrey.withAlpha(100),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     'No work orders recorded for this asset.',
@@ -463,36 +451,30 @@ class _HistoryTab extends ConsumerWidget {
 // ── WO history tile ───────────────────────────────────────────────────────────
 
 Color _woStatusColor(WoStatus status) => switch (status) {
-      WoStatus.completed ||
-      WoStatus.closed ||
-      WoStatus.reviewed =>
-        brandGreen,
-      WoStatus.inProgress ||
-      WoStatus.onSite ||
-      WoStatus.enRoute ||
-      WoStatus.accepted =>
-        brandTeal,
-      WoStatus.paused ||
-      WoStatus.awaitingParts =>
-        const Color(0xFFF57F17),
-      _ => brandGrey,
-    };
+  WoStatus.completed || WoStatus.closed || WoStatus.reviewed => brandGreen,
+  WoStatus.inProgress ||
+  WoStatus.onSite ||
+  WoStatus.enRoute ||
+  WoStatus.accepted => brandTeal,
+  WoStatus.paused || WoStatus.awaitingParts => const Color(0xFFF57F17),
+  _ => brandGrey,
+};
 
 String _woStatusLabel(WoStatus s) => switch (s) {
-      WoStatus.created => 'Created',
-      WoStatus.assigned => 'Assigned',
-      WoStatus.accepted => 'Accepted',
-      WoStatus.enRoute => 'En Route',
-      WoStatus.onSite => 'On Site',
-      WoStatus.inProgress => 'In Progress',
-      WoStatus.paused => 'Paused',
-      WoStatus.awaitingParts => 'Awaiting Parts',
-      WoStatus.completed => 'Completed',
-      WoStatus.reviewed => 'Reviewed',
-      WoStatus.closed => 'Closed',
-      WoStatus.cancelled => 'Cancelled',
-      WoStatus.rejected => 'Rejected',
-    };
+  WoStatus.created => 'Created',
+  WoStatus.assigned => 'Assigned',
+  WoStatus.accepted => 'Accepted',
+  WoStatus.enRoute => 'En Route',
+  WoStatus.onSite => 'On Site',
+  WoStatus.inProgress => 'In Progress',
+  WoStatus.paused => 'Paused',
+  WoStatus.awaitingParts => 'Awaiting Parts',
+  WoStatus.completed => 'Completed',
+  WoStatus.reviewed => 'Reviewed',
+  WoStatus.closed => 'Closed',
+  WoStatus.cancelled => 'Cancelled',
+  WoStatus.rejected => 'Rejected',
+};
 
 class _WoHistoryTile extends StatelessWidget {
   const _WoHistoryTile({required this.wo});

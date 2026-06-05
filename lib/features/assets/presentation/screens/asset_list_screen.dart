@@ -39,8 +39,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 
   void _openScanner() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-          builder: (_) => const AssetBarcodeScannerScreen()),
+      MaterialPageRoute(builder: (_) => const AssetBarcodeScannerScreen()),
     );
   }
 
@@ -66,14 +65,13 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
             : const Text('Assets'),
         actions: [
           if (_searching)
-            IconButton(
-                icon: const Icon(Icons.close), onPressed: _stopSearch)
+            IconButton(icon: const Icon(Icons.close), onPressed: _stopSearch)
           else ...[
+            IconButton(icon: const Icon(Icons.search), onPressed: _startSearch),
             IconButton(
-                icon: const Icon(Icons.search), onPressed: _startSearch),
-            IconButton(
-                icon: const Icon(Icons.qr_code_scanner),
-                onPressed: _openScanner),
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: _openScanner,
+            ),
           ],
         ],
       ),
@@ -87,9 +85,11 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           Expanded(
             child: showList
                 ? (_searching && _query.isNotEmpty
-                    ? _SearchResults(
-                        query: _query, hospital: _selectedHospital)
-                    : _AssetBrowseList(hospital: _selectedHospital))
+                      ? _SearchResults(
+                          query: _query,
+                          hospital: _selectedHospital,
+                        )
+                      : _AssetBrowseList(hospital: _selectedHospital))
                 : const _AssetOverview(),
           ),
         ],
@@ -101,13 +101,15 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 // ── Hospital selector row ─────────────────────────────────────────────────────
 
 class _HospitalSelectorRow extends ConsumerWidget {
-  const _HospitalSelectorRow(
-      {required this.selected, required this.onSelect});
+  const _HospitalSelectorRow({required this.selected, required this.onSelect});
   final String? selected;
   final ValueChanged<String?> onSelect;
 
   void _showPicker(
-      BuildContext context, List<String> hospitals, String? current) {
+    BuildContext context,
+    List<String> hospitals,
+    String? current,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -158,20 +160,20 @@ class _HospitalSelectorRow extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             label,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color:
-                                      hasSelection ? brandTeal : null,
+                                  color: hasSelection ? brandTeal : null,
                                   fontWeight: hasSelection
                                       ? FontWeight.w600
                                       : null,
                                 ),
                           ),
                         ),
-                        const Icon(Icons.expand_more,
-                            size: 20, color: brandGrey),
+                        const Icon(
+                          Icons.expand_more,
+                          size: 20,
+                          color: brandGrey,
+                        ),
                       ],
                     ),
                   ),
@@ -216,9 +218,8 @@ class _HospitalPickerSheetState extends State<_HospitalPickerSheet> {
     final filtered = _query.isEmpty
         ? widget.hospitals
         : widget.hospitals
-            .where((h) =>
-                h.toLowerCase().contains(_query.toLowerCase()))
-            .toList();
+              .where((h) => h.toLowerCase().contains(_query.toLowerCase()))
+              .toList();
 
     return DraggableScrollableSheet(
       expand: false,
@@ -239,12 +240,13 @@ class _HospitalPickerSheetState extends State<_HospitalPickerSheet> {
             ),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             child: Row(
               children: [
-                Text('Select Hospital',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Select Hospital',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const Spacer(),
                 if (widget.selected != null)
                   TextButton(
@@ -255,14 +257,15 @@ class _HospitalPickerSheetState extends State<_HospitalPickerSheet> {
             ),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: TextField(
               decoration: const InputDecoration(
                 hintText: 'Search…',
                 prefixIcon: Icon(Icons.search, size: 20),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 12,
+                ),
               ),
               onChanged: (v) => setState(() => _query = v.trim()),
             ),
@@ -284,16 +287,13 @@ class _HospitalPickerSheetState extends State<_HospitalPickerSheet> {
             child: ListView.separated(
               controller: scrollController,
               itemCount: filtered.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, indent: 52),
+              separatorBuilder: (_, _) => const Divider(height: 1, indent: 52),
               itemBuilder: (_, i) {
                 final h = filtered[i];
                 final isSelected = widget.selected == h;
                 return ListTile(
                   leading: Icon(
-                    isSelected
-                        ? Icons.check
-                        : Icons.local_hospital_outlined,
+                    isSelected ? Icons.check : Icons.local_hospital_outlined,
                     color: isSelected ? brandTeal : brandGrey,
                     size: 20,
                   ),
@@ -339,16 +339,18 @@ class _AssetOverview extends ConsumerWidget {
           Center(
             child: Column(
               children: [
-                Icon(Icons.local_hospital_outlined,
-                    size: 40, color: brandGrey.withAlpha(100)),
+                Icon(
+                  Icons.local_hospital_outlined,
+                  size: 40,
+                  color: brandGrey.withAlpha(100),
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Select a hospital above to browse assets,\nor use search to find equipment.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: brandGrey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: brandGrey),
                 ),
               ],
             ),
@@ -374,25 +376,29 @@ class _StatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _StatTile(
-            label: 'Total Assets',
-            count: stats.total,
-            color: brandTeal,
-            icon: Icons.medical_services_outlined),
+          label: 'Total Assets',
+          count: stats.total,
+          color: brandTeal,
+          icon: Icons.medical_services_outlined,
+        ),
         _StatTile(
-            label: 'Active',
-            count: stats.active,
-            color: const Color(0xFF2E7D32),
-            icon: Icons.check_circle_outline),
+          label: 'Active',
+          count: stats.active,
+          color: const Color(0xFF2E7D32),
+          icon: Icons.check_circle_outline,
+        ),
         _StatTile(
-            label: 'Service Due',
-            count: stats.serviceDue,
-            color: brandError,
-            icon: Icons.build_outlined),
+          label: 'Service Due',
+          count: stats.serviceDue,
+          color: brandError,
+          icon: Icons.build_outlined,
+        ),
         _StatTile(
-            label: 'Condemned',
-            count: stats.condemned,
-            color: brandGrey,
-            icon: Icons.block_outlined),
+          label: 'Condemned',
+          count: stats.condemned,
+          color: brandGrey,
+          icon: Icons.block_outlined,
+        ),
       ],
     );
   }
@@ -430,20 +436,16 @@ class _StatTile extends StatelessWidget {
               children: [
                 Text(
                   '$count',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Text(
                   label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: color),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: color),
                 ),
               ],
             ),
@@ -467,16 +469,16 @@ class _AssetBrowseList extends ConsumerWidget {
     return assetsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Error: $e',
-            style:
-                TextStyle(color: Theme.of(context).colorScheme.error)),
+        child: Text(
+          'Error: $e',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
       data: (assets) => assets.isEmpty
           ? const Center(child: Text('No assets found.'))
           : ListView.builder(
               itemCount: assets.length,
-              itemBuilder: (_, i) =>
-                  _AssetTile(asset: assets[i], index: i),
+              itemBuilder: (_, i) => _AssetTile(asset: assets[i], index: i),
             ),
     );
   }
@@ -491,22 +493,23 @@ class _SearchResults extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resultsAsync =
-        ref.watch(assetSearchProvider(query, hospital: hospital));
+    final resultsAsync = ref.watch(
+      assetSearchProvider(query, hospital: hospital),
+    );
 
     return resultsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Error: $e',
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.error)),
+        child: Text(
+          'Error: $e',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
       data: (assets) => assets.isEmpty
           ? const Center(child: Text('No assets matched'))
           : ListView.builder(
               itemCount: assets.length,
-              itemBuilder: (_, i) =>
-                  _AssetTile(asset: assets[i], index: i),
+              itemBuilder: (_, i) => _AssetTile(asset: assets[i], index: i),
             ),
     );
   }
@@ -534,25 +537,28 @@ class _AssetTile extends StatelessWidget {
     final color = _accentColor;
     final bg = index.isOdd ? _zebra : Colors.white;
 
-    final makeModel = [asset.manufacturer, asset.model]
-        .whereType<String>()
-        .join(' · ');
-    final location = [asset.hospital, asset.location]
-        .whereType<String>()
-        .join(' › ');
+    final makeModel = [
+      asset.manufacturer,
+      asset.model,
+    ].whereType<String>().join(' · ');
+    final location = [
+      asset.hospital,
+      asset.location,
+    ].whereType<String>().join(' › ');
 
     return InkWell(
       onTap: () {
         if (asset.assetId != null) {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => AssetDetailScreen(
-                assetId: asset.assetId!, localAsset: asset),
-          ));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  AssetDetailScreen(assetId: asset.assetId!, localAsset: asset),
+            ),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content:
-                  Text('Provisional asset — pending admin registration'),
+              content: Text('Provisional asset — pending admin registration'),
             ),
           );
         }
@@ -569,7 +575,9 @@ class _AssetTile extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 11),
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -579,7 +587,8 @@ class _AssetTile extends StatelessWidget {
                             child: Text(
                               asset.equipmentType,
                               style: tt.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600),
+                                fontWeight: FontWeight.w600,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -589,8 +598,7 @@ class _AssetTile extends StatelessWidget {
                           if (asset.isCondemned)
                             _StatusBadge('CONDEMNED', brandGrey),
                           if (asset.isProvisional)
-                            _StatusBadge(
-                                'PROV', const Color(0xFFF57F17)),
+                            _StatusBadge('PROV', const Color(0xFFF57F17)),
                         ],
                       ),
                       if (makeModel.isNotEmpty) ...[
@@ -608,8 +616,7 @@ class _AssetTile extends StatelessWidget {
                           Expanded(
                             child: Text(
                               location.isNotEmpty ? location : '—',
-                              style: tt.bodySmall
-                                  ?.copyWith(color: brandGrey),
+                              style: tt.bodySmall?.copyWith(color: brandGrey),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -617,8 +624,7 @@ class _AssetTile extends StatelessWidget {
                           if (asset.serialNumber != null)
                             Text(
                               'S/N ${asset.serialNumber}',
-                              style: tt.bodySmall
-                                  ?.copyWith(color: brandGrey),
+                              style: tt.bodySmall?.copyWith(color: brandGrey),
                             ),
                         ],
                       ),

@@ -41,13 +41,13 @@ class TestEquipmentAssetModel extends TestEquipmentAsset {
       );
 
   Map<String, dynamic> toMap() => {
-        if (id != 0) 'id': id,
-        'asset_id': assetId,
-        'equipment_type': equipmentType,
-        'manufacturer': manufacturer,
-        'model': model,
-        'serial_no': serialNo,
-        'cal_date': calDate?.toIso8601String().substring(0, 10),
-        'synced_at': syncedAt.toIso8601String(),
-      };
+    if (id != 0) 'id': id,
+    'asset_id': assetId,
+    'equipment_type': equipmentType,
+    'manufacturer': manufacturer,
+    'model': model,
+    'serial_no': serialNo,
+    'cal_date': calDate?.toIso8601String().substring(0, 10),
+    'synced_at': syncedAt.toIso8601String(),
+  };
 }

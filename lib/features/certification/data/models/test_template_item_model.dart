@@ -37,13 +37,13 @@ class TestTemplateItemModel extends TestTemplateItem {
       );
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'certificate_name_id': certificateNameId,
-        'description_id': descriptionId,
-        'description_no': descriptionNo,
-        'description': description,
-        'notes': notes,
-        'expected_value': expectedValue,
-        'actual_value_template': actualValueTemplate,
-      };
+    'id': id,
+    'certificate_name_id': certificateNameId,
+    'description_id': descriptionId,
+    'description_no': descriptionNo,
+    'description': description,
+    'notes': notes,
+    'expected_value': expectedValue,
+    'actual_value_template': actualValueTemplate,
+  };
 }

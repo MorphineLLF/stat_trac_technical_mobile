@@ -40,8 +40,10 @@ class WorkOrderDetailScreen extends ConsumerWidget {
       body: woAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          child: Text(
+            'Error: $e',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ),
         data: (wo) => wo == null
             ? const Center(child: Text('Work order not found'))
@@ -59,8 +61,7 @@ class _WorkOrderBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final historyAsync =
-        ref.watch(workOrderStatusHistoryProvider(wo.id));
+    final historyAsync = ref.watch(workOrderStatusHistoryProvider(wo.id));
 
     return Column(
       children: [
@@ -128,7 +129,9 @@ class _HeaderCard extends ConsumerWidget {
                 if (wo.isOverdue)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: brandError.withAlpha(20),
                       borderRadius: BorderRadius.circular(6),
@@ -146,11 +149,7 @@ class _HeaderCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _DetailRow(
-              icon: Icons.tag,
-              label: 'WO Number',
-              value: wo.woNumber,
-            ),
+            _DetailRow(icon: Icons.tag, label: 'WO Number', value: wo.woNumber),
             if (wo.assetId != null)
               _AsyncAssetRow(
                 assetId: wo.assetId!,
@@ -167,8 +166,9 @@ class _HeaderCard extends ConsumerWidget {
               _DetailRow(
                 icon: Icons.calendar_today_outlined,
                 label: 'Scheduled',
-                value:
-                    DateFormat('dd MMM yyyy HH:mm').format(wo.scheduledStart!),
+                value: DateFormat(
+                  'dd MMM yyyy HH:mm',
+                ).format(wo.scheduledStart!),
               ),
             _DetailRow(
               icon: Icons.info_outline,
@@ -183,10 +183,7 @@ class _HeaderCard extends ConsumerWidget {
 }
 
 class _AsyncAssetRow extends StatefulWidget {
-  const _AsyncAssetRow({
-    required this.assetId,
-    required this.dataSource,
-  });
+  const _AsyncAssetRow({required this.assetId, required this.dataSource});
   final int assetId;
   final AssetLocalDataSource dataSource;
 
@@ -238,11 +235,15 @@ class _DescriptionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Symptom Description',
-                style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              'Symptom Description',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 8),
-            Text(wo.symptomDescription!,
-                style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              wo.symptomDescription!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ),
       ),
@@ -259,16 +260,11 @@ class _TimingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final times = [
-      if (wo.acceptedAt != null)
-        ('Accepted', wo.acceptedAt!),
-      if (wo.enRouteAt != null)
-        ('En Route', wo.enRouteAt!),
-      if (wo.onSiteAt != null)
-        ('On Site', wo.onSiteAt!),
-      if (wo.startedAt != null)
-        ('Started', wo.startedAt!),
-      if (wo.completedAt != null)
-        ('Completed', wo.completedAt!),
+      if (wo.acceptedAt != null) ('Accepted', wo.acceptedAt!),
+      if (wo.enRouteAt != null) ('En Route', wo.enRouteAt!),
+      if (wo.onSiteAt != null) ('On Site', wo.onSiteAt!),
+      if (wo.startedAt != null) ('Started', wo.startedAt!),
+      if (wo.completedAt != null) ('Completed', wo.completedAt!),
     ];
 
     if (times.isEmpty) return const SizedBox.shrink();
@@ -279,17 +275,18 @@ class _TimingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Timeline',
-                style: Theme.of(context).textTheme.titleSmall),
+            Text('Timeline', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
-            ...times.map((t) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: _DetailRow(
-                    icon: Icons.access_time,
-                    label: t.$1,
-                    value: DateFormat('dd MMM yyyy HH:mm').format(t.$2),
-                  ),
-                )),
+            ...times.map(
+              (t) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: _DetailRow(
+                  icon: Icons.access_time,
+                  label: t.$1,
+                  value: DateFormat('dd MMM yyyy HH:mm').format(t.$2),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -313,8 +310,7 @@ class _ResolutionCardState extends ConsumerState<_ResolutionCard> {
   @override
   void initState() {
     super.initState();
-    _narrativeCtrl =
-        TextEditingController(text: widget.wo.resolutionNarrative);
+    _narrativeCtrl = TextEditingController(text: widget.wo.resolutionNarrative);
   }
 
   @override
@@ -331,8 +327,7 @@ class _ResolutionCardState extends ConsumerState<_ResolutionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Resolution',
-                style: Theme.of(context).textTheme.titleSmall),
+            Text('Resolution', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 12),
             TextFormField(
               controller: _narrativeCtrl,
@@ -364,53 +359,52 @@ class _StatusHistoryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Status History',
-                style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              'Status History',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 12),
-            ...history.reversed.map((h) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.only(top: 5),
-                        decoration: const BoxDecoration(
-                          color: brandTeal,
-                          shape: BoxShape.circle,
-                        ),
+            ...history.reversed.map(
+              (h) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.only(top: 5),
+                      decoration: const BoxDecoration(
+                        color: brandTeal,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            h.newStatus.value.replaceAll('_', ' '),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            DateFormat('dd MMM yyyy HH:mm').format(h.changedAt),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          if (h.notes != null && h.notes!.isNotEmpty)
                             Text(
-                              h.newStatus.value.replaceAll('_', ' '),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                      fontWeight: FontWeight.w600),
+                              h.notes!,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
-                            Text(
-                              DateFormat('dd MMM yyyy HH:mm')
-                                  .format(h.changedAt),
-                              style:
-                                  Theme.of(context).textTheme.bodySmall,
-                            ),
-                            if (h.notes != null && h.notes!.isNotEmpty)
-                              Text(h.notes!,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -436,13 +430,12 @@ class _TransitionBar extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(color: const Color(0xFFDDE3EA)),
-        ),
+        border: Border(top: BorderSide(color: const Color(0xFFDDE3EA))),
       ),
       child: Row(
         children: transitions.map((t) {
-          final isDestructive = t.toStatus == WoStatus.cancelled ||
+          final isDestructive =
+              t.toStatus == WoStatus.cancelled ||
               t.toStatus == WoStatus.rejected;
           return Expanded(
             child: Padding(
@@ -467,7 +460,9 @@ class _TransitionBar extends ConsumerWidget {
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : Text(t.label),
                     ),
@@ -517,32 +512,20 @@ class _TransitionBar extends ConsumerWidget {
   List<_Transition> _availableTransitions(WoStatus status) {
     return switch (status) {
       WoStatus.assigned => [
-          _Transition('Accept', WoStatus.accepted),
-          _Transition('Reject', WoStatus.rejected),
-        ],
-      WoStatus.accepted => [
-          _Transition('En Route', WoStatus.enRoute),
-        ],
-      WoStatus.enRoute => [
-          _Transition('On Site', WoStatus.onSite),
-        ],
-      WoStatus.onSite => [
-          _Transition('Start Work', WoStatus.inProgress),
-        ],
-      WoStatus.created => [
-          _Transition('Start Work', WoStatus.inProgress),
-        ],
+        _Transition('Accept', WoStatus.accepted),
+        _Transition('Reject', WoStatus.rejected),
+      ],
+      WoStatus.accepted => [_Transition('En Route', WoStatus.enRoute)],
+      WoStatus.enRoute => [_Transition('On Site', WoStatus.onSite)],
+      WoStatus.onSite => [_Transition('Start Work', WoStatus.inProgress)],
+      WoStatus.created => [_Transition('Start Work', WoStatus.inProgress)],
       WoStatus.inProgress => [
-          _Transition('Pause', WoStatus.paused),
-          _Transition('Awaiting Parts', WoStatus.awaitingParts),
-          _Transition('Complete', WoStatus.completed),
-        ],
-      WoStatus.paused => [
-          _Transition('Resume', WoStatus.inProgress),
-        ],
-      WoStatus.awaitingParts => [
-          _Transition('Resume', WoStatus.inProgress),
-        ],
+        _Transition('Pause', WoStatus.paused),
+        _Transition('Awaiting Parts', WoStatus.awaitingParts),
+        _Transition('Complete', WoStatus.completed),
+      ],
+      WoStatus.paused => [_Transition('Resume', WoStatus.inProgress)],
+      WoStatus.awaitingParts => [_Transition('Resume', WoStatus.inProgress)],
       _ => [],
     };
   }
@@ -582,22 +565,19 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(width: 8),
           SizedBox(
             width: 100,
-            child: Text(label,
-                style: Theme.of(context).textTheme.bodySmall),
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: valueColor),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: valueColor),
             ),
           ),
           if (badge != null && badgeColor != null)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: badgeColor!.withAlpha(30),
                 borderRadius: BorderRadius.circular(4),

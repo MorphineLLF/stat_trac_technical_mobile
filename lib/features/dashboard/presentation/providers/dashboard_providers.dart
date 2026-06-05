@@ -42,7 +42,8 @@ Future<DashboardStats> dashboardStats(Ref ref) async {
   final db = await DatabaseHelper.instance.database;
   final now = DateTime.now().toIso8601String();
 
-  final rows = await db.rawQuery('''
+  final rows = await db.rawQuery(
+    '''
     SELECT
       SUM(CASE WHEN sla_due_at IS NOT NULL AND sla_due_at < ?
                AND status NOT IN ('completed','reviewed','closed','cancelled')
@@ -51,7 +52,9 @@ Future<DashboardStats> dashboardStats(Ref ref) async {
                THEN 1 ELSE 0 END) AS pending
     FROM work_orders
     WHERE status NOT IN ('completed','reviewed','closed','cancelled')
-  ''', [now]);
+  ''',
+    [now],
+  );
 
   final certRows = await db.rawQuery(
     "SELECT COUNT(*) AS cnt FROM test_certificates WHERE sync_status = 'pending'",

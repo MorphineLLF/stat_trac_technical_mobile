@@ -105,17 +105,32 @@ final appTheme = ThemeData(
   iconTheme: const IconThemeData(color: brandGrey),
   textTheme: const TextTheme(
     headlineSmall: TextStyle(
-        color: brandDark, fontWeight: FontWeight.w700, fontSize: 22),
+      color: brandDark,
+      fontWeight: FontWeight.w700,
+      fontSize: 22,
+    ),
     titleLarge: TextStyle(
-        color: brandDark, fontWeight: FontWeight.w600, fontSize: 18),
+      color: brandDark,
+      fontWeight: FontWeight.w600,
+      fontSize: 18,
+    ),
     titleMedium: TextStyle(
-        color: brandDark, fontWeight: FontWeight.w600, fontSize: 16),
+      color: brandDark,
+      fontWeight: FontWeight.w600,
+      fontSize: 16,
+    ),
     bodyLarge: TextStyle(color: brandDark, fontSize: 16),
     bodyMedium: TextStyle(color: brandDark, fontSize: 14),
     bodySmall: TextStyle(color: brandGrey, fontSize: 12),
     labelLarge: TextStyle(
-        color: brandTeal, fontWeight: FontWeight.w600, fontSize: 14),
+      color: brandTeal,
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+    ),
     titleSmall: TextStyle(
-        color: brandDark, fontWeight: FontWeight.w500, fontSize: 14),
+      color: brandDark,
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+    ),
   ),
 );

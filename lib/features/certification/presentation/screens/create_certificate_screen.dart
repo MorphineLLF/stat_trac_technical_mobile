@@ -114,7 +114,9 @@ class _CreateCertificateScreenState
 
   // Updates the saved cert record with signatures.
   Future<void> _completeWithSignature(SignatureResult sig) async {
-    await ref.read(certificateRepositoryProvider).updateSignatures(
+    await ref
+        .read(certificateRepositoryProvider)
+        .updateSignatures(
           _savedCertId!,
           sig.techSignatureBytes.toList(),
           sig.clientSignatureBytes?.toList(),
@@ -124,7 +126,9 @@ class _CreateCertificateScreenState
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Certificate saved — PDF will be generated on next sync'),
+          content: Text(
+            'Certificate saved — PDF will be generated on next sync',
+          ),
         ),
       );
       Navigator.of(context).pop();
@@ -246,13 +250,15 @@ class _CreateCertificateScreenState
                                   'Select a compliance status.',
                               ].join(' '),
                               style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                  fontSize: 13),
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 13,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
                         FilledButton(
-                          onPressed: _saving ||
+                          onPressed:
+                              _saving ||
                                   !_allActualsValid ||
                                   _patientSafe == null
                               ? null
@@ -261,7 +267,9 @@ class _CreateCertificateScreenState
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Text('Save'),
                         ),
@@ -317,8 +325,10 @@ class _ComplianceSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Compliance Status',
-            style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          'Compliance Status',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         const SizedBox(height: 6),
         Row(
           children: _options.map((opt) {
@@ -376,20 +386,24 @@ class _AssetPickStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Select Asset',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text('Select Asset', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           if (selectedAsset != null)
             Card(
               child: ListTile(
-                leading:
-                    const Icon(Icons.medical_services_outlined, color: brandTeal),
+                leading: const Icon(
+                  Icons.medical_services_outlined,
+                  color: brandTeal,
+                ),
                 title: Text(selectedAsset!.equipmentType),
-                subtitle: Text([
-                  if (selectedAsset!.hospital != null) selectedAsset!.hospital!,
-                  if (selectedAsset!.serialNumber != null)
-                    'S/N: ${selectedAsset!.serialNumber!}',
-                ].join(' · ')),
+                subtitle: Text(
+                  [
+                    if (selectedAsset!.hospital != null)
+                      selectedAsset!.hospital!,
+                    if (selectedAsset!.serialNumber != null)
+                      'S/N: ${selectedAsset!.serialNumber!}',
+                  ].join(' · '),
+                ),
                 trailing: TextButton(
                   onPressed: onPickTap,
                   child: const Text('Change'),
@@ -404,10 +418,7 @@ class _AssetPickStep extends StatelessWidget {
             ),
           const Spacer(),
           if (onNext != null)
-            FilledButton(
-              onPressed: onNext,
-              child: const Text('Next'),
-            ),
+            FilledButton(onPressed: onNext, child: const Text('Next')),
         ],
       ),
     );

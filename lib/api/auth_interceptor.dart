@@ -7,8 +7,8 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
   AuthInterceptor({
     required AuthLocalDataSource local,
     required AuthRemoteDataSource remote,
-  })  : _local = local,
-        _remote = remote;
+  }) : _local = local,
+       _remote = remote;
 
   final AuthLocalDataSource _local;
   final AuthRemoteDataSource _remote;

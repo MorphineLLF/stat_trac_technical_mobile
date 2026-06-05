@@ -80,47 +80,48 @@ class WorkOrderModel extends WorkOrder {
     );
   }
 
-  factory WorkOrderModel.fromJson(Map<String, dynamic> j) =>
-      WorkOrderModel.fromMap({
-        ...j,
-        // API uses snake_case matching SQLite columns — no field remapping needed.
-      });
+  factory WorkOrderModel.fromJson(
+    Map<String, dynamic> j,
+  ) => WorkOrderModel.fromMap({
+    ...j,
+    // API uses snake_case matching SQLite columns — no field remapping needed.
+  });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'wo_number': woNumber,
-        'type': type.value,
-        'priority': priority.value,
-        'status': status.value,
-        'origin': origin.value,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-        'sla_due_at': slaDueAt?.toIso8601String(),
-        'account_id': accountId,
-        'asset_id': assetId,
-        'reporter_user_id': reporterUserId,
-        'assigned_user_id': assignedUserId,
-        'scheduled_start': scheduledStart?.toIso8601String(),
-        'accepted_at': acceptedAt?.toIso8601String(),
-        'en_route_at': enRouteAt?.toIso8601String(),
-        'on_site_at': onSiteAt?.toIso8601String(),
-        'started_at': startedAt?.toIso8601String(),
-        'completed_at': completedAt?.toIso8601String(),
-        'reviewed_at': reviewedAt?.toIso8601String(),
-        'closed_at': closedAt?.toIso8601String(),
-        'cancelled_at': cancelledAt?.toIso8601String(),
-        'cancel_reason': cancelReason,
-        'symptom_description': symptomDescription,
-        'resolution_narrative': resolutionNarrative,
-        'root_cause_code': rootCauseCode,
-        'failure_mode_code': failureModeCode,
-        'outcome': outcome?.value,
-        'billing_flag': billingFlag?.value,
-        'travel_km': travelKm,
-        'travel_minutes': travelMinutes,
-        'labour_minutes': labourMinutes,
-        'wait_minutes': waitMinutes,
-      };
+    'id': id,
+    'wo_number': woNumber,
+    'type': type.value,
+    'priority': priority.value,
+    'status': status.value,
+    'origin': origin.value,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'sla_due_at': slaDueAt?.toIso8601String(),
+    'account_id': accountId,
+    'asset_id': assetId,
+    'reporter_user_id': reporterUserId,
+    'assigned_user_id': assignedUserId,
+    'scheduled_start': scheduledStart?.toIso8601String(),
+    'accepted_at': acceptedAt?.toIso8601String(),
+    'en_route_at': enRouteAt?.toIso8601String(),
+    'on_site_at': onSiteAt?.toIso8601String(),
+    'started_at': startedAt?.toIso8601String(),
+    'completed_at': completedAt?.toIso8601String(),
+    'reviewed_at': reviewedAt?.toIso8601String(),
+    'closed_at': closedAt?.toIso8601String(),
+    'cancelled_at': cancelledAt?.toIso8601String(),
+    'cancel_reason': cancelReason,
+    'symptom_description': symptomDescription,
+    'resolution_narrative': resolutionNarrative,
+    'root_cause_code': rootCauseCode,
+    'failure_mode_code': failureModeCode,
+    'outcome': outcome?.value,
+    'billing_flag': billingFlag?.value,
+    'travel_km': travelKm,
+    'travel_minutes': travelMinutes,
+    'labour_minutes': labourMinutes,
+    'wait_minutes': waitMinutes,
+  };
 
   static DateTime? _dt(dynamic v) =>
       v == null ? null : DateTime.parse(v as String);

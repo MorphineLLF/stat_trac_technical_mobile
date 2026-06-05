@@ -72,13 +72,15 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
       clientBytes = await _clientController.toPngBytes();
     }
 
-    widget.onSigned(SignatureResult(
-      techSignatureBytes: techBytes,
-      clientSignatureBytes: clientBytes,
-      clientName: _clientNameController.text.trim().isEmpty
-          ? null
-          : _clientNameController.text.trim(),
-    ));
+    widget.onSigned(
+      SignatureResult(
+        techSignatureBytes: techBytes,
+        clientSignatureBytes: clientBytes,
+        clientName: _clientNameController.text.trim().isEmpty
+            ? null
+            : _clientNameController.text.trim(),
+      ),
+    );
   }
 
   @override
@@ -86,14 +88,18 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Technician Signature',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Technician Signature',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         _SignaturePad(controller: _techController),
         const SizedBox(height: 24),
         if (widget.requiresCustomerSig) ...[
-          Text('Facility Signature',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Facility Signature',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _clientNameController,

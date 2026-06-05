@@ -27,12 +27,16 @@ AuthLocalDataSource authLocalDataSource(Ref ref) {
 @riverpod
 AuthRemoteDataSource authRemoteDataSource(Ref ref) {
   // Auth endpoints (login, refresh) don't need the JWT interceptor.
-  return AuthRemoteDataSourceImpl(Dio(BaseOptions(
-    baseUrl: AppConfig.baseUrl,
-    connectTimeout: AppConfig.connectTimeout,
-    receiveTimeout: AppConfig.receiveTimeout,
-    headers: {'Content-Type': 'application/json'},
-  )));
+  return AuthRemoteDataSourceImpl(
+    Dio(
+      BaseOptions(
+        baseUrl: AppConfig.baseUrl,
+        connectTimeout: AppConfig.connectTimeout,
+        receiveTimeout: AppConfig.receiveTimeout,
+        headers: {'Content-Type': 'application/json'},
+      ),
+    ),
+  );
 }
 
 @riverpod
@@ -56,7 +60,9 @@ class AuthNotifier extends _$AuthNotifier {
   Future<void> _checkStoredToken() async {
     final repo = ref.read(authRepositoryProvider);
     final user = await repo.getCurrentUser();
-    state = user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
+    state = user != null
+        ? AuthAuthenticated(user)
+        : const AuthUnauthenticated();
   }
 
   Future<void> login(String username, String password, String dbName) async {

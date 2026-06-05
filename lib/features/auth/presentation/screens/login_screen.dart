@@ -26,8 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkStoredDbName() async {
-    final stored =
-        await ref.read(authLocalDataSourceProvider).readDbName();
+    final stored = await ref.read(authLocalDataSourceProvider).readDbName();
     if (mounted) {
       setState(() => _showDbNameField = stored == null);
     }
@@ -48,11 +47,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_showDbNameField) {
       dbName = _dbNameController.text.trim();
     } else {
-      dbName =
-          await ref.read(authLocalDataSourceProvider).readDbName() ?? '';
+      dbName = await ref.read(authLocalDataSourceProvider).readDbName() ?? '';
     }
 
-    await ref.read(authProvider.notifier).login(
+    await ref
+        .read(authProvider.notifier)
+        .login(
           _usernameController.text.trim(),
           _passwordController.text,
           dbName,
@@ -63,8 +63,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState is AuthInitial;
-    final errorMessage =
-        authState is AuthUnauthenticated ? authState.errorMessage : null;
+    final errorMessage = authState is AuthUnauthenticated
+        ? authState.errorMessage
+        : null;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       if (next is AuthAuthenticated) {
@@ -122,11 +123,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
                         onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                     textInputAction: TextInputAction.done,
@@ -166,19 +170,19 @@ class _Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset(
-          'assets/images/logo.png',
-          height: 96,
-          fit: BoxFit.contain,
-        ),
+        Image.asset('assets/images/logo.png', height: 96, fit: BoxFit.contain),
         const SizedBox(height: 20),
-        Text('Stat Trac Technical',
-            style: Theme.of(context).textTheme.headlineSmall),
+        Text(
+          'Stat Trac Technical',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
         const SizedBox(height: 4),
-        Text('Proteus Medical Technologies',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                )),
+        Text(
+          'Proteus Medical Technologies',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -198,8 +202,11 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline,
-              size: 18, color: Theme.of(context).colorScheme.error),
+          Icon(
+            Icons.error_outline,
+            size: 18,
+            color: Theme.of(context).colorScheme.error,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

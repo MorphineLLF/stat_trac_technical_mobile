@@ -9,8 +9,8 @@ class AssetRepositoryImpl implements AssetRepository {
   AssetRepositoryImpl({
     required AssetLocalDataSource local,
     required AssetRemoteDataSource remote,
-  })  : _local = local,
-        _remote = remote;
+  }) : _local = local,
+       _remote = remote;
 
   final AssetLocalDataSource _local;
   final AssetRemoteDataSource _remote;
@@ -19,12 +19,15 @@ class AssetRepositoryImpl implements AssetRepository {
   static const _maxSyncPages = 200;
 
   @override
-  Future<({
-    int rowCount,
-    int pageCount,
-    List<int> removedIds,
-    List<({int assetId, List<String> fields})> changes,
-  })> syncAssets({void Function(int page)? onPage}) async {
+  Future<
+    ({
+      int rowCount,
+      int pageCount,
+      List<int> removedIds,
+      List<({int assetId, List<String> fields})> changes,
+    })
+  >
+  syncAssets({void Function(int page)? onPage}) async {
     var page = 1;
     var totalRows = 0;
     final serverIds = <int>{};
@@ -73,16 +76,20 @@ class AssetRepositoryImpl implements AssetRepository {
 
   static List<String> _diffAsset(AssetModel current, AssetModel incoming) {
     final changed = <String>[];
-    if (current.serialNumber != incoming.serialNumber) changed.add('serial_number');
+    if (current.serialNumber != incoming.serialNumber)
+      changed.add('serial_number');
     if (current.hospital != incoming.hospital) changed.add('hospital');
-    if (current.manufacturer != incoming.manufacturer) changed.add('manufacturer');
+    if (current.manufacturer != incoming.manufacturer)
+      changed.add('manufacturer');
     if (current.model != incoming.model) changed.add('model');
-    if (current.equipmentType != incoming.equipmentType) changed.add('equipment_type');
+    if (current.equipmentType != incoming.equipmentType)
+      changed.add('equipment_type');
     if (current.barcode != incoming.barcode) changed.add('barcode');
     if (current.location != incoming.location) changed.add('location');
     if (current.condition != incoming.condition) changed.add('condition');
     if (current.isActive != incoming.isActive) changed.add('is_active');
-    if (current.isCondemned != incoming.isCondemned) changed.add('is_condemned');
+    if (current.isCondemned != incoming.isCondemned)
+      changed.add('is_condemned');
     return changed;
   }
 
@@ -113,13 +120,12 @@ class AssetRepositoryImpl implements AssetRepository {
     String? serialNumber,
     String? hospital,
     String? location,
-  }) =>
-      _local.createProvisional(
-        equipmentType: equipmentType,
-        model: model,
-        manufacturer: manufacturer,
-        serialNumber: serialNumber,
-        hospital: hospital,
-        location: location,
-      );
+  }) => _local.createProvisional(
+    equipmentType: equipmentType,
+    model: model,
+    manufacturer: manufacturer,
+    serialNumber: serialNumber,
+    hospital: hospital,
+    location: location,
+  );
 }

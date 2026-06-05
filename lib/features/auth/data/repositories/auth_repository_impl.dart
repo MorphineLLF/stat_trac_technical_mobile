@@ -8,14 +8,18 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required AuthRemoteDataSource remote,
     required AuthLocalDataSource local,
-  })  : _remote = remote,
-        _local = local;
+  }) : _remote = remote,
+       _local = local;
 
   final AuthRemoteDataSource _remote;
   final AuthLocalDataSource _local;
 
   @override
-  Future<AuthToken> login(String username, String password, String dbName) async {
+  Future<AuthToken> login(
+    String username,
+    String password,
+    String dbName,
+  ) async {
     final result = await _remote.login(username, password, dbName);
     await _local.saveToken(result.token);
     await _local.saveUser(result.user);
