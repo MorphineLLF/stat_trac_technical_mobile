@@ -8,6 +8,8 @@ class AssetPmTask {
     required this.description,
     this.scheduleDate,
     required this.active,
+    this.interval,
+    this.intervalType,
   });
 
   final int pmTaskId;
@@ -15,4 +17,6 @@ class AssetPmTask {
   final String description;
   final DateTime? scheduleDate;
   final bool active;
+  final String? interval;
+  final String? intervalType;
 }

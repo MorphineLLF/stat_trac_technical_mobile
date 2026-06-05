@@ -26,6 +26,7 @@ class TestCertificate {
     this.patientSafe,
     this.certName,
     this.pmTaskDescription,
+    this.serviceId,
   });
 
   final int id;
@@ -42,6 +43,7 @@ class TestCertificate {
   final String? docNo;
   final String? serviceInterval;
   final String? serviceType;
+  final int? serviceId;
   final List<int>? techSignature; // PNG bytes
   final List<int>? clientSignature; // PNG bytes
   final String? clientName;

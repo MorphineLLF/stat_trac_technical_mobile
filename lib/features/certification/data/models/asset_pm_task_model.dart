@@ -7,6 +7,8 @@ class AssetPmTaskModel extends AssetPmTask {
     required super.description,
     super.scheduleDate,
     required super.active,
+    super.interval,
+    super.intervalType,
   });
 
   factory AssetPmTaskModel.fromJson(Map<String, dynamic> j) => AssetPmTaskModel(
@@ -17,6 +19,8 @@ class AssetPmTaskModel extends AssetPmTask {
         ? DateTime.tryParse(j['schedule_date'] as String)
         : null,
     active: (j['active'] as int? ?? 1) == 1,
+    interval: j['interval'] as String?,
+    intervalType: j['interval_type'] as String?,
   );
 
   factory AssetPmTaskModel.fromMap(Map<String, dynamic> m) => AssetPmTaskModel(
@@ -27,6 +31,8 @@ class AssetPmTaskModel extends AssetPmTask {
         ? DateTime.tryParse(m['schedule_date'] as String)
         : null,
     active: (m['active'] as int? ?? 1) == 1,
+    interval: m['interval'] as String?,
+    intervalType: m['interval_type'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -35,5 +41,7 @@ class AssetPmTaskModel extends AssetPmTask {
     'description': description,
     'schedule_date': scheduleDate?.toIso8601String().substring(0, 10),
     'active': active ? 1 : 0,
+    'interval': interval,
+    'interval_type': intervalType,
   };
 }

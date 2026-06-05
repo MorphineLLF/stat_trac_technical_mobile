@@ -40,6 +40,9 @@ class _CreateCertificateScreenState
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   int? _patientSafe;
   String? _pmTaskDescription;
+  String? _serviceInterval;
+  String? _serviceType;
+  int? _serviceId;
   final _notesController = TextEditingController();
 
   @override
@@ -84,6 +87,9 @@ class _CreateCertificateScreenState
         technicianId: user?.id,
         certName: _selectedTemplate?.certName,
         pmTaskDescription: _pmTaskDescription,
+        serviceInterval: _serviceInterval,
+        serviceType: _serviceType,
+        serviceId: _serviceId,
       );
       final certId = await ref
           .read(certificateRepositoryProvider)
@@ -192,10 +198,13 @@ class _CreateCertificateScreenState
               selectedAsset: _selectedAsset,
               initialDate: _testDate,
               initialEquipment: _equipment,
-              onChanged: (date, equip, pmTask) => setState(() {
+              onChanged: (date, equip, pmTask, interval, serviceType, serviceId) => setState(() {
                 _testDate = date;
                 _equipment = equip;
                 _pmTaskDescription = pmTask;
+                _serviceInterval = interval;
+                _serviceType = serviceType;
+                _serviceId = serviceId;
               }),
               onNext: () => _goToStep(4),
             )

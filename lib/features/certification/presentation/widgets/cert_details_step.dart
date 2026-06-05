@@ -28,6 +28,9 @@ class CertDetailsStep extends ConsumerStatefulWidget {
     DateTime testDate,
     List<TestEquipmentSelection?> equipment,
     String? pmTaskDescription,
+    String? serviceInterval,
+    String? serviceType,
+    int? serviceId,
   )
   onChanged;
   final VoidCallback onNext;
@@ -40,6 +43,9 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
   late DateTime _testDate;
   late List<TestEquipmentSelection?> _equipment;
   String? _pmTaskDescription;
+  String? _serviceInterval;
+  String? _serviceType;
+  int? _serviceId;
 
   @override
   void initState() {
@@ -63,7 +69,14 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
       (_equipment.length == widget.template.testEquipQty &&
           _equipment.every((e) => e != null));
 
-  void _notify() => widget.onChanged(_testDate, _equipment, _pmTaskDescription);
+  void _notify() => widget.onChanged(
+    _testDate,
+    _equipment,
+    _pmTaskDescription,
+    _serviceInterval,
+    _serviceType,
+    _serviceId,
+  );
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -107,7 +120,12 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
       ) {
         next.whenData((tasks) {
           if (tasks.length == 1 && _pmTaskDescription == null) {
-            setState(() => _pmTaskDescription = tasks.first.description);
+            setState(() {
+              _pmTaskDescription = tasks.first.description;
+              _serviceInterval = tasks.first.interval;
+              _serviceType = tasks.first.intervalType;
+              _serviceId = tasks.first.pmTaskId;
+            });
             _notify();
           }
         });
@@ -230,8 +248,13 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
             _PmTaskCard(
               assetId: widget.selectedAsset!.assetId!,
               selected: _pmTaskDescription,
-              onSelected: (desc) {
-                setState(() => _pmTaskDescription = desc);
+              onSelected: (task) {
+                setState(() {
+                  _pmTaskDescription = task.description;
+                  _serviceInterval = task.interval;
+                  _serviceType = task.intervalType;
+                  _serviceId = task.pmTaskId;
+                });
                 _notify();
               },
             ),
@@ -352,7 +375,7 @@ class _PmTaskCard extends ConsumerWidget {
 
   final int assetId;
   final String? selected;
-  final ValueChanged<String> onSelected;
+  final ValueChanged<AssetPmTask> onSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -429,7 +452,7 @@ class _PmTaskChips extends StatelessWidget {
 
   final List<AssetPmTask> tasks;
   final String? selected;
-  final ValueChanged<String> onSelected;
+  final ValueChanged<AssetPmTask> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +472,7 @@ class _PmTaskChips extends StatelessWidget {
             color: isSelected ? brandTeal : null,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
-          onSelected: (_) => onSelected(t.description),
+          onSelected: (_) => onSelected(t),
         );
       }).toList(),
     );

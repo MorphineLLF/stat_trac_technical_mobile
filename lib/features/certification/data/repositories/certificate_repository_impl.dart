@@ -114,6 +114,9 @@ class CertificateRepositoryImpl implements CertificateRepository {
       'patient_safe': cert.patientSafe,
       'notes': cert.notes,
       'pm_task_description': cert.pmTaskDescription,
+      'service_interval': cert.serviceInterval,
+      'service_type': cert.serviceType,
+      'pm_task_id': cert.serviceId,
       'test_equipment': equipment
           .map(
             (e) => {

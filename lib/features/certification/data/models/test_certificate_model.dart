@@ -18,6 +18,7 @@ class TestCertificateModel extends TestCertificate {
     super.docNo,
     super.serviceInterval,
     super.serviceType,
+    super.serviceId,
     super.techSignature,
     super.clientSignature,
     super.clientName,
@@ -47,6 +48,7 @@ class TestCertificateModel extends TestCertificate {
         docNo: m['doc_no'] as String?,
         serviceInterval: m['service_interval'] as String?,
         serviceType: m['service_type'] as String?,
+        serviceId: m['service_id'] as int?,
         techSignature: m['tech_signature'] != null
             ? List<int>.from(m['tech_signature'] as List)
             : null,
@@ -86,6 +88,7 @@ class TestCertificateModel extends TestCertificate {
       docNo: j['doc_no'] as String?,
       serviceInterval: j['service_interval'] as String?,
       serviceType: j['service_type'] as String?,
+      serviceId: j['service_id'] as int?,
       clientName: j['client_name'] as String?,
       syncStatus: 'synced',
       createdAt: testDate ?? DateTime.now(),
@@ -110,6 +113,7 @@ class TestCertificateModel extends TestCertificate {
     'doc_no': docNo,
     'service_interval': serviceInterval,
     'service_type': serviceType,
+    'service_id': serviceId,
     'tech_signature': techSignature,
     'client_signature': clientSignature,
     'client_name': clientName,
