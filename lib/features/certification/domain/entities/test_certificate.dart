@@ -25,6 +25,7 @@ class TestCertificate {
     this.notes,
     this.patientSafe,
     this.certName,
+    this.pmTaskDescription,
   });
 
   final int id;
@@ -50,4 +51,5 @@ class TestCertificate {
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete (maps TestCertPatientSafe)
   final int? patientSafe;
   final String? certName;
+  final String? pmTaskDescription;
 }
