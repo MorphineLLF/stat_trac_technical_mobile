@@ -561,10 +561,42 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                     ),
                   );
                 }
-                return ListView.builder(
-                  controller: controller,
-                  itemCount: available.length,
-                  itemBuilder: (_, i) {
+                final selectableCount =
+                    available.where((a) => !a.isCalExpired).length;
+                final expiredCount = available.length - selectableCount;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            '$selectableCount available',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          if (expiredCount > 0) ...[
+                            Text(
+                              ' · ',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            Text(
+                              '$expiredCount expired',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: const Color(0xFFC62828)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: controller,
+                        itemCount: available.length,
+                        itemBuilder: (_, i) {
                     final a = available[i];
                     final expired = a.isCalExpired;
                     final calText = a.calDate != null
@@ -651,7 +683,10 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                             ).pop(TestEquipmentSelection.fromAsset(a)),
                     );
                   },
-                );
+                ),
+              ),
+            ],
+          );
               },
             ),
           ),
