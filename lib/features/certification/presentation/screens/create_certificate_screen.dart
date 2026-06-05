@@ -39,6 +39,7 @@ class _CreateCertificateScreenState
   List<TestEquipmentSelection?> _equipment = [];
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   int? _patientSafe;
+  String? _pmTaskDescription;
   final _notesController = TextEditingController();
 
   @override
@@ -82,6 +83,7 @@ class _CreateCertificateScreenState
         technician: user?.name,
         technicianId: user?.id,
         certName: _selectedTemplate?.certName,
+        pmTaskDescription: _pmTaskDescription,
       );
       final certId = await ref
           .read(certificateRepositoryProvider)
@@ -183,11 +185,13 @@ class _CreateCertificateScreenState
           if (_selectedTemplate != null)
             CertDetailsStep(
               template: _selectedTemplate!,
+              selectedAsset: _selectedAsset,
               initialDate: _testDate,
               initialEquipment: _equipment,
-              onChanged: (date, equip) => setState(() {
+              onChanged: (date, equip, pmTask) => setState(() {
                 _testDate = date;
                 _equipment = equip;
+                _pmTaskDescription = pmTask;
               }),
               onNext: () => _goToStep(4),
             )
