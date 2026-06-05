@@ -13,6 +13,7 @@ class CertificateSummary {
     this.patientSafe,
     this.templateNameId,
     this.templateName,
+    this.pmTaskDescription,
   });
 
   final int id;
@@ -26,6 +27,7 @@ class CertificateSummary {
   // 0 = Non-Compliant, 1 = Compliant, 2 = Incomplete
   final int? patientSafe;
   final int? templateNameId;
+  final String? pmTaskDescription;
 
   /// Resolved display name for the template.
   /// Null when no name can be determined — callers should fall back to
@@ -81,5 +83,6 @@ class CertificateSummary {
         equipmentType: m['equipment_type'] as String?,
         patientSafe: m['patient_safe'] as int?,
         templateNameId: m['template_name_id'] as int?,
+        pmTaskDescription: m['pm_task_description'] as String?,
       );
 }

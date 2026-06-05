@@ -13,6 +13,8 @@ import '../models/test_certificate_model.dart';
 import '../models/test_output_model.dart';
 import '../models/certificate_summary.dart';
 import '../models/test_equipment_asset_model.dart';
+import '../../domain/entities/asset_pm_task.dart';
+import '../models/asset_pm_task_model.dart';
 
 abstract interface class CertLocalDataSource {
   Future<List<TestTemplateName>> getTemplatesByType(CertType type);
@@ -71,6 +73,12 @@ abstract interface class CertLocalDataSource {
 
   /// Returns equipment selections for [certId] ordered by slot_no.
   Future<List<TestEquipmentSelection>> getEquipmentForCert(int certId);
+
+  /// Full-replace upsert of PM tasks for all assets.
+  Future<void> upsertAssetPmTasks(List<AssetPmTaskModel> tasks);
+
+  /// Returns active PM tasks for [assetId] ordered by description.
+  Future<List<AssetPmTask>> getAssetPmTasks(int assetId);
 }
 
 class CertLocalDataSourceImpl implements CertLocalDataSource {
@@ -208,6 +216,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       tc.created_at,
       tc.patient_safe,
       tc.template_name_id,
+      tc.pm_task_description,
       COALESCE(
         tn1.test_template_cert_name,
         tn2.test_template_cert_name,
@@ -363,10 +372,11 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
           'certificate_id': certId,
           'slot_no': i + 1,
           'asset_id': e.assetId,
+          'equipment_type': e.equipmentType,
           'manufacturer': e.manufacturer,
           'model': e.model,
           'serial_no': e.serialNo,
-          'cal_date': e.calDate,
+          'cal_date': e.calDate?.toIso8601String().substring(0, 10),
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -386,6 +396,7 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
     return rows
         .map((r) => TestEquipmentSelection(
               assetId: r['asset_id'] as int,
+              equipmentType: r['equipment_type'] as String?,
               manufacturer: r['manufacturer'] as String?,
               model: r['model'] as String?,
               serialNo: r['serial_no'] as String?,
@@ -394,5 +405,32 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
                   : null,
             ))
         .toList();
+  }
+
+  @override
+  Future<void> upsertAssetPmTasks(List<AssetPmTaskModel> tasks) async {
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      await txn.delete('asset_pm_tasks');
+      if (tasks.isEmpty) return;
+      final batch = txn.batch();
+      for (final t in tasks) {
+        batch.insert('asset_pm_tasks', t.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  @override
+  Future<List<AssetPmTask>> getAssetPmTasks(int assetId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'asset_pm_tasks',
+      where: 'asset_id = ? AND active = 1',
+      whereArgs: [assetId],
+      orderBy: 'description ASC',
+    );
+    return rows.map(AssetPmTaskModel.fromMap).toList();
   }
 }
