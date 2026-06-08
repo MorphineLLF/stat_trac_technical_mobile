@@ -158,6 +158,7 @@ class CertificateRepositoryImpl implements CertificateRepository {
               'description': o.description,
               'expected_value': o.expectedValue,
               'actual_value': o.actualValue,
+              'notes': o.notes,
               'pass': o.pass,
               'fail': o.fail,
               'na': o.na,

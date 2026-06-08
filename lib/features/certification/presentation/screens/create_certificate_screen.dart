@@ -10,6 +10,7 @@ import '../../domain/entities/test_certificate.dart';
 import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_name.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/cert_details_step.dart';
 import '../widgets/cert_signature_step.dart';
@@ -100,6 +101,7 @@ class _CreateCertificateScreenState
             equipment: _equipment.whereType<TestEquipmentSelection>().toList(),
           );
       setState(() => _savedCertId = certId);
+      ref.invalidate(dashboardStatsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Certificate data saved to device')),
@@ -130,6 +132,7 @@ class _CreateCertificateScreenState
           sig.clientName,
         );
 
+    ref.invalidate(dashboardStatsProvider);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

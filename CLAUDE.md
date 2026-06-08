@@ -362,7 +362,7 @@ Work in this order. Each phase builds on the previous.
 - `"TestTemplateName"` — 62 templates; key: `TestTemplateNameID`, `TestTemplateType` (1=Test/OVP, 2=QA, 3=Commission)
 - `"TestTemplate"` — 1773 items; FK: `TestTempCertificateNameID`
 - `"TestCertificate"` — completed certs; key: `TestCertificateID`, `TestTechID`, `TestCertType` (template FK), `TestType` (cert category)
-- `"TestOutput"` — test result rows; FK: `TestOutputCertID`
+- `"TestOutput"` — test result rows; FK: `TestOutputCertID`; notes column is `"TestNote"` (singular) — **NOT** `"TestNotes"` (a separate column that exists for a different purpose)
 
 ### Infrastructure
 - `lib/api/auth_interceptor.dart` — JWT injection, auto-refresh on 401

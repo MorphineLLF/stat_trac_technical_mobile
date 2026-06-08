@@ -50,22 +50,28 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
   }
 
   void _notify() {
-    final outputs = _items.map((item) {
-      final s = _states[item.id] ?? _OutputState();
-      return TestOutput(
-        id: 0,
-        certificateId: 0,
-        assetId: widget.assetId,
-        descriptionId: item.descriptionId,
-        description: item.description,
-        expectedValue: item.expectedValue,
-        actualValue: s.actualValue,
-        notes: s.notes,
-        pass: s.pass,
-        fail: s.fail,
-        na: s.na,
-      );
-    }).toList();
+    final outputs = _items
+        .where((item) {
+          final s = _states[item.id] ?? _OutputState();
+          return s.pass || s.fail || s.na;
+        })
+        .map((item) {
+          final s = _states[item.id]!;
+          return TestOutput(
+            id: 0,
+            certificateId: 0,
+            assetId: widget.assetId,
+            descriptionId: item.descriptionId,
+            description: item.description,
+            expectedValue: item.expectedValue,
+            actualValue: s.actualValue,
+            notes: item.notes,
+            pass: s.pass,
+            fail: s.fail,
+            na: s.na,
+          );
+        })
+        .toList();
     widget.onOutputsChanged(outputs);
 
     final completed = _items.where((item) {
@@ -100,10 +106,19 @@ class _CertTestGridState extends ConsumerState<CertTestGrid> {
           sections.putIfAbsent(section, () => []).add(item);
         }
 
-        // Cache items and initialise state for any new entries
+        // Cache items and initialise state for any new entries.
+        // Pre-populate actualValue from the template's TestTempActualValue so
+        // it flows through to TestOutput.TestActualValue on save.
         _items = items;
         for (final item in items) {
-          _states.putIfAbsent(item.id, () => _OutputState());
+          _states.putIfAbsent(item.id, () {
+            final s = _OutputState();
+            if (item.actualValueTemplate != null &&
+                item.actualValueTemplate!.isNotEmpty) {
+              s.actualValue = item.actualValueTemplate;
+            }
+            return s;
+          });
         }
 
         final passFailCount = items.where((item) {
@@ -177,7 +192,7 @@ class _ProgressBanner extends StatelessWidget {
     final allResultsDone = passFailCount == total;
     final allActualDone = actualRequired == 0 || actualCount == actualRequired;
     final allDone = allResultsDone && allActualDone;
-    final color = allDone ? Colors.green[700]! : const Color(0xFFF57F17);
+    final color = allDone ? Colors.green[700]! : const Color(0xFF00838F);
 
     final rowStyle = TextStyle(
       color: color,
@@ -269,6 +284,13 @@ class _TestItemRow extends StatelessWidget {
     return v == null || v.isEmpty || v == '-';
   }
 
+  Color get _accentColor {
+    if (state.pass) return const Color(0xFF2E7D32);
+    if (state.fail) return const Color(0xFFC62828);
+    if (state.na) return const Color(0xFF37474F);
+    return const Color(0xFFDDE3EA);
+  }
+
   @override
   Widget build(BuildContext context) {
     final labelStyle = TextStyle(
@@ -277,182 +299,188 @@ class _TestItemRow extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Column labels
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Text('Test Description', style: labelStyle),
-              ),
-              if (!_noExpectedValue) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Test Value',
-                    style: labelStyle,
-                    textAlign: TextAlign.center,
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      clipBehavior: Clip.hardEdge,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 5,
+              color: _accentColor,
+            ),
+            Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Column labels
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text('Test Description', style: labelStyle),
+                      ),
+                      if (!_noExpectedValue) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Test Value',
+                            style: labelStyle,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      if (!_noActualRequired) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Actual',
+                            style: labelStyle,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-              ],
-              if (!_noActualRequired) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Actual',
-                    style: labelStyle,
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 4),
+                  // Description + expected + actual row
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          item.description ?? '',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                      if (!_noExpectedValue) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            item.expectedValue!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      if (!_noActualRequired) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            key: ValueKey(item.id),
+                            initialValue: state.actualValue,
+                            decoration: const InputDecoration(
+                              hintText: 'Actual',
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                              signed: true,
+                            ),
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(15),
+                            ],
+                            onChanged: (v) {
+                              onChanged(
+                                _OutputState()
+                                  ..actualValue = v
+                                  ..notes = state.notes
+                                  ..pass = state.pass
+                                  ..fail = state.fail
+                                  ..na = state.na,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          // Description + expected + actual row
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Text(
-                  item.description ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-              if (!_noExpectedValue) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    item.expectedValue!,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 8),
+                  // Pass / Fail / N/A chips
+                  Row(
+                    children: [
+                      _ResultChip(
+                        label: 'Pass',
+                        icon: Icons.check_circle,
+                        color: const Color(0xFF2E7D32),
+                        selected: state.pass,
+                        onTap: () => onChanged(
+                          _OutputState()
+                            ..actualValue = state.actualValue
+                            ..notes = state.notes
+                            ..pass = !state.pass
+                            ..fail = false
+                            ..na = false,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _ResultChip(
+                        label: 'Fail',
+                        icon: Icons.cancel,
+                        color: const Color(0xFFC62828),
+                        selected: state.fail,
+                        onTap: () => onChanged(
+                          _OutputState()
+                            ..actualValue = state.actualValue
+                            ..notes = state.notes
+                            ..pass = false
+                            ..fail = !state.fail
+                            ..na = false,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _ResultChip(
+                        label: 'N/A',
+                        icon: Icons.remove_circle,
+                        color: const Color(0xFF37474F),
+                        selected: state.na,
+                        onTap: () => onChanged(
+                          _OutputState()
+                            ..actualValue = state.actualValue
+                            ..notes = state.notes
+                            ..pass = false
+                            ..fail = false
+                            ..na = !state.na,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-              if (!_noActualRequired) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    key: ValueKey(item.id),
-                    initialValue: state.actualValue,
-                    decoration: const InputDecoration(
-                      hintText: 'Actual',
-                      isDense: true,
+                  // Template note (read-only reference from TestTempNotes)
+                  if (item.notes != null && item.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF374151),
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: 'Notes: ',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: item.notes!,
+                            style: const TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
-                    inputFormatters: [LengthLimitingTextInputFormatter(15)],
-                    onChanged: (v) {
-                      onChanged(
-                        _OutputState()
-                          ..actualValue = v
-                          ..notes = state.notes
-                          ..pass = state.pass
-                          ..fail = state.fail
-                          ..na = state.na,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Pass / Fail / N/A chips — left-aligned
-          Row(
-            children: [
-              _ResultChip(
-                label: 'Pass',
-                icon: Icons.check_circle,
-                color: const Color(0xFF2E7D32),
-                selected: state.pass,
-                onTap: () => onChanged(
-                  _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = !state.pass
-                    ..fail = false
-                    ..na = false,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _ResultChip(
-                label: 'Fail',
-                icon: Icons.cancel,
-                color: const Color(0xFFC62828),
-                selected: state.fail,
-                onTap: () => onChanged(
-                  _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = false
-                    ..fail = !state.fail
-                    ..na = false,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _ResultChip(
-                label: 'N/A',
-                icon: Icons.remove_circle,
-                color: const Color(0xFF37474F),
-                selected: state.na,
-                onTap: () => onChanged(
-                  _OutputState()
-                    ..actualValue = state.actualValue
-                    ..notes = state.notes
-                    ..pass = false
-                    ..fail = false
-                    ..na = !state.na,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Template note (read-only reference from TestTempNotes)
-          if (item.notes != null && item.notes!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                item.notes!,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: brandGrey,
-                  fontStyle: FontStyle.italic,
-                ),
+                  ],
+                ],
               ),
             ),
-          // Technician's own notes
-          TextFormField(
-            key: ValueKey('notes_${item.id}'),
-            initialValue: state.notes,
-            decoration: const InputDecoration(hintText: 'Notes', isDense: true),
-            maxLines: 2,
-            minLines: 1,
-            style: const TextStyle(fontSize: 13),
-            inputFormatters: [LengthLimitingTextInputFormatter(30)],
-            onChanged: (v) {
-              onChanged(
-                _OutputState()
-                  ..actualValue = state.actualValue
-                  ..notes = v
-                  ..pass = state.pass
-                  ..fail = state.fail
-                  ..na = state.na,
-              );
-            },
           ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
         ],
+        ),
       ),
     );
   }

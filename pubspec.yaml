@@ -47,7 +47,7 @@ dependencies:
   riverpod_annotation: ^4.0.2
 
   # App version info (sent in login request for UserLog)
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.1.0
 
   # Date/time formatting
   intl: ^0.20.2
@@ -73,7 +73,7 @@ dependencies:
   connectivity_plus: ^6.1.4
 
   # Signature capture (technician + customer signatures)
-  signature: ^5.3.0
+  signature: ^6.3.0
 
   # PDF viewing — open cached PDF with native Android viewer
   open_file: ^3.5.0

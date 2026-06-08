@@ -5,6 +5,7 @@ import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../database/database_helper.dart';
 import '../features/assets/presentation/providers/asset_providers.dart';
+import '../features/dashboard/presentation/providers/dashboard_providers.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/auth/presentation/providers/auth_state.dart';
 import '../features/certification/presentation/providers/certificate_providers.dart';
@@ -124,6 +125,9 @@ class SyncNotifier extends _$SyncNotifier {
     try {
       await ref.read(certificateRepositoryProvider).syncTemplatesFromRemote();
       await errorLog.markResolved('sync_templates');
+      // Force any open cert wizard to re-read template items from the
+      // freshly-populated SQLite so TestTempNotes appear immediately.
+      ref.invalidate(templateItemsProvider);
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'sync_templates',
@@ -212,6 +216,7 @@ class SyncNotifier extends _$SyncNotifier {
     try {
       await ref.read(certificateRepositoryProvider).pushPendingCertificates();
       await errorLog.markResolved('push_certificates');
+      ref.invalidate(dashboardStatsProvider);
     } on Exception catch (e, st) {
       await errorLog.logError(
         operation: 'push_certificates',

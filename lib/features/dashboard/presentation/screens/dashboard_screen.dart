@@ -229,9 +229,9 @@ class _HomeBody extends ConsumerWidget {
         children: [
           // Pending task counts — WO and PM side by side
           stats.when(
-            data: (s) => _PendingTasksRow(woCount: s.total, pmCount: 0),
-            loading: () => const _PendingTasksRow(woCount: 0, pmCount: 0),
-            error: (e, _) => const _PendingTasksRow(woCount: 0, pmCount: 0),
+            data: (s) => _PendingTasksRow(woCount: s.overdue + s.pending, pmCount: 0, certsCount: s.pendingCerts),
+            loading: () => const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
+            error: (e, _) => const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
           ),
           const SizedBox(height: 16),
           // Donut chart + KPI row
@@ -279,30 +279,46 @@ class _ComingSoonBody extends StatelessWidget {
 // ── Pending tasks row (WO + PM side by side) ──────────────────────────────────
 
 class _PendingTasksRow extends StatelessWidget {
-  const _PendingTasksRow({required this.woCount, required this.pmCount});
+  const _PendingTasksRow({
+    required this.woCount,
+    required this.pmCount,
+    required this.certsCount,
+  });
   final int woCount;
   final int pmCount;
+  final int certsCount;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _TaskCountCard(
-            label: 'Work Orders',
-            count: woCount,
-            color: brandTeal,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _TaskCountCard(
+              label: 'Pending Work Orders',
+              count: woCount,
+              color: brandTeal,
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _TaskCountCard(
-            label: 'PM Work Orders',
-            count: pmCount,
-            color: Color(0xFF2E7D32),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _TaskCountCard(
+              label: 'Pending PM Orders',
+              count: pmCount,
+              color: Color(0xFF2E7D32),
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: _TaskCountCard(
+              label: 'Certs to Sync',
+              count: certsCount,
+              color: Color(0xFF00838F),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -339,7 +355,7 @@ class _TaskCountCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Pending $label',
+            label,
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: color),

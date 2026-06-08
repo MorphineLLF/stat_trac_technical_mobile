@@ -57,7 +57,7 @@ Future<DashboardStats> dashboardStats(Ref ref) async {
   );
 
   final certRows = await db.rawQuery(
-    "SELECT COUNT(*) AS cnt FROM test_certificates WHERE sync_status = 'pending'",
+    "SELECT COUNT(*) AS cnt FROM test_certificates WHERE sync_status IN ('draft','pending')",
   );
 
   final row = rows.first;

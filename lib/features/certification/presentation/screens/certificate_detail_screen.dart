@@ -501,6 +501,13 @@ class _OutputRow extends StatelessWidget {
               _ResultChip(label: 'N/A', color: brandGrey, selected: output.na),
             ],
           ),
+          if (output.notes != null && output.notes!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              output.notes!,
+              style: TextStyle(fontSize: 12, color: brandGrey),
+            ),
+          ],
           const Divider(height: 1),
         ],
       ),
