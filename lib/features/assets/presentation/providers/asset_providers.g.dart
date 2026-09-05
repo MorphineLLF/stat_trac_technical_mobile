@@ -57,6 +57,52 @@ final class AssetRemoteDataSourceProvider
 String _$assetRemoteDataSourceHash() =>
     r'17c28287296ca428eb4e71377ea3ad7414c34c37';
 
+/// Assets now come from PowerSync, not the retired Horse `assets` table.
+
+@ProviderFor(powerSyncAssets)
+final powerSyncAssetsProvider = PowerSyncAssetsProvider._();
+
+/// Assets now come from PowerSync, not the retired Horse `assets` table.
+
+final class PowerSyncAssetsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<PowerSyncAssetDataSource>,
+          PowerSyncAssetDataSource,
+          FutureOr<PowerSyncAssetDataSource>
+        >
+    with
+        $FutureModifier<PowerSyncAssetDataSource>,
+        $FutureProvider<PowerSyncAssetDataSource> {
+  /// Assets now come from PowerSync, not the retired Horse `assets` table.
+  PowerSyncAssetsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'powerSyncAssetsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$powerSyncAssetsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<PowerSyncAssetDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<PowerSyncAssetDataSource> create(Ref ref) {
+    return powerSyncAssets(ref);
+  }
+}
+
+String _$powerSyncAssetsHash() => r'aa6378aa91e1c131470643eb415e930b07bd38e9';
+
 @ProviderFor(assetRepository)
 final assetRepositoryProvider = AssetRepositoryProvider._();
 
@@ -154,7 +200,7 @@ final class AssetsProvider
   }
 }
 
-String _$assetsHash() => r'afd048529c2e7f27ab5f7e43ddabecd174de4094';
+String _$assetsHash() => r'449c30c344969e4a563131a8e45a46eed9db5649';
 
 final class AssetsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<Asset>>, String?> {
@@ -211,7 +257,7 @@ final class HospitalListProvider
   }
 }
 
-String _$hospitalListHash() => r'677cf2992d954546d6f57ebcd5fbc9399ebad739';
+String _$hospitalListHash() => r'80caff2bb308d7411bec161bfe34946d0c9b32f2';
 
 @ProviderFor(assetSearch)
 final assetSearchProvider = AssetSearchFamily._();
@@ -268,7 +314,7 @@ final class AssetSearchProvider
   }
 }
 
-String _$assetSearchHash() => r'efdf5bfafd0ccf45aa662e6d57caf42064fd02eb';
+String _$assetSearchHash() => r'47cd00c0999d6e1c61459b4e24bc145434fc5740';
 
 final class AssetSearchFamily extends $Family
     with

@@ -10,6 +10,8 @@ import '../../data/repositories/asset_repository_impl.dart';
 import '../../domain/entities/asset.dart';
 import '../../domain/entities/asset_detail.dart';
 import '../../domain/repositories/asset_repository.dart';
+import '../../data/powersync_asset_data_source.dart';
+import '../../../../sync/powersync_providers.dart';
 
 part 'asset_providers.g.dart';
 
@@ -23,6 +25,12 @@ AssetRemoteDataSource assetRemoteDataSource(Ref ref) {
   return AssetRemoteDataSourceImpl(buildDioClient(interceptor));
 }
 
+/// Assets now come from PowerSync, not the retired Horse `assets` table.
+@riverpod
+Future<PowerSyncAssetDataSource> powerSyncAssets(Ref ref) async {
+  return PowerSyncAssetDataSource(await ref.watch(syncDatabaseProvider.future));
+}
+
 @riverpod
 AssetRepository assetRepository(Ref ref) => AssetRepositoryImpl(
   local: ref.watch(assetLocalDataSourceProvider),
@@ -33,17 +41,21 @@ AssetRepository assetRepository(Ref ref) => AssetRepositoryImpl(
 
 @riverpod
 Future<List<Asset>> assets(Ref ref, {String? hospital}) =>
-    ref.watch(assetRepositoryProvider).getAssets(hospital: hospital);
+    ref.watch(powerSyncAssetsProvider.future).then(
+      (ds) => ds.getAssets(hospital: hospital),
+    );
 
 @riverpod
 Future<List<String>> hospitalList(Ref ref) =>
-    ref.watch(assetLocalDataSourceProvider).getHospitals();
+    ref.watch(powerSyncAssetsProvider.future).then((ds) => ds.getHospitals());
 
 // ── Search ────────────────────────────────────────────────────────────────────
 
 @riverpod
 Future<List<Asset>> assetSearch(Ref ref, String query, {String? hospital}) =>
-    ref.watch(assetRepositoryProvider).searchAssets(query, hospital: hospital);
+    ref.watch(powerSyncAssetsProvider.future).then(
+      (ds) => ds.searchAssets(query, hospital: hospital),
+    );
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
