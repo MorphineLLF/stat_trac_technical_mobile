@@ -14,6 +14,7 @@ import '../../../certification/presentation/screens/certificate_list_screen.dart
 import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
 import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
+import '../../../../sync/powersync_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -106,6 +107,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       appBar: AppBar(
         title: Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
         actions: [
+          const _PowerSyncStatus(),
           if (syncState is SyncInProgress)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -929,6 +931,96 @@ class _SyncDonePill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// PowerSync's real connection state.
+///
+/// Watching this is also what STARTS sync: `syncDatabaseProvider` is lazy, so
+/// until something reads it the database is never opened or connected. The
+/// dashboard is the first screen after sign-in, which is the right moment.
+class _PowerSyncStatus extends ConsumerWidget {
+  const _PowerSyncStatus();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(syncStatusProvider);
+
+    return status.when(
+      loading: () => const _StatusChip(
+        icon: Icons.cloud_queue,
+        label: 'Opening',
+        color: Colors.white70,
+      ),
+      error: (e, _) => _StatusChip(
+        icon: Icons.cloud_off,
+        label: 'Sync failed',
+        color: const Color(0xFFFF8A80),
+        tooltip: e.toString(),
+      ),
+      data: (s) {
+        if (s.downloadError != null || s.uploadError != null) {
+          return _StatusChip(
+            icon: Icons.cloud_off,
+            label: 'Sync error',
+            color: const Color(0xFFFF8A80),
+            tooltip: '${s.downloadError ?? s.uploadError}',
+          );
+        }
+        if (s.downloading || s.uploading) {
+          return const _StatusChip(
+            icon: Icons.cloud_sync,
+            label: 'Syncing',
+            color: Colors.white,
+          );
+        }
+        if (s.connected) {
+          final at = s.lastSyncedAt;
+          return _StatusChip(
+            icon: Icons.cloud_done,
+            label: at == null ? 'Connected' : DateFormat('HH:mm').format(at),
+            color: const Color(0xFF9CCC65),
+          );
+        }
+        return const _StatusChip(
+          icon: Icons.cloud_off,
+          label: 'Offline',
+          color: Colors.white54,
+        );
+      },
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: color)),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Center(
+        child: tooltip == null ? chip : Tooltip(message: tooltip!, child: chip),
       ),
     );
   }
