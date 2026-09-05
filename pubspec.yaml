@@ -80,6 +80,7 @@ dependencies:
 
   # File system paths — cache directory for downloaded PDFs
   path_provider: ^2.1.5
+  powersync: ^2.4.0
 
 dev_dependencies:
   flutter_test:
