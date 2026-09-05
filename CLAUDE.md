@@ -1,5 +1,24 @@
 # Stat Trac Technical — Project Memory
 
+> ## ⚠️ ARCHITECTURE CHANGED — 2026-09-05
+>
+> **The Delphi Horse REST API is retired. The backend is now a Go application
+> with PowerSync for offline sync, over plain PostgreSQL. Supabase was trialled
+> and removed on the same day — it is not a sync engine. Do not reintroduce it.**
+>
+> The authoritative backend design lives in the **Go repository**, not here:
+> `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md`
+>
+> That repository owns the schema (84 PascalCase tables, 18 migrations, live data
+> in `demo` and `safeline`), database-per-company tenancy, sync rules, token
+> issuance and PowerSync deployment. **This repository owns the Flutter app only.**
+>
+> This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
+>
+> Sections below still describing the Horse API are marked SUPERSEDED and kept
+> for historical reference. Anything not so marked (theme, module inventory,
+> business rules other than BR-7 and BR-10, Flutter conventions) remains current.
+
 ## ⚠️ MANDATORY — Do This Before Anything Else
 
 **Invoke the superpowers skill at the very start of every session, before any other action:**
@@ -20,9 +39,9 @@ Location: `C:\Users\HomePC\Nextcloud\Stat Trac\Mobile App develepment\Stat_Trac_
 
 | File | Read when... |
 |---|---|
-| `1-Architecture-Overview.md` | Every session — system diagram, data flow, environments |
+| `1-Architecture-Overview.md` | Every session — system diagram, data flow, environments (updated 2026-09-05 for PowerSync) |
 | `2-Production-Database.md` | Touching any Horse API or database work |
-| `3-Horse-API.md` | Touching Horse API source files |
+| `3-Horse-API.md` | ⚠️ SUPERSEDED — Horse retired 2026-09-05. Backend design is now in the Go repo. |
 | `4-Flutter-App.md` | Touching Flutter code, auth, SQLite |
 | `5-Decisions-Log.md` | Before making any architectural decision |
 | `6-Security.md` | Before any auth, storage, network, or pre-production work |
@@ -40,6 +59,7 @@ Implementation plans live in `docs/superpowers/plans/`. Check this folder at ses
 | `2026-06-03-cert-details-step.md` | ✅ Complete — CertDetailsStep integrated into certificate creation wizard |
 | `2026-06-03-certificate-pdf-design.md` | ✅ Complete — FastReport PDF generation working for all cert IDs; View PDF + Email buttons in cert detail screen |
 | `2026-06-05-pm-task-equipment-picker.md` | ✅ Complete — PM task selector in cert wizard; equipment type + "Next Cal" + EXPIRED badge in picker; `asset_pm_tasks` sync; DB v12 |
+| `2026-09-05-powersync-schema-sync-rules.md` | ⛔ SUPERSEDED before execution — written against an assumed greenfield schema that does not exist. Do not run. |
 
 ## What This Is
 
@@ -64,11 +84,12 @@ Key sections:
 - **State management:** Riverpod 3 with code-generated providers (`riverpod_annotation ^4`, `riverpod_generator ^4`)
 - **Connectivity:** `connectivity_plus ^6` — used in sync notifier to skip sync when offline
 - **Local database:** SQLite via sqflite (offline-first); SQLCipher encryption to be wired once Android Keystore key derivation is implemented — swap `openDatabase` for `sqflite_sqlcipher` in `database_helper.dart`
-- **Backend API:** Delphi Horse REST API, JWT auth
-- **Server database:** PostgreSQL (master Stat Trac)
+- **Backend API:** Go application (repo: `C:\Delphi\GitHub_Stat_Trac_Go`), device-token auth + JWKS
+- **Offline sync:** PowerSync (`journeyapps/powersync-service:1.24.0`), self-hosted against plain Postgres
+- **Server database:** PostgreSQL 17.11, plain (no Supabase), `wal_level=logical`, database-per-company
 - **Hosting:** Secure on-premise Windows server in South Africa (POPIA data residency)
 - **Notifications:** Firebase Cloud Messaging
-- **PDF generation:** FastReport VCL on the Horse API server — NOT on-device. App receives generated PDFs from the server on sync.
+- **PDF generation:** SUPERSEDED — FastReport VCL retires with Delphi. Replacement owned by the Go repository; this app consumes the result.
 - **Barcode scanning:** mobile_scanner
 - **Signatures:** signature package (vector PNG)
 - **Geolocation:** geolocator, google_maps_flutter
@@ -157,10 +178,10 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 4. PM checklist fails auto-raise a linked CM work order with failure evidence pre-populated.
 5. Next PM due date = completion date + frequency (not scheduled date + frequency).
 6. Certificate templates are versioned — in-flight certificates complete on the version they started on.
-7. Job card and certificate PDFs are generated SERVER-SIDE by FastReport VCL in the Horse API, NOT on-device. The app submits completion data on sync, the server renders the PDF from FastReport templates, and the app downloads the result. Facility contacts receive the PDF by email from the server.
+7. Job card and certificate PDFs are generated SERVER-SIDE, NOT on-device. (SUPERSEDED in detail: FastReport VCL retires with Delphi; the replacement renderer is owned by the Go repository. The principle — server renders, app downloads and caches — is unchanged.)
 8. P1 WO assignments and assistance requests always push regardless of quiet hours.
 9. Technician-created ad-hoc CMs do NOT require dispatcher approval before work begins.
-10. Conflict resolution: last-write-wins for free-text/status; server-wins for financial/audit fields.
+10. **Conflict resolution (REVISED 2026-09-05): a conflict notifies the person and leaves the record open.** Not last-write-wins, not a silent merge. When a device uploads a change to a row that has moved underneath it, the upload is refused, the local change stays queued, and the person is told. A test certificate is evidence — two technicians disagreeing about one is a question for a human, not a timestamp comparison. Detection is optimistic concurrency on existing `UpdatedAt` columns. This requires a "this record changed while you were away" screen that does not yet exist; that screen is part of the work.
 11. Dashboard top-right corner displays "Last synced: [date] [time]" in green text, updated after every successful sync cycle. ✅ Implemented.
 
 ## Database
@@ -190,7 +211,11 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | 014 → v14 | 14 | `test_certificates` — adds `service_id INTEGER` (FK to AssetPmTask.pm_task_id; maps `TestServiceID`) |
 | 015 → v15 | 15 | `test_certificates` — adds `test_type INTEGER` (1 = client signature required, NULL otherwise; maps `TestType`) |
 
-## API
+## API — SUPERSEDED (Horse REST, retired 2026-09-05)
+
+> Kept for reference while the PowerSync migration is planned. The Go API's
+> contract lives in the Go repository. Reads no longer travel over REST at all —
+> PowerSync streams Postgres into the device's local SQLite.
 
 - Base URL configured in `lib/core/config/app_config.dart`
 - **Local dev:** `http://10.0.2.2:9000` (Android emulator → host machine)
@@ -200,7 +225,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Binary uploads use multipart/form-data
 - Full endpoint list in §6 of the spec
 
-## Horse API Contract
+## Horse API Contract — SUPERSEDED (retired 2026-09-05)
 
 | Method | Path | Request | Response |
 |---|---|---|---|
@@ -417,7 +442,11 @@ Supporting inline colours (not yet named constants):
 - `#FFF8E1` — Manual entry field background
 - `#FF5252` — Overdue maintenance
 
-## Horse API Server
+## Horse API Server — SUPERSEDED (retired 2026-09-05)
+
+> The Delphi Horse server is no longer used. Retained below only because the
+> PostgreSQL table and column reference (`Repair`, `Admin`, integer enum
+> mappings) is still accurate and still needed for data mapping.
 
 Local dev server lives at `C:\Delphi\StatTracTechAPI\`. Built with RAD Studio 12, Delphi Horse framework, UniDAC for PostgreSQL.
 
@@ -498,7 +527,13 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
 - `android/build.gradle.kts` — remove `isar_flutter_libs` AGP 8.x namespace patch once `offline_sync_kit` upgrades past `isar_flutter_libs 3.1.0+1`
 
-## Sync Error Logging ✅
+## Sync Error Logging ✅ — TO BE RETIRED
+
+> PowerSync replaces this engine. `change_log`, `sync_error_log` and the
+> hand-rolled push/pull pipeline are retired as part of the migration; the
+> dashboard's sync status label and error sheet rebind to PowerSync's connection
+> state and upload-queue depth. Documented below as the current (pre-migration)
+> behaviour.
 
 Every sync failure writes to **two places**:
 1. **Device SQLite `sync_error_log`** — powers the badge count and `_SyncErrorSheet` in the app
@@ -512,13 +547,18 @@ Rules:
 - Never log personal information in `error_message` or `stack_trace`
 - Operations tracked: `sync_assets`, `sync_templates`, `push_certificates`, `pull_certificates`
 
-## Immediate Next Steps (Phase 1 continuation)
+## Immediate Next Steps (revised 2026-09-05)
 
-1. Assets module — read-only list screen (§3.5, §5, §6.6): browse all assets per hospital, view asset detail, link to WO history
-2. Wire real user ID into WO repository (from `authNotifierProvider`)
-3. Implement `syncFromRemote()` in WO repository (since-cursor pagination)
-4. Service Reports scaffold (§3.6): attach service notes + photos to a completed WO
-5. Signatures: capture technician + customer signature on WO completion
+**The PowerSync migration reorders this.** Do not build new features on the Horse
+API or extend the hand-rolled sync engine — both are being replaced.
+
+1. Answer the open questions in `docs/superpowers/specs/2026-09-05-powersync-migration-design.md` §5 — chiefly client-generated identity for certificates and work orders created offline, and which tables this app syncs (an input the Go repository needs from here)
+2. Plan the Flutter PowerSync migration, certification module first (completed certs are immutable, so the conflict path is exercised least while the mechanics are proved)
+3. Build the "this record changed while you were away" conflict screen — required by the revised BR-10, no current equivalent
+4. Then resume feature work: Service Reports, signatures on WO completion
+
+Superseded by the above: implementing `syncFromRemote()` with since-cursor
+pagination — that endpoint's architecture no longer exists.
 
 ## How to Prompt Me (Claude Code)
 
