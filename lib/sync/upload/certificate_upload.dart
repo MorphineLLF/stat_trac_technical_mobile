@@ -66,6 +66,39 @@ class CertificateUpload {
   /// The `SyncUpdatedAt` last seen, for optimistic concurrency.
   final String? seenAt;
 
+  /// Restores one from the queue.
+  factory CertificateUpload.fromJson(Map<String, Object?> j) =>
+      CertificateUpload(
+        mobileId: j['mobile_id']! as String,
+        certificate: Map<String, Object?>.from(j['certificate']! as Map),
+        lines: [
+          for (final l in (j['lines'] as List?) ?? const [])
+            CertificateLineUpload(
+              mobileId: (l as Map)['mobile_id']! as String,
+              data: Map<String, Object?>.from(l['data']! as Map),
+            ),
+        ],
+        issue: j['issue'] == null
+            ? null
+            : CertificateIssue.fromJson(
+                Map<String, Object?>.from(j['issue']! as Map),
+              ),
+        seenAt: j['seen_at'] as String?,
+      );
+
+  /// How it is held in the queue. Deliberately not the wire shape: the batch
+  /// is rebuilt from this at send time, so a change to the wire format cannot
+  /// strand work already queued on a technician's device.
+  Map<String, Object?> toJson() => {
+    'mobile_id': mobileId,
+    'certificate': certificate,
+    'lines': [
+      for (final l in lines) {'mobile_id': l.mobileId, 'data': l.data},
+    ],
+    'issue': issue?.toJson(),
+    'seen_at': seenAt,
+  };
+
   /// Assembles the batch.
   ///
   /// Certificate first, then readings, then the issue op — so the wire reads
@@ -143,4 +176,22 @@ class CertificateIssue {
   /// Completes that work order's job card. Asked separately, because the
   /// person issuing the certificate may not be the person writing it up.
   final bool completePmJobCard;
+
+  factory CertificateIssue.fromJson(Map<String, Object?> j) => CertificateIssue(
+    // No fallback. A verdict that went missing in storage must fail loudly
+    // rather than become Non-Compliant or Compliant by accident.
+    verdict: (j['verdict']! as num).toInt(),
+    notes: j['notes'] as String?,
+    nextService: j['next_service'] as String?,
+    completePmWorkOrder: j['complete_pm_work_order'] as bool? ?? false,
+    completePmJobCard: j['complete_pm_job_card'] as bool? ?? false,
+  );
+
+  Map<String, Object?> toJson() => {
+    'verdict': verdict,
+    'notes': notes,
+    'next_service': nextService,
+    'complete_pm_work_order': completePmWorkOrder,
+    'complete_pm_job_card': completePmJobCard,
+  };
 }

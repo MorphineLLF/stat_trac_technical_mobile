@@ -95,6 +95,7 @@ dev_dependencies:
 
   # Unit test mocking
   mocktail: ^1.0.4
+  sqflite_common_ffi: ^2.4.2+1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
