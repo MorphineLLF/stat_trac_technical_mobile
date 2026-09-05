@@ -9,6 +9,7 @@ import '../../data/datasources/sync_token_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
+import 'login_error.dart';
 
 part 'auth_providers.g.dart';
 
@@ -88,7 +89,7 @@ class AuthNotifier extends _$AuthNotifier {
           .login(username, password, company);
       state = AuthAuthenticated(user);
     } on Exception catch (e) {
-      state = AuthUnauthenticated(errorMessage: _friendlyError(e));
+      state = AuthUnauthenticated(errorMessage: loginErrorMessage(e));
     }
   }
 
@@ -96,15 +97,4 @@ class AuthNotifier extends _$AuthNotifier {
     await ref.read(authRepositoryProvider).logout();
     state = const AuthUnauthenticated();
   }
-}
-
-String _friendlyError(Exception e) {
-  final msg = e.toString().toLowerCase();
-  if (msg.contains('401') || msg.contains('unauthorized')) {
-    return 'Invalid username or password.';
-  }
-  if (msg.contains('socket') || msg.contains('connection')) {
-    return 'Cannot reach server. Check your connection.';
-  }
-  return 'Login failed. Please try again.';
 }

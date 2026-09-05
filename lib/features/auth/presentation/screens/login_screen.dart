@@ -97,7 +97,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // era named it that and the stored key is still
                         // db_name for compatibility with existing installs.
                         labelText: 'Company',
-                        helperText: 'Asked once, then remembered',
+                        // A concrete example matters here: this is a tenant
+                        // key in the server URL, not a database name, and
+                        // "Stat_Trac" was typed the first time precisely
+                        // because the old field asked for a database.
+                        helperText: 'e.g. demo — not a database name',
                         prefixIcon: Icon(Icons.business_outlined),
                         border: OutlineInputBorder(),
                       ),
