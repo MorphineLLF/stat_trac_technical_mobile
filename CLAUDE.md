@@ -23,6 +23,16 @@
 > **Start here next session:** `docs/STATE-2026-09-05.md` — what works, what is
 > next, and the decisions waiting on the user.
 >
+> ⛔ **OPEN BUG — a certificate uploads without its measurement lines.** The
+> user saw a certificate reach the server with no test data. A batch is
+> all-or-nothing, so the lines were never sent. **Add diagnostics before
+> changing anything** — the queue row is deleted on success, which destroys
+> the evidence. Detail in `docs/STATE-2026-09-05.md`.
+>
+> ⛔ **Signatures cannot reach the server at all.** `bytea` crosses neither the
+> sync stream nor the upload allowlist, and a certificate is not valid without
+> them — so the printed PDF will differ from what the technician signed.
+>
 > ⛔ **Do not use this build for real certificates.** A completed certificate is
 > silently lost: it writes to the retired local table, nothing pushes it, and
 > the list reads PowerSync so it never appears. **The certificate upload
