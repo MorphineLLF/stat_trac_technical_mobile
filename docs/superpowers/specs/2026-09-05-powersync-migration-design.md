@@ -114,17 +114,37 @@ every Riverpod provider — are unaffected in shape.
 |---|---|---|
 | HTTP client | `lib/api/dio_client.dart`, `lib/api/auth_interceptor.dart` | Removed entirely |
 | Remote data sources | `asset_`, `auth_`, `cert_`, `wo_`, `sync_remote_data_source.dart` | Five files; the seam that makes this tractable |
-| Sync engine | `lib/sync/` — `sync_notifier.dart`, `change_log_entry.dart`, `sync_error_log_data_source.dart`, `sync_remote_data_source.dart` | PowerSync replaces this wholesale |
-| Local database | `lib/database/database_helper.dart` + 14 migrations + every local data source | **Largest single piece of work.** PowerSync owns the device SQLite database. |
+| Sync engine | `lib/sync/sync_notifier.dart`, `sync_remote_data_source.dart`, `sync_error_log_data_source.dart` | Replaced by PowerSync |
+| Local database | `lib/database/database_helper.dart` + 14 migrations + local data sources for **synced** tables | PowerSync owns the synced tables; they become **read-only on the device** |
+
+> **`change_log_entry.dart` is NOT replaced — keep the outbox.** Corrected
+> 2026-09-05 from the Go thread's handover §6b. Because primary keys stay
+> server-assigned, the device cannot know a row's final id at creation time.
+> Synced tables are read-only; creates and updates go to the local outbox the app
+> already has (`ChangeLogEntry`), and `uploadData()` **drives** that outbox rather
+> than replacing it — posting entries keyed by the client UUID. The row returns
+> *downward* through sync carrying its real integer primary key; match on the
+> UUID and retire the outbox entry.
+>
+> **UI consequence, not an edge case:** a newly created record shows from the
+> outbox until the server round-trips it back. That state needs designing, not
+> hiding.
 
 Thirteen files reference Dio today. The count is manageable; the local-database
 rewrite is what carries the risk.
 
 ### What is written new
 
-1. **`uploadData()`** — maps each queued local mutation to the Go API's write
-   endpoints. `sync-design.md` warns plainly: *"Most sync bugs live here."*
-2. **Idempotency on retry** — a retried upload must not duplicate a row.
+1. **`uploadData()`** — posts outbox entries to the Go API keyed by the client
+   UUID. *"Most sync bugs live here."*
+2. **Client UUID generation** — UUIDv4 per created row into the `*MobileID`
+   column (`TestMobileID`, `TestOutputMobileID`, `RepairMobileID`,
+   `RepairDetailMobileID`, `ProgressMobileID`; migration 023, applied
+   2026-09-05). **No `uuid` package is in `pubspec.yaml` yet.**
+3. **Outbox reconciliation** — match the returned integer primary key to the
+   local record by UUID, then retire the outbox entry. Idempotency on the server
+   is `ON CONFLICT ("…MobileID") DO UPDATE`, so a retry updates rather than
+   duplicating.
 3. **The conflict screen** — "this record changed while you were away", per the
    conflict policy above. New UI with no current equivalent.
 4. **Sync status UI rebinding** — the dashboard's `_SyncStatusLabel` and error

@@ -62,9 +62,14 @@ direction** — `syncFromRemote()` was always a stub.
 
 `change_log`, `sync_error_log`, `sync_metadata`, `assets_prov_rescue`
 
-These are the hand-rolled sync engine's own machinery. **They are retired by this
-migration and must not be synced.** Listing them would sync the scaffolding of
-the thing being replaced.
+`sync_error_log`, `sync_metadata` and `assets_prov_rescue` are the hand-rolled
+engine's machinery and retire with it.
+
+**`change_log` does NOT retire — corrected 2026-09-05.** Per the Go thread's
+handover §6b, because primary keys stay server-assigned the synced tables are
+read-only on the device and writes go through this outbox, which `uploadData()`
+drives. It stays local-only and must never appear in sync rules, but it is kept,
+not replaced.
 
 ### 2.4 Not synced today, in any direction
 
@@ -79,7 +84,25 @@ row — and should follow certification rather than lead it.
 
 ## 3. Requirements on the sync layer
 
-### 3.1 Client-generated identity — the blocking one
+### 3.1 Client-generated identity — ✅ SETTLED 2026-09-05
+
+> **Resolved by the Go thread's handover §6b.** Migration 023 added
+> `TestMobileID`, `TestOutputMobileID`, `RepairMobileID`,
+> `RepairDetailMobileID` and `ProgressMobileID` — nullable, each with a partial
+> unique index — applied to local, demo and safeline.
+>
+> The `MobileIssueID` convention proposed below turns out to **already be** a
+> canonical UUIDv4 in a unique-indexed column beside the integer primary key
+> (`54fbb81e-e162-49bb-ad14-9f7a0d56b538`). So: generate UUIDv4 on the device,
+> write it to the `*MobileID` column, keep the integer primary keys. The Go side
+> reconciles with `ON CONFLICT ("…MobileID") DO UPDATE`, which is what makes a
+> retried upload update rather than duplicate.
+>
+> **`AssetPmTask` deliberately gets none** — a technician never creates a PM
+> task; the schedule is the office's.
+>
+> **This app's remaining work:** add a `uuid` package (none in `pubspec.yaml`)
+> and generate on create. Original analysis retained below.
 
 **This application currently has no client-generated identity at all.**
 
@@ -170,15 +193,61 @@ treating it as read-only will break provisional capture.
 
 ## 5. What this app is waiting on
 
-| # | Item | Owner |
-|---|---|---|
-| 1 | Client-generated id column name and generation scheme (§3.1) | Go + this repo, jointly |
-| 2 | Conflict rejection payload shape (§3.2) | Go |
-| 3 | Signature BLOB storage decision (§3.3) | Go |
-| 4 | PDF generation replacement — FastReport retires with Delphi; this app consumes the result | Go |
-| 5 | Confirmation that `test_equipment_assets` and `asset_pm_tasks` map to real tables in the company schema under these names | Go |
+| # | Item | Owner | Status |
+|---|---|---|---|
+| 1 | Client-generated id scheme (§3.1) | Go + this repo | ✅ Settled — migration 023 |
+| 2 | Conflict rejection payload shape (§3.2) | Go | ⛔ Blocked — upload endpoint for work orders and certificates does not exist yet; `sync_push.go` covers rep entities only |
+| 3 | Signature BLOB storage decision (§3.3) | Go | 🔄 Open — confirmed as `bytea` server-side, not synced |
+| 4 | PDF generation replacement | Go | 🔄 Open |
+| 5 | Confirmation `test_equipment_assets` / `asset_pm_tasks` map to real tables | Go | 🔄 Open |
 
-Item 1 blocks `uploadData()` design here. The rest can proceed in parallel.
+**Unblocked and worth doing first, per the Go handover §8:** `AppConfig.baseUrl`
+is still `http://10.0.2.2:9000` — an emulator route to the *retired* Horse port,
+which is now the **rep API**, a live Go service that took the port deliberately.
+The technician app is therefore pointing at something that cannot answer it.
+Repointing at `https://demo.stattrac.net` and wiring the device-token → sync-token
+→ `fetchCredentials()` chain proves the whole auth path on a real device and is
+finished on the server side.
+
+---
+
+## 6. Answers to the Go handover's §9 questions
+
+**"Which of the sixteen local tables must be on the device, and for whom?"**
+§2 above. In short: `assets`, `test_template_names`, `test_template_items`,
+`asset_pm_tasks`, `test_equipment_assets` down; `test_certificates`,
+`test_outputs`, `test_cert_equipment` up. `change_log` stays local-only but is
+**kept**. `sync_error_log`, `sync_metadata`, `assets_prov_rescue` retire. Work
+order tables do not sync today at all.
+
+**"Is a work order scoped by the technician it is assigned to, by its asset's
+hospital, or both?"**
+Hospital scope matches this app's UI, which filters by hospital throughout — the
+asset picker is hospital-first. But the legacy schema carries
+`Admin.UserAssignedWO` ("1 = user can only view their own assigned WOs"), so
+*both* rules exist in the old system and the per-user one is a real setting.
+**Recommend hospital scope, with `UserAssignedWO` as a narrowing filter applied
+in the app rather than in sync rules** — a technician covering a site needs to
+see its work, and re-syncing on reassignment is worse than filtering locally.
+
+**"How should photographs and signatures reach a device?"**
+Reference plus separate fetch. Signatures are currently `BLOB` columns inside
+`test_certificates`, so certificates would otherwise drag two images each through
+the stream — and the busiest site already carries ~21,400 `TestOutput` rows
+before any binaries. Fat rows also make a stalled replication slot fill the disk
+faster, which is a hazard already being monitored.
+
+**"Which of its writes are the server's to refuse on conflict, and which can
+never conflict by construction?"**
+
+| Entity | Can conflict? |
+|---|---|
+| `test_certificates` / `test_outputs` | **Never, by construction.** A certificate is created once by one technician and not edited afterwards. |
+| Provisional `assets` | **Never.** Only ever created on the device, never edited server-side before review. |
+| `work_orders` | **Yes.** Dispatchers reassign and change status while a technician holds the record. This is the only genuine conflict surface. |
+
+That is the strongest argument for sequencing certification first: it exercises
+the whole upload path with the conflict case switched off.
 
 ---
 
