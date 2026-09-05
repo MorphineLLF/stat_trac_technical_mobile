@@ -9,9 +9,16 @@
 > The authoritative backend design lives in the **Go repository**, not here:
 > `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md`
 >
-> That repository owns the schema (84 PascalCase tables, 18 migrations, live data
-> in `demo` and `safeline`), database-per-company tenancy, sync rules, token
-> issuance and PowerSync deployment. **This repository owns the Flutter app only.**
+> **Delphi, UniGUI and Horse — the applications — are retired. The `Stat_Trac`
+> database is not.** The existing Stat Trac schema (84 PascalCase tables)
+> continues; Go replaces the application layer on top of it. There is no
+> greenfield schema and no legacy-vs-new split, so no mirror job or write-back
+> outbox is needed.
+>
+> The Go repository owns that schema (18 migrations), database-per-company
+> tenancy (`Stat_Trac` for local testing and Windows production; `safeline` and
+> `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
+> **This repository owns the Flutter app only.**
 >
 > This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
 >

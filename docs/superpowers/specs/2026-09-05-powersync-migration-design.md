@@ -39,7 +39,9 @@ against it. **Nothing in this section is this repository's to change.**
 |---|---|
 | **Sync engine** | PowerSync. `journeyapps/powersync-service:1.24.0`, already running in production on the same box for Metria, against plain Postgres, with no Supabase anywhere. |
 | **Database** | Plain `postgres:17.11`. `wal_level=logical`, `max_replication_slots=10`, `max_slot_wal_keep_size=2GB`, bound to `127.0.0.1:5445`. Databases `demo` and `safeline`, owned by the `stattrac` role. |
-| **Tenancy** | Database per company. The connection *is* the tenant boundary. |
+| **Schema** | **The existing Stat Trac schema continues** — 84 PascalCase tables. There is no legacy-vs-new split and no greenfield schema. Delphi, UniGUI and Horse (the *applications*) are retired; the *database* stays. |
+| **Tenancy** | Database per company. The connection *is* the tenant boundary. `Stat_Trac` serves local testing and Windows production; `safeline` and `demo` are company databases on the VPS. The Go app connects to exactly one. |
+| **No write-back layer** | Because Delphi is retired, there is no second system to reconcile with. Go writes the company database directly. No mirror job, no outbox, no id reconciliation. |
 | **Identity** | The Go API issues ninety-day device tokens and serves its own JWKS. PowerSync verifies client JWTs against it. No GoTrue. |
 | **Read scope** | PowerSync sync rules. RLS is explicitly *not* used — PowerSync reads as a privileged replication user, so RLS would be a third home for scope that nothing consults. |
 | **Sync configuration** | **One configuration serves both applications** — the reps' handsets and this technician app. Not two rule sets. |
