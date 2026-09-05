@@ -1,5 +1,6 @@
 import 'package:powersync/powersync.dart';
 
+import '../domain/entities/asset_pm_task.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 import 'powersync_cert_mapper.dart';
@@ -62,5 +63,23 @@ class PowerSyncCertDataSource {
       'SELECT COUNT(*) AS n FROM "TestCertificate"',
     );
     return (rows.first['n'] as num?)?.toInt() ?? 0;
+  }
+
+  /// The PM tasks a certificate can be raised against.
+  ///
+  /// Active only: a deactivated task is off the schedule, and offering one
+  /// would let a technician certify against something the office has retired.
+  ///
+  /// Ordered by schedule date so the most overdue is first — that is the one
+  /// the technician is most likely at the machine for — with the description
+  /// breaking ties so the order is total.
+  Future<List<AssetPmTask>> getAssetPmTasks(int assetId) async {
+    final rows = await _db.getAll(
+      'SELECT * FROM "AssetPmTask" '
+      'WHERE "PmAssetID" = ?1 AND "PmTaskActive" = 1 '
+      'ORDER BY "PmTaskScheduleDate", "PmTaskDescription"',
+      [assetId],
+    );
+    return rows.map(assetPmTaskFromPowerSync).toList();
   }
 }

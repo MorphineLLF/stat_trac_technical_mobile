@@ -736,7 +736,7 @@ final class AssetPmTasksProvider
   }
 }
 
-String _$assetPmTasksHash() => r'e8fc7671dda751bab48f1be915d7a6b630bee9c8';
+String _$assetPmTasksHash() => r'f7f72df26af828caf95433c87ba1179880ce5b06';
 
 final class AssetPmTasksFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<AssetPmTask>>, int> {

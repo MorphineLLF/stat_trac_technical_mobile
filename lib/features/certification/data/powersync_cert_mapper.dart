@@ -1,4 +1,5 @@
 import '../../../sync/powersync_types.dart';
+import '../domain/entities/asset_pm_task.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 
@@ -52,5 +53,30 @@ TestOutput testOutputFromPowerSync(Map<String, Object?> row) {
     pass: psBool(row['TestPass']),
     fail: psBool(row['TestFail']),
     na: psBool(row['TestNA']),
+  );
+}
+
+/// Maps a row from PowerSync's `AssetPmTask` table.
+///
+/// `PmTaskInterval` is an integer column while the entity carries interval as
+/// text, so it is rendered rather than cast — "6", never "6.0" and never an
+/// exception.
+AssetPmTask assetPmTaskFromPowerSync(Map<String, Object?> row) {
+  final interval = psInt(row['PmTaskInterval']);
+
+  return AssetPmTask(
+    pmTaskId: psInt(row['PmTaskID']) ?? 0,
+    assetId: psInt(row['PmAssetID']) ?? 0,
+    // Never blank: this is the line the technician picks from, and an empty
+    // row is indistinguishable from a broken one.
+    description:
+        (row['PmTaskDescription'] as String?)?.trim().isNotEmpty == true
+        ? (row['PmTaskDescription']! as String).trim()
+        : 'Unnamed PM task',
+    scheduleDate: psDate(row['PmTaskScheduleDate']),
+    active: psBool(row['PmTaskActive']),
+    interval: interval?.toString(),
+    intervalType: row['PmTaskIntervalType'] as String?,
+    taskType: psInt(row['PmTaskType']),
   );
 }

@@ -80,4 +80,6 @@ Future<List<TestEquipmentAsset>> testEquipmentAssets(Ref ref) =>
 
 @riverpod
 Future<List<AssetPmTask>> assetPmTasks(Ref ref, int assetId) =>
-    ref.watch(certLocalDataSourceProvider).getAssetPmTasks(assetId);
+    ref.watch(powerSyncCertsProvider.future).then(
+      (ds) => ds.getAssetPmTasks(assetId),
+    );
