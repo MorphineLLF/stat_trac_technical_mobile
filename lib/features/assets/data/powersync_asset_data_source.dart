@@ -38,7 +38,12 @@ class PowerSyncAssetDataSource {
   /// fields a technician has in front of them when looking at a machine.
   Future<List<Asset>> searchAssets(String query, {String? hospital}) async {
     final term = '%${query.trim()}%';
-    final scoped = hospital == null ? '' : ' AND "AssetHospital" = ?';
+    // Numbered throughout, deliberately. Mixing an anonymous ? with ?1..?5
+    // is a real bug: SQLite gives the anonymous one the next free index, and
+    // this clause is emitted BEFORE the numbered ones, so it would collide
+    // with ?1 and the parameter count would not match. Hospital-scoped search
+    // is the picker's normal path, so it would have failed on first use.
+    final scoped = hospital == null ? '' : ' AND "AssetHospital" = ?6';
     final args = <Object?>[term, term, term, term, term];
     if (hospital != null) args.add(hospital);
 
