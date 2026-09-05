@@ -83,6 +83,55 @@ void main() {
     });
   });
 
+  group('certificate line', () {
+    // A measurement line names its certificate by TestOutputCertMobileID --
+    // the CERTIFICATE's uuid, not its own. Its own is the mobile_id at the top
+    // of the op. The device cannot know TestOutputCertID because the server
+    // assigns it, which is the whole premise of a mobile id.
+    test('names its certificate by the certificate mobile id', () {
+      final op = SyncUploadOp.certificateLine(
+        lineMobileId: 'line-uuid',
+        certificateMobileId: 'cert-uuid',
+        data: const {'TestDescription': 'Earth continuity', 'TestValue': '0.08'},
+      );
+
+      final json = op.toJson();
+      expect(json['table'], 'TestOutput');
+      expect(json['mobile_id'], 'line-uuid');
+
+      final data = json['data']! as Map;
+      expect(data['TestOutputCertMobileID'], 'cert-uuid');
+      expect(data['TestDescription'], 'Earth continuity');
+    });
+
+    // Sending both is refused by the server rather than reconciled, because a
+    // device that can set both can make them disagree and the disagreement is
+    // invisible. Catch it here rather than at the wire.
+    test('refuses to carry TestOutputCertID as well', () {
+      expect(
+        () => SyncUploadOp.certificateLine(
+          lineMobileId: 'line',
+          certificateMobileId: 'cert',
+          data: const {'TestOutputCertID': 5030},
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    // Writing a 0 there is not a certificate reference — it is an orphan with
+    // a plausible-looking field, and the register already holds 8,850 of them.
+    test('refuses a zero certificate id smuggled through data', () {
+      expect(
+        () => SyncUploadOp.certificateLine(
+          lineMobileId: 'line',
+          certificateMobileId: 'cert',
+          data: const {'TestOutputCertID': 0},
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('batch', () {
     // Row ops apply first server-side whatever their order, but sending them
     // first keeps the wire readable and matches the documented example.

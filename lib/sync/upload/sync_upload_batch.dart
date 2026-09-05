@@ -49,6 +49,50 @@ class SyncUploadOp {
     });
   }
 
+  /// A measurement line, linked to its certificate by the certificate's
+  /// **mobile id** rather than its server key.
+  ///
+  /// The device cannot know `TestOutputCertID` — the server assigns it, which
+  /// is the whole premise of a mobile id. So the line carries
+  /// `TestOutputCertMobileID`, the CERTIFICATE's uuid; its own uuid is the
+  /// `mobile_id` at the top of the op. The server resolves it from the batch
+  /// first and from `TestMobileID` on the table otherwise, so lines sent
+  /// tomorrow for a certificate uploaded today still link. It is not a column
+  /// and never reaches the row — `TestOutputCertID` is written from it.
+  ///
+  /// A line naming a certificate the server does not have is **refused, not
+  /// written**: writing it would make one more orphan, and an orphan is silent
+  /// — in no bucket, reaching no device, with nothing saying so. The register
+  /// already holds 8,850 of them.
+  ///
+  /// Passing `TestOutputCertID` as well is rejected here rather than at the
+  /// wire. The server refuses that combination rather than reconciling it,
+  /// because a device that can set both can make them disagree and the
+  /// disagreement is invisible.
+  factory SyncUploadOp.certificateLine({
+    required String lineMobileId,
+    required String certificateMobileId,
+    required Map<String, Object?> data,
+    String? seenAt,
+  }) {
+    if (data.containsKey('TestOutputCertID')) {
+      throw ArgumentError.value(
+        data['TestOutputCertID'],
+        'data',
+        'A line linked by TestOutputCertMobileID must not also carry '
+            'TestOutputCertID — the server refuses both, and a 0 here is an '
+            'orphan rather than a certificate reference',
+      );
+    }
+
+    return SyncUploadOp.row(
+      table: 'TestOutput',
+      mobileId: lineMobileId,
+      seenAt: seenAt,
+      data: {'TestOutputCertMobileID': certificateMobileId, ...data},
+    );
+  }
+
   /// Close a certificate — this runs `IssueCertificate`'s whole transaction:
   /// the completeness rules, the totals, `TestNextService`, the PM schedule
   /// move and the work order.

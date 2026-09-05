@@ -694,3 +694,59 @@ true (see §8's note on the provisional-asset rule) and now fully unwound.
 **Still open, and now the only thing between a handset and a complete
 certificate: signatures.** `bytea` crosses neither the sync stream nor the
 write allowlist. A certificate is not valid without them.
+
+---
+
+## 14. CORRECTION — a line names its certificate by mobile id
+
+Sent 2026-09-05, an hour after §12, and it is the difference between the
+endpoint working and not.
+
+**A measurement line carries `TestOutputCertMobileID`, not `TestOutputCertID`.**
+The earlier example showed `"TestOutputCertID":0`, and that was wrong in the
+way the register already suffers from: a device creating a certificate offline
+cannot know its server key — that is the whole premise of a mobile id — so
+every reading on a new certificate had nothing to point at. A `0` there is not
+a certificate reference, it is **an orphan with a plausible-looking field**,
+and the register holds 8,850 of exactly that.
+
+```json
+{"ops":[
+  {"table":"TestCertificate","mobile_id":"<cert uuid>","data":{ }},
+  {"table":"TestOutput","mobile_id":"<line uuid>",
+   "data":{"TestOutputCertMobileID":"<cert uuid>",
+           "TestDescription":"Earth continuity","TestValue":"0.08","TestPass":true}},
+  {"table":"TestCertificate","mobile_id":"<cert uuid>","action":"issue",
+   "data":{"verdict":1,"next_service":"2027-09-05","complete_pm_work_order":true}}
+]}
+```
+
+The line carries the **certificate's** mobile id; its own is the `mobile_id` at
+the top of the op. Resolved from the batch first and from `TestMobileID`
+otherwise, so lines sent tomorrow for a certificate uploaded today still link.
+It is not a column and never reaches the row — `TestOutputCertID` is written
+from it.
+
+### Four rules around it
+
+1. **Certificates are written before every other row op**, whatever order the
+   batch arrives in. No need to sort the queue.
+2. **A line naming a certificate the server does not have is refused, not
+   written.** Writing it would make one more orphan, and an orphan is silent —
+   in no bucket, reaching no device, nothing saying so.
+3. **Sending both `TestOutputCertMobileID` and `TestOutputCertID` is refused,
+   not reconciled.** A device that can set both can make them disagree, and the
+   disagreement is invisible.
+4. **A line against a certificate the server already has may still send
+   `TestOutputCertID` alone.** That path is unchanged.
+
+### How this app enforces it
+
+`SyncUploadOp.certificateLine(lineMobileId:, certificateMobileId:, data:)`
+is the only way this app builds a line for a new certificate. It sets
+`TestOutputCertMobileID` itself and **throws** if `data` also carries
+`TestOutputCertID` — including a `0`. The rule is in the type rather than in a
+comment, because this is precisely the mistake that produces a silent orphan.
+
+Everything else in §12 stands: the issue op, the verdict rule, refused unknown
+fields, the 422 codes. Only the line-to-certificate link changed.
