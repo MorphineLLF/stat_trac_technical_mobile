@@ -20,7 +20,11 @@
 > `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
 > **This repository owns the Flutter app only.**
 >
+> **Start here next session:** `docs/STATE-2026-09-05.md` — what works, what is
+> next, and the four decisions waiting on the user.
+>
 > This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
+> Contract with the Go side: `docs/sync-client-handover.md`
 >
 > Sections below still describing the Horse API are marked SUPERSEDED and kept
 > for historical reference. Anything not so marked (theme, module inventory,

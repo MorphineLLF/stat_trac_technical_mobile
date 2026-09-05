@@ -251,7 +251,7 @@ the whole upload path with the conflict case switched off.
 
 ---
 
-## 6. Provenance
+## 9. Provenance
 
 Derived on 2026-09-05 from:
 
@@ -344,3 +344,67 @@ of which knew about the others:
 Noise that cannot stop and silence that cannot start are the same defect. Both
 end with a person who has learned the signal carries no information, which is
 worse than shipping no signal at all.
+
+---
+
+## 8. Place-of-test — a missing column, not a missing decision
+
+Raised by the Go session 2026-09-05. Migration 020 added a trigger that
+re-resolves `SyncHospital` from the asset's **current** hospital on any insert
+or update, across `Repair`, `RepairDetail`, `RepairProgress`, `TestCertificate`
+and `AssetPmTask`. So moving an asset between hospitals and then editing any
+historical row silently moves that row between technicians' devices, with
+nothing recording that it happened.
+
+### What this app believes, from the code
+
+- `test_certificates` has **no hospital column**. Never stored, never sent —
+  hospital is absent from the cert push payload entirely.
+- The certificate detail screen displays **no hospital at all**.
+- The create wizard shows `selectedAsset.hospital` read live off the asset,
+  purely as a confirmation aid while picking equipment. It is not captured.
+- The asset picker is hospital-first, so the technician's mental model is
+  "find the machine where it is now".
+
+The app therefore assumes *follows-the-machine* by **omission** rather than by
+decision. It asserts nothing, so it cannot contradict the database — there is no
+second defect hiding under the trigger.
+
+### The asymmetry that matters
+
+```
+Repair           RepairHospital + RepairLocation + SyncHospital
+RepairDetail     SyncHospital only
+TestCertificate  SyncHospital only
+```
+
+`Repair` carries a business location field **separate** from the routing column,
+so for work orders the two goals never conflict: the record of where work
+happened survives while routing re-resolves. The trigger touches only
+`SyncHospital`, leaving the evidential field alone.
+
+**`TestCertificate` has no such field**, so `SyncHospital` is doing double duty —
+routing key *and* the only trace of where the test happened. That is the defect,
+and it sits *underneath* the trigger rather than being caused by it. Both
+available behaviours lose something:
+
+| | |
+|---|---|
+| Re-resolve | routing correct; destroys the only record of where the test was performed |
+| Insert-only | preserves that record by overloading a sync column with evidential meaning; the certificate then never reaches the technician now holding the machine |
+
+The requirements are not in conflict. **The column is.** A certificate needs what
+`Repair` already has: a location captured at test time, separate from the
+routing key — after which `SyncHospital` can re-resolve freely.
+
+This module records the technician, the date, the analyser with its calibration
+date and serial, and the client signature. A test is a measurement on a machine,
+at a place, on a date — and only two of those three currently survive.
+
+**`AssetPmTask` is different and separable:** it wants follows-the-machine
+unconditionally and needs no new column. A PM schedule concerns the machine's
+future, not its past, so there is no historical claim to preserve.
+
+Adding a column is a migration, and therefore the user's decision — as is
+whether the trigger should exist at all, given this project's no-triggers rule
+that migration 020 broke.
