@@ -28,6 +28,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with WidgetsBindingObserver {
   int _navIndex = 0;
+  bool _syncing = false;
 
   @override
   void initState() {
@@ -49,6 +50,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     // technician finished goes out through our own outbox, and something has
     // to start it.
     WidgetsBinding.instance.addPostFrameCallback((_) => _drainUploads());
+  }
+
+  /// The manual "send now" action.
+  ///
+  /// Unlike the automatic drain this one always reports back, including when
+  /// there was nothing to send. A technician who presses a button and sees
+  /// nothing happen cannot tell success from a dead button, and this is the
+  /// button they will press before leaving a hospital.
+  Future<void> _sendNow() async {
+    setState(() => _syncing = true);
+    try {
+      final worker = await ref.read(uploadWorkerProvider.future);
+      final r = await worker.drain();
+      ref.invalidate(pendingUploadCountProvider);
+      if (!mounted) return;
+
+      final String message;
+      Color? colour;
+      if (r.attempted == 0) {
+        message = 'Nothing waiting to send.';
+      } else if (r.stoppedForSignal) {
+        message = 'No connection — ${r.attempted} still queued, '
+            'it will go when you are back online.';
+        colour = const Color(0xFFFFB300);
+      } else if (r.rejected > 0 || r.failed > 0) {
+        message = '${r.rejected + r.failed} could not be sent — '
+            'open the certificate to see why.';
+        colour = Theme.of(context).colorScheme.error;
+      } else if (r.conflicted > 0) {
+        message = '${r.conflicted} changed on the server and need you.';
+        colour = const Color(0xFFFFB300);
+      } else {
+        message = 'Sent ${r.applied} certificate'
+            '${r.applied == 1 ? '' : 's'}.';
+        colour = const Color(0xFF2E7D32);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: colour),
+      );
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not send: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
   }
 
   /// Sends whatever is waiting in the outbox.
@@ -134,6 +187,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         actions: [
           const _PowerSyncStatus(),
           const _PendingUploads(),
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Send finished work now',
+            onPressed: _syncing ? null : _sendNow,
+          ),
           if (syncState is SyncInProgress)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
