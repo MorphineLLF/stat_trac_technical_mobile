@@ -7,6 +7,7 @@ import '../../../assets/domain/entities/asset.dart';
 import '../../domain/entities/work_order_enums.dart';
 import '../providers/work_order_providers.dart';
 import 'work_order_detail_screen.dart';
+import '../../../assets/presentation/providers/asset_providers.dart';
 
 class CreateWorkOrderScreen extends ConsumerStatefulWidget {
   const CreateWorkOrderScreen({super.key});
@@ -63,7 +64,8 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   }
 
   Future<void> _pickAsset() async {
-    final ds = ref.read(assetLocalDataSourceProvider);
+    final ds = await ref.read(powerSyncAssetsProvider.future);
+    if (!mounted) return;
     final asset = await showAssetPicker(context, ds);
     if (asset != null) setState(() => _selectedAsset = asset);
   }

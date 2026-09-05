@@ -17,6 +17,7 @@ import '../widgets/cert_signature_step.dart';
 import '../widgets/cert_template_picker.dart';
 import '../widgets/cert_test_grid.dart';
 import '../widgets/cert_type_selector.dart';
+import '../../../assets/presentation/providers/asset_providers.dart';
 
 class CreateCertificateScreen extends ConsumerStatefulWidget {
   const CreateCertificateScreen({super.key});
@@ -53,7 +54,8 @@ class _CreateCertificateScreenState
   }
 
   void _pickAsset() async {
-    final dataSource = ref.read(certAssetLocalDataSourceProvider);
+    final dataSource = await ref.read(powerSyncAssetsProvider.future);
+    if (!mounted) return;
     final asset = await showAssetPicker(context, dataSource);
     if (asset != null) setState(() => _selectedAsset = asset);
   }

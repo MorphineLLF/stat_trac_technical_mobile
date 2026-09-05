@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../sync/sync_notifier.dart';
 import '../../../../sync/sync_state.dart';
-import '../../data/datasources/asset_local_data_source.dart';
+import '../../data/powersync_asset_data_source.dart';
 import '../../domain/entities/asset.dart';
 
 // ── Scoped providers ──────────────────────────────────────────────────────────
 
-final _assetDataSourceProvider = Provider<AssetLocalDataSource>(
+final _assetDataSourceProvider = Provider<PowerSyncAssetDataSource>(
   (ref) => throw UnimplementedError('Override before use'),
   dependencies: [],
 );
@@ -54,9 +54,15 @@ final _assetSearchResultsProvider = FutureProvider.autoDispose
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
+/// Opens the two-step hospital → equipment picker.
+///
+/// Takes the PowerSync source: the old `assets` table is never populated, so
+/// a picker pointed at it shows nothing. That is what happened when the
+/// feature-level providers were repointed and this dialog's own scoped
+/// provider was missed.
 Future<Asset?> showAssetPicker(
   BuildContext context,
-  AssetLocalDataSource dataSource,
+  PowerSyncAssetDataSource dataSource,
 ) {
   return showDialog<Asset>(
     context: context,
