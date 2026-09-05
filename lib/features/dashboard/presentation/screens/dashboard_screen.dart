@@ -15,6 +15,7 @@ import '../../../work_orders/presentation/screens/create_work_order_screen.dart'
 import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
 import '../../../../sync/powersync_providers.dart';
+import '../../../../sync/sync_indicator.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -971,34 +972,52 @@ class _PowerSyncStatus extends ConsumerWidget {
         tooltip: e.toString(),
       ),
       data: (s) {
-        if (s.downloadError != null || s.uploadError != null) {
-          return _StatusChip(
-            icon: Icons.cloud_off,
-            label: 'Sync error',
-            color: const Color(0xFFFF8A80),
-            tooltip: '${s.downloadError ?? s.uploadError}',
-          );
-        }
-        if (s.downloading || s.uploading) {
-          return const _StatusChip(
-            icon: Icons.cloud_sync,
-            label: 'Syncing',
-            color: Colors.white,
-          );
-        }
-        if (s.connected) {
-          final at = s.lastSyncedAt;
-          return _StatusChip(
-            icon: Icons.cloud_done,
-            label: at == null ? 'Connected' : DateFormat('HH:mm').format(at),
-            color: const Color(0xFF9CCC65),
-          );
-        }
-        return const _StatusChip(
-          icon: Icons.cloud_off,
-          label: 'Offline',
-          color: Colors.white54,
+        final indicator = syncIndicatorFor(
+          connected: s.connected,
+          connecting: s.connecting,
+          downloading: s.downloading,
+          uploading: s.uploading,
+          error: s.downloadError ?? s.uploadError,
         );
+        // The last error is kept as a tooltip even when connected, so a
+        // recovered blip is still discoverable without being alarming.
+        final detail = (s.downloadError ?? s.uploadError)?.toString();
+
+        switch (indicator) {
+          case SyncIndicator.syncing:
+            return const _StatusChip(
+              icon: Icons.cloud_sync,
+              label: 'Syncing',
+              color: Colors.white,
+            );
+          case SyncIndicator.connected:
+            final at = s.lastSyncedAt;
+            return _StatusChip(
+              icon: Icons.cloud_done,
+              label: at == null ? 'Connected' : DateFormat('HH:mm').format(at),
+              color: const Color(0xFF9CCC65),
+              tooltip: detail == null ? null : 'Recovered from: $detail',
+            );
+          case SyncIndicator.connecting:
+            return const _StatusChip(
+              icon: Icons.cloud_queue,
+              label: 'Connecting',
+              color: Colors.white70,
+            );
+          case SyncIndicator.error:
+            return _StatusChip(
+              icon: Icons.cloud_off,
+              label: 'Sync error',
+              color: const Color(0xFFFF8A80),
+              tooltip: detail,
+            );
+          case SyncIndicator.offline:
+            return const _StatusChip(
+              icon: Icons.cloud_off,
+              label: 'Offline',
+              color: Colors.white54,
+            );
+        }
       },
     );
   }
