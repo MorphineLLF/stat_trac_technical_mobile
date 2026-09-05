@@ -297,6 +297,22 @@ position column. The only stable ordering available is `TestOutPutID` ascending.
 > lines in a different order from the office copy undermines exactly that. Must
 > order by the key ascending when the reads move to PowerSync.
 
+**`TestOutPutID` ascending is already the server's contract, not a suggestion.**
+Every Go query reading multiple rows orders by it — `certificate.go:593`
+(`TestLinesFor`), `certificate_chart.go:201` (chart series) — the latter
+commented *"The certificate's own rows, in the order it lists them"*. The
+desktop, the PDF and the printed certificate all render in that order today, so
+adding the `orderBy` makes the tablet match the office copy exactly. For
+evidence, that match is the whole point.
+
+**Residual risk neither side can fix in a query.** Nothing in the schema
+enforces the order — there is no position column. `certificate_write.go:1059`
+does `delete from "TestOutput" where "TestOutputCertID" = $1` and re-inserts, so
+an edited certificate gets freshly allocated ids. After an edit, both
+implementations will agree with each other and both will differ from what the
+certificate looked like before. That is a schema-level gap, recorded on both
+sides.
+
 **8,850 orphaned lines.** They point at 238 distinct certificate ids, ~37 lines
 each, all inside the live id range, with **zero** rows carrying
 `TestOutputCertID = 0` — so there is no benign unattached state. 238
@@ -311,6 +327,20 @@ can never clear: the count only climbs and a badge that cannot reach zero trains
 a technician to ignore the next real failure. The rep app shipped exactly this
 and needed a data-only migration to undo it on devices already carrying it.
 
-This is the same lesson as the sticky-`downloadError` fix in
-`lib/sync/sync_indicator.dart`: an indicator that cannot return to a good state
-is worse than no indicator.
+### The rule, stated generally
+
+> **An indicator must be able to reach every state reality can reach, including
+> the good one.**
+
+Three instances of this defect surfaced on 2026-09-05, in three codebases, none
+of which knew about the others:
+
+| Codebase | The indicator could not... |
+|---|---|
+| This app | go **green** — sticky `downloadError` after a recovered blip |
+| Rep app | go to **zero** — per-row orphan alerts that can never clear |
+| Server | go **loud** at all — a row in no bucket is silent, forever |
+
+Noise that cannot stop and silence that cannot start are the same defect. Both
+end with a person who has learned the signal carries no information, which is
+worse than shipping no signal at all.
