@@ -31,9 +31,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(syncProvider.notifier).triggerSync();
-    });
+      // Horse-era sync is DISABLED. Its endpoints (/assets, /sync/log) were
+      // the retired Horse API's and do not exist on the Go host, so every
+      // cycle 404s forever against a server that cannot answer -- confirmed
+      // in the server's nginx log. Nothing is lost by stopping it: the 404s
+      // meant it was already populating nothing.
+      //
+      // PowerSync now owns reads. The screens still read the OLD local
+      // tables, so they stay empty until each feature is repointed at the
+      // PowerSync schema -- that is the remaining migration work, tracked in
+      // docs/superpowers/specs/2026-09-05-powersync-migration-design.md.
+      // ref.read(syncProvider.notifier).triggerSync();
   }
 
   @override
@@ -45,7 +53,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.read(syncProvider.notifier).triggerSync();
+      // Horse-era sync disabled -- see initState. PowerSync reconnects on
+      // its own when the app resumes.
+      // ref.read(syncProvider.notifier).triggerSync();
     }
   }
 
