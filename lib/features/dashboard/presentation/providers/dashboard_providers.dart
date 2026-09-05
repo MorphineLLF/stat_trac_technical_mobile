@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../database/database_helper.dart';
 import '../../../../../sync/sync_notifier.dart';
+import '../../../../../sync/upload/upload_queue.dart';
 import '../../../../../sync/sync_state.dart';
 
 part 'dashboard_providers.g.dart';
@@ -56,8 +57,19 @@ Future<DashboardStats> dashboardStats(Ref ref) async {
     [now],
   );
 
+  // Counted from the OUTBOX, not from test_certificates.
+  //
+  // The old query counted rows in the retired Horse table whose sync_status
+  // is cleared only by the Horse push path -- which is disabled because its
+  // endpoints 404 forever. So it could never reach zero: a certificate saved
+  // before this change reads as "to sync" permanently, no matter what
+  // actually reaches the server.
+  //
+  // Worse, it disagreed with the real queue, and two indicators disagreeing
+  // is worse than one being wrong: it teaches a technician that neither
+  // number means anything.
   final certRows = await db.rawQuery(
-    "SELECT COUNT(*) AS cnt FROM test_certificates WHERE sync_status IN ('draft','pending')",
+    'SELECT COUNT(*) AS cnt FROM ${UploadQueue.table}',
   );
 
   final row = rows.first;
