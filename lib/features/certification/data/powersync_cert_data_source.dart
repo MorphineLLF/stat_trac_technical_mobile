@@ -2,6 +2,8 @@ import 'package:powersync/powersync.dart';
 
 import '../domain/entities/asset_pm_task.dart';
 import '../domain/entities/test_equipment_asset.dart';
+import '../domain/entities/test_template_item.dart';
+import '../domain/entities/test_template_name.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 import 'powersync_cert_mapper.dart';
@@ -108,5 +110,29 @@ class PowerSyncCertDataSource {
       '"AssetNextServiceDate" DESC, "AssetEquipmentType"',
     );
     return rows.map(testEquipmentFromPowerSync).toList();
+  }
+
+  /// Certificate templates of one kind, by name.
+  Future<List<TestTemplateName>> getTemplatesByType(CertType type) async {
+    final rows = await _db.getAll(
+      'SELECT * FROM "TestTemplateName" WHERE "TestTemplateType" = ?1 '
+      'ORDER BY "TestTemplateName"',
+      [TestTemplateName.typeToInt(type)],
+    );
+    return rows.map(templateNameFromPowerSync).toList();
+  }
+
+  /// A template's test lines.
+  ///
+  /// Ordered by section sequence then id, which is the order the office lists
+  /// them in. Without it PowerSync returns stream order, and a test grid whose
+  /// sections shuffle between syncs is unusable.
+  Future<List<TestTemplateItem>> getTemplateItems(int templateNameId) async {
+    final rows = await _db.getAll(
+      'SELECT * FROM "TestTemplate" WHERE "TestTempCertificateNameID" = ?1 '
+      'ORDER BY "TestTempDescriptionNo", "TestTemplateID"',
+      [templateNameId],
+    );
+    return rows.map(templateItemFromPowerSync).toList();
   }
 }

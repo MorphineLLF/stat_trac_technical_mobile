@@ -346,7 +346,7 @@ final class TemplatesByTypeProvider
   }
 }
 
-String _$templatesByTypeHash() => r'319bb372172b5e775d1ddb9bd96c2d65d40cded7';
+String _$templatesByTypeHash() => r'34e02823a2967c0398737fcae46bd8d74bf2a613';
 
 final class TemplatesByTypeFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TestTemplateName>>, CertType> {
@@ -423,7 +423,7 @@ final class TemplateItemsProvider
   }
 }
 
-String _$templateItemsHash() => r'a0c787e91cb65f819e1cdc10b72fd33d07159aa4';
+String _$templateItemsHash() => r'0a1c7a833874e20da8c5cebd162234849d477668';
 
 final class TemplateItemsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TestTemplateItem>>, int> {
@@ -677,7 +677,7 @@ final class TestEquipmentAssetsProvider
 }
 
 String _$testEquipmentAssetsHash() =>
-    r'f34aaf8e8ceae4b32cfe6b2a69671682d31f8b9f';
+    r'fd3386918f9777800a45ce327090eed8c334134b';
 
 @ProviderFor(assetPmTasks)
 final assetPmTasksProvider = AssetPmTasksFamily._();

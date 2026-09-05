@@ -54,11 +54,15 @@ CertificateRepository certificateRepository(Ref ref) =>
 
 @riverpod
 Future<List<TestTemplateName>> templatesByType(Ref ref, CertType type) =>
-    ref.watch(certificateRepositoryProvider).getTemplatesByType(type);
+    ref.watch(powerSyncCertsProvider.future).then(
+      (ds) => ds.getTemplatesByType(type),
+    );
 
 @riverpod
 Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
-    ref.watch(certificateRepositoryProvider).getTemplateItems(templateNameId);
+    ref.watch(powerSyncCertsProvider.future).then(
+      (ds) => ds.getTemplateItems(templateNameId),
+    );
 
 @riverpod
 Future<List<CertificateSummary>> certificateList(Ref ref) =>

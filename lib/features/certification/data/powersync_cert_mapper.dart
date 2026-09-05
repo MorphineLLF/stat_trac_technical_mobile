@@ -1,6 +1,8 @@
 import '../../../sync/powersync_types.dart';
 import '../domain/entities/asset_pm_task.dart';
 import '../domain/entities/test_equipment_asset.dart';
+import '../domain/entities/test_template_item.dart';
+import '../domain/entities/test_template_name.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 
@@ -104,5 +106,48 @@ TestEquipmentAsset testEquipmentFromPowerSync(Map<String, Object?> row) {
     // The row is on the device because sync put it there, so "when did this
     // reach us" is now, not a stored column.
     syncedAt: DateTime.now(),
+  );
+}
+
+/// Maps a row from PowerSync's `TestTemplateName` table.
+///
+/// **`TestTemplateTestEquipQty` is a Postgres numeric, so it crosses the sync
+/// stream as the string `"2.00"`.** The Horse-era model cast it with
+/// `as int?`, which throws on a string — that cast is the trap the generated
+/// schema's header warns about, and it is why every numeric here goes through
+/// [psInt].
+TestTemplateName templateNameFromPowerSync(Map<String, Object?> row) {
+  return TestTemplateName(
+    id: psInt(row['TestTemplateNameID']) ?? 0,
+    certType: TestTemplateName.typeFromInt(psInt(row['TestTemplateType'])),
+    templateName: row['TestTemplateName'] as String?,
+    certName: row['TestTemplateCertName'] as String?,
+    customerSigRequired: psBool(row['TestTemplateCustomerSig']),
+    editDate: psBool(row['TestTemplateEditDate']),
+    nextService: psBool(row['TestTemplateNextService']),
+    testEquipQty: psInt(row['TestTemplateTestEquipQty']) ?? 0,
+    docNo: row['TestTemplateDocNo'] as String?,
+    note: row['TestTemplateNote'] as String?,
+    lastSyncedAt: DateTime.now(),
+  );
+}
+
+/// Maps a row from PowerSync's `TestTemplate` table — one test line.
+///
+/// `TestTempActualValue` passes through verbatim, including the `'-'`
+/// sentinel. The grid pre-populates a line's actual value from this so the
+/// dash reaches `TestOutput`, and the server counts a dash as a complete line
+/// rather than a missing reading.
+TestTemplateItem templateItemFromPowerSync(Map<String, Object?> row) {
+  return TestTemplateItem(
+    id: psInt(row['TestTemplateID']) ?? 0,
+    certificateNameId: psInt(row['TestTempCertificateNameID']) ?? 0,
+    // A free-text section heading, not a key.
+    descriptionId: row['TestTempDescriptionID'] as String?,
+    descriptionNo: psInt(row['TestTempDescriptionNo']),
+    description: row['TestTempDescription'] as String?,
+    notes: row['TestTempNotes'] as String?,
+    expectedValue: row['TestTempValue'] as String?,
+    actualValueTemplate: row['TestTempActualValue'] as String?,
   );
 }
