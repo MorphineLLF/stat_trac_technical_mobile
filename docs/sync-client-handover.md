@@ -408,3 +408,69 @@ future, not its past, so there is no historical claim to preserve.
 Adding a column is a migration, and therefore the user's decision — as is
 whether the trigger should exist at all, given this project's no-triggers rule
 that migration 020 broke.
+
+---
+
+## 10. REQUEST: the certificate upload endpoint
+
+**This is the single blocker for the write half, and it is server-side.**
+Recorded here 2026-09-05 as a formal request rather than a discussion point.
+
+### Why it is urgent
+
+Reads are done. The app now shows assets, certificates, measurement lines, PM
+tasks, templates and test equipment from PowerSync, all verified on a device.
+**A completed certificate, however, is silently lost** — it writes to the
+retired local table, nothing pushes it, and the certificate list reads
+PowerSync so it does not even appear. A technician finishes a job and the
+record vanishes.
+
+Until the endpoint exists, this build must not be used for real work.
+
+### What exists already
+
+`internal/stats/certificate_write.go` has the entire lifecycle — `StartTest`,
+`SaveTestLine`, `IssueCertificate`, `VoidCertificate`, `SaveSignature`. What is
+missing is a route a handset can post to: `sync_push.go` covers accounts,
+visits and issues, and not certificates or work orders.
+
+### What the app can supply
+
+Everything in `IssueInput` except the parts it has no UI for yet:
+
+| Field | App today |
+|---|---|
+| `Verdict` | ✅ sent as `patient_safe` |
+| `Notes` | ✅ sent |
+| `NextService` | ❌ no UI |
+| `CompletePmWorkOrder` | ❌ no UI |
+| `CompletePmJobCard` | ❌ no UI |
+
+Plus the certificate header, its measurement lines, the equipment selections
+and both signatures.
+
+**The three missing inputs are this repository's work and will be built** — but
+the endpoint's shape decides what a queued certificate contains, so it comes
+first. Building the UI against a guessed contract would mean building it twice.
+
+### Two things that must come with it
+
+1. **Idempotency on `TestMobileID`.** Migration 023 added the column; the app
+   does not yet generate one and has no `uuid` package. Both sides need to
+   agree the value is a canonical UUIDv4 written by the device, matched with
+   `ON CONFLICT ("TestMobileID") DO UPDATE`. A technician walking out of signal
+   mid-upload is the normal case, not an edge case.
+2. **A conflict rejection the app can render.** Per the agreed policy the write
+   is refused, the local change stays queued, and the person is told. That needs
+   entity, row, the differing fields and the server's current values — enough to
+   build the "this record changed while you were away" screen without a second
+   round trip.
+
+### Signatures are a separate problem, and they gate validity
+
+`bytea` does not cross the sync stream — 3,796 exist server-side and the
+captured stream carried none. `SaveSignature` proves the desktop can store
+them, so what is missing is transport from a handset. **A certificate is not
+valid without its signatures**, so an upload path that carries everything else
+still does not produce a usable certificate. Worth solving alongside rather
+than after.

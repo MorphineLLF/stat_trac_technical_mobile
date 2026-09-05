@@ -21,7 +21,13 @@
 > **This repository owns the Flutter app only.**
 >
 > **Start here next session:** `docs/STATE-2026-09-05.md` — what works, what is
-> next, and the four decisions waiting on the user.
+> next, and the decisions waiting on the user.
+>
+> ⛔ **Do not use this build for real certificates.** A completed certificate is
+> silently lost: it writes to the retired local table, nothing pushes it, and
+> the list reads PowerSync so it never appears. **The certificate upload
+> endpoint must be created server-side** — that is the next thing to build and
+> it blocks the whole write half.
 >
 > This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
 > Contract with the Go side: `docs/sync-client-handover.md`
