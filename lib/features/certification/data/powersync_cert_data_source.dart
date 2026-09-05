@@ -1,6 +1,7 @@
 import 'package:powersync/powersync.dart';
 
 import '../domain/entities/asset_pm_task.dart';
+import '../domain/entities/test_equipment_asset.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 import 'powersync_cert_mapper.dart';
@@ -81,5 +82,31 @@ class PowerSyncCertDataSource {
       [assetId],
     );
     return rows.map(assetPmTaskFromPowerSync).toList();
+  }
+
+  /// The calibrated instruments a certificate can name.
+  ///
+  /// `AssetTestEquipment = 1` on the Asset table — company property, not a
+  /// separate register.
+  ///
+  /// **This list may be empty for a narrow-scope technician, and that is a
+  /// live server-side question rather than a bug here.** Analysers live at the
+  /// company's own depot, and `Asset` is bucketed by hospital, so a technician
+  /// whose scope excludes the depot receives none of them. Measured on demo:
+  /// 5 of 7 users can see the holder, 2 of 4 on safeline. The proposed fix is
+  /// to put `AssetTestEquipment = 1` rows in the global bucket, which is the
+  /// user's decision.
+  ///
+  /// Ordered so instruments still in calibration come first — an expired one
+  /// is still shown, because the technician may need to record that it was
+  /// what they had, but it should never be the default choice.
+  Future<List<TestEquipmentAsset>> getTestEquipmentAssets() async {
+    final rows = await _db.getAll(
+      'SELECT * FROM "Asset" WHERE "AssetTestEquipment" = 1 '
+      'AND "AssetCondemned" != 1 '
+      'ORDER BY "AssetNextServiceDate" IS NULL, '
+      '"AssetNextServiceDate" DESC, "AssetEquipmentType"',
+    );
+    return rows.map(testEquipmentFromPowerSync).toList();
   }
 }

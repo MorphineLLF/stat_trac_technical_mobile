@@ -1,5 +1,6 @@
 import '../../../sync/powersync_types.dart';
 import '../domain/entities/asset_pm_task.dart';
+import '../domain/entities/test_equipment_asset.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
 
@@ -78,5 +79,30 @@ AssetPmTask assetPmTaskFromPowerSync(Map<String, Object?> row) {
     interval: interval?.toString(),
     intervalType: row['PmTaskIntervalType'] as String?,
     taskType: psInt(row['PmTaskType']),
+  );
+}
+
+/// Maps a calibrated test instrument.
+///
+/// These are `Asset` rows flagged `AssetTestEquipment = 1` — company property
+/// rather than a separate register, which is why the columns are Asset's.
+///
+/// `AssetNextServiceDate` carries the calibration due date for an instrument:
+/// what "next service" means for an analyser is when its calibration expires.
+TestEquipmentAsset testEquipmentFromPowerSync(Map<String, Object?> row) {
+  final assetId = psInt(row['AssetID']) ?? 0;
+
+  return TestEquipmentAsset(
+    // The server key is the identity; there is no separate local row now.
+    id: assetId,
+    assetId: assetId,
+    equipmentType: row['AssetEquipmentType'] as String?,
+    manufacturer: row['AssetManufacturer'] as String?,
+    model: row['AssetModel'] as String?,
+    serialNo: row['AssetSerialNo'] as String?,
+    calDate: psDate(row['AssetNextServiceDate']),
+    // The row is on the device because sync put it there, so "when did this
+    // reach us" is now, not a stored column.
+    syncedAt: DateTime.now(),
   );
 }
