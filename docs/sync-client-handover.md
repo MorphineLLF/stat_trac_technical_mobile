@@ -474,3 +474,116 @@ them, so what is missing is transport from a handset. **A certificate is not
 valid without its signatures**, so an upload path that carries everything else
 still does not produce a usable certificate. Worth solving alongside rather
 than after.
+
+---
+
+## 11. The upload contract — RESOLVED 2026-09-05, correcting §10
+
+**§10 was wrong on its central claim.** It said the endpoint did not exist and
+"what is missing is the doorway, not the logic". Both halves were wrong, and
+the second one mattered.
+
+The mistake: `sync_push.go` is in **`C:\Users\HomePC\stat_trac_api_go`** — the
+**rep API** on :9000, which serves the sales handsets. The technician upload
+path is in `C:\Delphi\GitHub_Stat_Trac_Go`, the same server that mints the
+device token. Two Go codebases; I read a filename and assumed one.
+
+### The route — it exists and has since 2026-09-05
+
+```
+POST /{company}/sync/upload        Bearer device token (a cookie gets 403)
+{"ops":[
+  {"table":"TestCertificate","mobile_id":"<uuid v4>","seen_at":null,
+   "data":{"TestAssetID":9304,"TestDate":"...", ...}},
+  {"table":"TestOutput","mobile_id":"<uuid v4>",
+   "data":{"TestOutputCertID":123, ...}}
+]}
+
+200 -> {"applied":n,"assigned":{"<mobile_id>":<server pk>}}
+409 -> nothing applied, conflicts listed
+400 -> a client bug; the message says which
+```
+
+Verified in the Go repo: `cmd/stattrac/main.go:298`, `cmd/stattrac/syncupload.go`,
+`internal/stats/syncupload.go`. Max 500 ops, 1 MB body.
+
+Writable: `Repair`, `RepairDetail`, `RepairProgress`, `TestCertificate`,
+`TestOutput`. **`AssetPmTask` is deliberately not writable.** Columns are
+allowlisted and an unlisted column is **dropped silently, not refused**, so a
+schema skew still uploads what the server understands. `SyncHospital` and
+`SyncUpdatedAt` are never writable — the server sets them by trigger.
+
+`TestMobileID` idempotency is built: `on conflict ("TestMobileID") do update`,
+partial unique index, and the pk returned with `(xmax = 0)` to distinguish an
+insert from a retry. Generate canonical UUIDv4 on the device.
+
+### WARNING — the endpoint does NOT issue the certificate
+
+Confirmed by grep: `syncupload.go` never calls `IssueCertificate`,
+`setPmScheduleFromCertificate` or `CertPmEffect`, and `TestTotalTest`,
+`TestTotalDone` and `TestNextService` are not in the writable column list.
+
+It is a generic allowlisted upsert. A certificate uploaded through it lands as
+a **row**, not as an issued certificate:
+
+- the completeness checks never run (`ErrIncompleteTests` / `ErrIncompleteValues`)
+- `TestNextService` is not set
+- the PM schedule does not move, no PM work order is completed, no job card is
+  written — every rule in §8 and in `certificate_nextservice.go` is on the
+  desktop path only
+- the void / already-issued refusals do not apply
+
+In the Go session's words: *"a document that looks complete on your screen and
+is evidence of nothing on the server."*
+
+**So the contract still being waited on is not the route — it is whether a
+`TestCertificate` op carries an issue intent that runs `IssueCertificate`'s
+transaction.** Their proposal, with the user: a separate op kind in the same
+batch, applied after the rows, carrying verdict / notes / next_service /
+complete_pm_work_order / complete_pm_job_card. One doorway, one transaction,
+one all-or-nothing rule.
+
+### What can be built today
+
+Point `uploadData()` at the route and send the certificate with its
+`TestOutput` lines in one batch. **That stops the silent data loss** — the
+record reaches the server, gets a pk, gets its hospital by trigger, gets audit
+rows, and comes back down through PowerSync so the list shows it. Nothing built
+now is wasted when the issue op lands.
+
+The wizard's Save must then say what actually happened: the record is safely on
+the server but is **not yet a valid certificate**.
+
+### The 409 conflict payload — built, and how to consume it
+
+```json
+{"applied":0,
+ "conflicts":[{"table":"TestCertificate","mobile_id":"9ba75859...",
+   "seen_at":"2020-01-01T00:00:00Z","server_at":"2026-09-05T12:44:27Z",
+   "fields":[
+     {"field":"TestDate","mine":"2026-09-05","server":"2026-01-31","differs":true},
+     {"field":"TestTech","mine":"A Tech","server":"A Tech","differs":false}]}]}
+```
+
+Every column the op set is listed, **not only the differing ones** — someone
+choosing between two versions of a certificate needs to see the readings that
+agree as well as the one that does not.
+
+Two rules for consuming it, both load-bearing:
+
+1. **Trust `differs`; never re-derive it.** It is PostgreSQL's answer —
+   `"TestDate" is distinct from $2` with the device's value bound as a
+   parameter, so the database coerces it exactly as the insert would. This
+   matters specifically because the app sends JSON: an integer column arrives
+   as `float64` and a date as a string, so a text comparison would call `9304`
+   and `9304.0` different and show a technician a conflict that does not exist.
+2. **`mine` and `server` are both text — render them, do not parse.** `server`
+   is PostgreSQL's own `::text` rendering, empty for null. Parsing it back into
+   a typed value and comparing is the exact mistake `differs` exists to prevent.
+
+`fields` is purely additive; the rest of the body is unchanged.
+
+**Not verified end to end:** a real 409 over HTTP. The service layer is tested
+against the real database and the handler encodes the struct directly, but
+producing one needs a committed row carrying a mobile id, which is a write to
+demo and the user's call to authorise.
