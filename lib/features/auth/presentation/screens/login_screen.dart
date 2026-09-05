@@ -92,8 +92,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextFormField(
                       controller: _dbNameController,
                       decoration: const InputDecoration(
-                        labelText: 'Database Name',
-                        prefixIcon: Icon(Icons.dns_outlined),
+                        // The tenant key, e.g. "demo". It is a path segment in
+                        // the Go API's URLs, not a database name -- the Horse
+                        // era named it that and the stored key is still
+                        // db_name for compatibility with existing installs.
+                        labelText: 'Company',
+                        helperText: 'Asked once, then remembered',
+                        prefixIcon: Icon(Icons.business_outlined),
                         border: OutlineInputBorder(),
                       ),
                       textInputAction: TextInputAction.next,

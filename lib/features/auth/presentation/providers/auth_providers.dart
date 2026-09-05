@@ -5,8 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../../core/config/app_config.dart';
 import '../../data/datasources/auth_local_data_source.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
+import '../../data/datasources/sync_token_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
-import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -39,10 +39,25 @@ AuthRemoteDataSource authRemoteDataSource(Ref ref) {
   );
 }
 
+/// The Go application's token endpoints. No interceptor: sign-in is what
+/// produces the token, so it cannot require one.
+@riverpod
+SyncTokenRemoteDataSource syncTokenRemoteDataSource(Ref ref) {
+  return SyncTokenRemoteDataSourceImpl(
+    Dio(
+      BaseOptions(
+        baseUrl: AppConfig.baseUrl,
+        connectTimeout: AppConfig.connectTimeout,
+        receiveTimeout: AppConfig.receiveTimeout,
+      ),
+    ),
+  );
+}
+
 @riverpod
 AuthRepository authRepository(Ref ref) {
   return AuthRepositoryImpl(
-    remote: ref.watch(authRemoteDataSourceProvider),
+    syncTokens: ref.watch(syncTokenRemoteDataSourceProvider),
     local: ref.watch(authLocalDataSourceProvider),
   );
 }
@@ -65,12 +80,13 @@ class AuthNotifier extends _$AuthNotifier {
         : const AuthUnauthenticated();
   }
 
-  Future<void> login(String username, String password, String dbName) async {
+  Future<void> login(String username, String password, String company) async {
     state = const AuthInitial();
     try {
-      await ref.read(authRepositoryProvider).login(username, password, dbName);
-      final user = await ref.read(authRepositoryProvider).getCurrentUser();
-      state = AuthAuthenticated(user ?? _unknownUser);
+      final user = await ref
+          .read(authRepositoryProvider)
+          .login(username, password, company);
+      state = AuthAuthenticated(user);
     } on Exception catch (e) {
       state = AuthUnauthenticated(errorMessage: _friendlyError(e));
     }
@@ -81,15 +97,6 @@ class AuthNotifier extends _$AuthNotifier {
     state = const AuthUnauthenticated();
   }
 }
-
-// Placeholder until /auth/me endpoint is available (§6 of spec).
-const _unknownUser = User(
-  id: 0,
-  name: '',
-  email: '',
-  role: UserRole.technician,
-  technicianCode: '',
-);
 
 String _friendlyError(Exception e) {
   final msg = e.toString().toLowerCase();

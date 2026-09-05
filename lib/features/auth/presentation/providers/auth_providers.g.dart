@@ -152,6 +152,62 @@ final class AuthRemoteDataSourceProvider
 String _$authRemoteDataSourceHash() =>
     r'066d97a7a49af87ab27c32173232e21247e84685';
 
+/// The Go application's token endpoints. No interceptor: sign-in is what
+/// produces the token, so it cannot require one.
+
+@ProviderFor(syncTokenRemoteDataSource)
+final syncTokenRemoteDataSourceProvider = SyncTokenRemoteDataSourceProvider._();
+
+/// The Go application's token endpoints. No interceptor: sign-in is what
+/// produces the token, so it cannot require one.
+
+final class SyncTokenRemoteDataSourceProvider
+    extends
+        $FunctionalProvider<
+          SyncTokenRemoteDataSource,
+          SyncTokenRemoteDataSource,
+          SyncTokenRemoteDataSource
+        >
+    with $Provider<SyncTokenRemoteDataSource> {
+  /// The Go application's token endpoints. No interceptor: sign-in is what
+  /// produces the token, so it cannot require one.
+  SyncTokenRemoteDataSourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'syncTokenRemoteDataSourceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$syncTokenRemoteDataSourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<SyncTokenRemoteDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SyncTokenRemoteDataSource create(Ref ref) {
+    return syncTokenRemoteDataSource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SyncTokenRemoteDataSource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SyncTokenRemoteDataSource>(value),
+    );
+  }
+}
+
+String _$syncTokenRemoteDataSourceHash() =>
+    r'a5e4f20d3df31815c240e4c230e774e489faca3d';
+
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
 
@@ -191,7 +247,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'76fdb71dda484471ad2b80151cd99990b7872349';
+String _$authRepositoryHash() => r'48db3bd3e440ce70a40b2cca2071d8d055df57bb';
 
 @ProviderFor(AuthNotifier)
 final authProvider = AuthNotifierProvider._();
@@ -225,7 +281,7 @@ final class AuthNotifierProvider
   }
 }
 
-String _$authNotifierHash() => r'e8f477a8ea3b7ec6dfb45608a93138f05a35f3b2';
+String _$authNotifierHash() => r'a8bdcf93d09882db95974f99393f1ada8873be87';
 
 abstract class _$AuthNotifier extends $Notifier<AuthState> {
   AuthState build();

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/auth_token_model.dart';
+import '../models/device_token_model.dart';
 import '../models/user_model.dart';
 
 abstract interface class AuthLocalDataSource {
@@ -15,6 +16,11 @@ abstract interface class AuthLocalDataSource {
   Future<void> saveDbName(String dbName);
   Future<String?> readDbName();
   Future<void> clearDbName();
+
+  /// The ninety-day device token from `POST /{company}/device/token`.
+  Future<void> saveDeviceToken(DeviceTokenModel token);
+  Future<DeviceTokenModel?> readDeviceToken();
+  Future<void> clearDeviceToken();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -25,6 +31,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
   static const _dbNameKey = 'db_name';
+  static const _deviceTokenKey = 'device_token';
 
   @override
   Future<void> saveToken(AuthTokenModel token) async {
@@ -73,5 +80,25 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> clearDbName() async {
     await _storage.delete(key: _dbNameKey);
+  }
+
+  @override
+  Future<void> saveDeviceToken(DeviceTokenModel token) async {
+    await _storage.write(
+      key: _deviceTokenKey,
+      value: jsonEncode(token.toJson()),
+    );
+  }
+
+  @override
+  Future<DeviceTokenModel?> readDeviceToken() async {
+    final raw = await _storage.read(key: _deviceTokenKey);
+    if (raw == null) return null;
+    return DeviceTokenModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> clearDeviceToken() async {
+    await _storage.delete(key: _deviceTokenKey);
   }
 }
