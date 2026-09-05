@@ -588,13 +588,14 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
               error: (e, _) =>
                   Center(child: Text('Error loading equipment: $e')),
               data: (assets) {
-                final available = assets
-                    .where((a) => !excludeAssetIds.contains(a.assetId))
-                    .toList()
-                  ..sort((a, b) {
-                    if (a.isCalExpired == b.isCalExpired) return 0;
-                    return a.isCalExpired ? 1 : -1;
-                  });
+                final available =
+                    assets
+                        .where((a) => !excludeAssetIds.contains(a.assetId))
+                        .toList()
+                      ..sort((a, b) {
+                        if (a.isUsable == b.isUsable) return 0;
+                        return a.isUsable ? -1 : 1;
+                      });
                 if (available.isEmpty) {
                   return Center(
                     child: Column(
@@ -615,8 +616,9 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                     ),
                   );
                 }
-                final selectableCount =
-                    available.where((a) => !a.isCalExpired).length;
+                final selectableCount = available
+                    .where((a) => a.isUsable)
+                    .length;
                 final expiredCount = available.length - selectableCount;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,9 +638,7 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                             ),
                             Text(
                               '$expiredCount expired',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: const Color(0xFFC62828)),
                             ),
                           ],
@@ -651,96 +651,113 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                         controller: controller,
                         itemCount: available.length,
                         itemBuilder: (_, i) {
-                    final a = available[i];
-                    final expired = a.isCalExpired;
-                    final calText = a.calDate != null
-                        ? 'Next Cal: ${DateFormat('dd MMM yyyy').format(a.calDate!)}'
-                        : null;
+                          final a = available[i];
+                          // Not selectable covers two different states: past its
+                          // calibration date, and never given one. Both mean the
+                          // instrument is not proven in calibration, so neither may
+                          // go on a certificate — but they are worded differently,
+                          // because "EXPIRED" on an undated instrument sends a
+                          // technician hunting for a lapsed certificate that never
+                          // existed.
+                          final expired = !a.isUsable;
+                          final undated = !a.hasCalDate;
+                          final calText = a.calDate != null
+                              ? 'Next Cal: ${DateFormat('dd MMM yyyy').format(a.calDate!)}'
+                              // Said plainly rather than left blank: a missing line
+                              // reads as "no problem", and this is the reason the
+                              // instrument cannot be used.
+                              : 'No calibration date recorded';
 
-                    return ListTile(
-                      enabled: !expired,
-                      leading: Icon(
-                        Icons.biotech_outlined,
-                        color: expired ? const Color(0xFFC62828) : brandTeal,
-                      ),
-                      title: Text(
-                        a.equipmentType ?? a.displayName,
-                        style: TextStyle(
-                          color: expired ? const Color(0xFFC62828) : null,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (a.displayName.isNotEmpty &&
-                              a.equipmentType != null)
-                            Text(
-                              a.displayName,
+                          return ListTile(
+                            enabled: !expired,
+                            leading: Icon(
+                              Icons.biotech_outlined,
+                              color: expired
+                                  ? const Color(0xFFC62828)
+                                  : brandTeal,
+                            ),
+                            title: Text(
+                              a.equipmentType ?? a.displayName,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: expired
-                                    ? const Color(0xFFC62828)
-                                    : brandGrey,
+                                color: expired ? const Color(0xFFC62828) : null,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          if (a.serialNo != null)
-                            Text(
-                              'S/N: ${a.serialNo}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: expired
-                                    ? const Color(0xFFC62828)
-                                    : brandGrey,
-                              ),
-                            ),
-                          if (calText != null)
-                            Text(
-                              calText,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: expired
-                                    ? const Color(0xFFC62828)
-                                    : brandGrey,
-                              ),
-                            ),
-                        ],
-                      ),
-                      isThreeLine: true,
-                      trailing: expired
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFC62828).withAlpha(20),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: const Color(0xFFC62828),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (a.displayName.isNotEmpty &&
+                                    a.equipmentType != null)
+                                  Text(
+                                    a.displayName,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: expired
+                                          ? const Color(0xFFC62828)
+                                          : brandGrey,
+                                    ),
+                                  ),
+                                if (a.serialNo != null)
+                                  Text(
+                                    'S/N: ${a.serialNo}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: expired
+                                          ? const Color(0xFFC62828)
+                                          : brandGrey,
+                                    ),
+                                  ),
+                                // Always shown now — the "no calibration date" case
+                                // is the reason an instrument is unusable, so it
+                                // must not be the one line that is hidden.
+                                Text(
+                                  calText,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: expired
+                                        ? const Color(0xFFC62828)
+                                        : brandGrey,
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'EXPIRED',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFC62828),
-                                ),
-                              ),
-                            )
-                          : const Icon(Icons.chevron_right, size: 18),
-                      onTap: expired
-                          ? null
-                          : () => Navigator.of(
-                              context,
-                            ).pop(TestEquipmentSelection.fromAsset(a)),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
+                              ],
+                            ),
+                            isThreeLine: true,
+                            trailing: expired
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFC62828,
+                                      ).withAlpha(20),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: const Color(0xFFC62828),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      undated ? 'NO CAL DATE' : 'EXPIRED',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFFC62828),
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(Icons.chevron_right, size: 18),
+                            onTap: expired
+                                ? null
+                                : () => Navigator.of(
+                                    context,
+                                  ).pop(TestEquipmentSelection.fromAsset(a)),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
               },
             ),
           ),

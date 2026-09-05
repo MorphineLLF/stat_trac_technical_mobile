@@ -23,6 +23,26 @@ table names.** Provenance is at the end.
 
 ---
 
+> ## ⛔ NEVER USE THE HORSE-ERA MAPPING FOR ANYTHING
+>
+> **Do not read, consult, copy or "check against" the retired Horse code when
+> deciding what a field means.** Not the old models, not the old data sources,
+> not the old local tables, not `*_model.dart` `fromJson` factories written for
+> the Horse API. They describe an API that no longer exists, and treating them
+> as a reference reintroduces decisions that were already retired.
+>
+> **The only authorities are:**
+>
+> 1. `lib/sync/powersync_schema.dart` — generated from the live database
+> 2. The Go repository — `C:\Delphi\GitHub_Stat_Trac_Go`
+> 3. `docs/sync-client-handover.md` — the agreed contract with the Go side
+>
+> If a field's meaning is unclear, ask the Go session or read the Go source.
+> Do not infer it from Horse-era code, and do not cite Horse-era code as
+> evidence for anything.
+
+---
+
 ## 1. What this application is
 
 An Android field-service app for technicians: preventive maintenance,
