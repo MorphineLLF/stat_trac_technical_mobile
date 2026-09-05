@@ -587,3 +587,110 @@ Two rules for consuming it, both load-bearing:
 against the real database and the handler encodes the struct directly, but
 producing one needs a committed row carrying a mobile id, which is a write to
 demo and the user's call to authorise.
+
+---
+
+## 12. Issuing a certificate — the contract is FIXED, 2026-09-05
+
+`"action":"issue"` on the same `POST /{company}/sync/upload`. This is the
+contract the wizard UI was being held for. It is settled; build against it.
+
+### One batch
+
+Row ops apply first regardless of arrival order, so the readings are on the
+certificate before it is issued.
+
+```json
+{"ops":[
+  {"table":"TestCertificate","mobile_id":"<cert uuid>","data":{ }},
+  {"table":"TestOutput","mobile_id":"<line uuid>","data":{ }},
+  {"table":"TestCertificate","mobile_id":"<cert uuid>","action":"issue",
+   "data":{"verdict":1,"notes":"...","next_service":"2027-09-05",
+           "complete_pm_work_order":true,"complete_pm_job_card":false}}
+]}
+```
+
+The issue op names its certificate by the **same `mobile_id`** as the row op.
+Resolved from the batch first, from `TestMobileID` otherwise — so a certificate
+uploaded last week can be issued today. `200` gains `"issued":["<cert uuid>"]`;
+`applied` still counts row ops only. Omitting `action` is unchanged behaviour.
+
+**It calls `IssueCertificate`.** Not a reimplementation — the completeness
+rules, the totals, `TestNextService`, `setPmScheduleFromCertificate` and the
+work order all run exactly as they do at a desk. Everything in §8 and
+`certificate_nextservice.go` applies.
+
+### Four things that will catch a skim-read
+
+1. **`verdict` is required and never defaulted.** `0` is Non-Compliant — the
+   most serious verdict there is — so a missing verdict is *rejected* rather
+   than read as a failure. **Make the technician choose.** It is a pointer
+   server-side specifically so this cannot go wrong silently.
+2. **Unknown fields are REFUSED, not dropped.** This is the opposite of the
+   column allowlist on row ops, and deliberately so: a dropped column is a
+   field the office fills in anyway, but a dropped `complete_pm_work_order` is
+   a work order left open that everybody believes is closed. Spell the five
+   exactly — there is a server test that `complete_pm_workorder` is rejected.
+3. **`next_service` is conditional on the template's design.** Where Next
+   Service Due is ticked it is required and refused if missing; where it is not,
+   one sent is ignored. When kept it writes `TestNextService` **and** the PM
+   task's schedule date — including no computed date for a meter task
+   (`isMeterBased`, already on `AssetPmTask`) and no date move while a work
+   order is open unless it is being completed.
+4. **The test date is not in this payload.** It is whatever is on the
+   certificate from when the test started. Issuing does not ask twice.
+
+### 422 is a new status and it is not 400
+
+```json
+{"applied":0,
+ "rejections":[{"table":"TestCertificate","mobile_id":"...",
+                "reason":"incomplete_tests",
+                "message":"not every test has been marked pass, fail or N/A"}]}
+```
+
+**`400` means the app is broken and the fix is in the app. `422` means the
+request was understood perfectly and the answer is no** — that is a sentence
+for the technician, and retrying the same batch will never help.
+
+Switch on `reason`; display `message` (wording may improve, the code will not):
+`incomplete_tests`, `incomplete_values`, `already_issued`, `void`, `not_found`,
+`invalid` (with `field`).
+
+**`not_found` also means out of scope.** A person who may not see a certificate
+is not told it exists — the same convention as everywhere else here.
+
+**One rejection refuses the whole batch**, exactly as one conflict does. Keep
+the queue, show the message, fix it on the device, send again.
+
+### Verified / not verified
+
+Verified server-side: twelve new tests, ten against the real database — the
+happy path asserting `TestTotalTest` and `TestTotalDone` equal the actual line
+count (the thing a row op could never produce), a chosen `0` accepted, a
+missing verdict refused, an unanswered line rejected, already-issued, void,
+unknown mobile id, unknown field, a bad date, and the scope bound. Nothing
+committed; every test rolls back.
+
+**Not verified:** a real 200 or 422 over HTTP. Needs a device token and a
+committed row, which is a write to demo and the user's call.
+
+---
+
+## 13. Decisions that closed themselves, 2026-09-05
+
+**Test equipment global bucket — BUILT.** `deploy/powersync/sync-rules.yaml`
+line 84. Analysers live at the company depot; bucketing them `by_hospital`
+reached only 5 of 7 technicians on demo and 2 of 4 on safeline, and an empty
+analyser picker blocks issuing a certificate entirely. A row can sit in two
+buckets under one id, so an analyser that is also somebody's asset keeps its
+`by_hospital` copy and nothing duplicates. **Nothing for this app to wait on.**
+
+**`AssetMobileID` — not a live question.** Migration 025 was withdrawn and
+reversed the same day on the user's instruction, and the column was dropped.
+`Asset` is back to 63 columns, verified. Raised on a premise that was never
+true (see §8's note on the provisional-asset rule) and now fully unwound.
+
+**Still open, and now the only thing between a handset and a complete
+certificate: signatures.** `bytea` crosses neither the sync stream nor the
+write allowlist. A certificate is not valid without them.
