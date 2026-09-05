@@ -60,21 +60,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
   }
 
-  void _showSyncErrors(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => _SyncErrorSheet(
-        onRetry: () {
-          Navigator.of(context).pop();
-          ref.read(syncProvider.notifier).triggerSync();
-        },
-      ),
-    );
-  }
+  // _showSyncErrors removed with the Horse-era badge that opened it. The
+  // error sheet listed sync_error_log rows that can no longer be resolved.
 
   void _onNavTap(int index) {
     if (index == 1) {
@@ -96,9 +83,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncProvider);
-    final isSyncing = syncState is SyncInProgress;
-    final badgeCount =
-        ref.watch(unresolvedSyncErrorCountProvider).asData?.value ?? 0;
 
     ref.listen(syncProvider, (_, next) {
       if (next is SyncError) {
@@ -176,21 +160,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: _SyncDonePill(lastSyncedAt: syncState.lastSyncedAt),
             ),
-          Badge(
-            isLabelVisible: badgeCount > 0,
-            label: Text('$badgeCount'),
-            child: IconButton(
-              icon: const Icon(Icons.sync),
-              tooltip: badgeCount > 0
-                  ? 'Sync errors — tap to view'
-                  : 'Sync now',
-              onPressed: isSyncing
-                  ? null
-                  : badgeCount > 0
-                  ? () => _showSyncErrors(context, ref)
-                  : () => ref.read(syncProvider.notifier).triggerSync(),
-            ),
-          ),
+          // The Horse-era sync badge and its manual trigger are REMOVED.
+          //
+          // The badge counted unresolved rows in sync_error_log, and those are
+          // cleared only by a SUCCESSFUL Horse sync -- which can never happen
+          // again, because that engine is disabled and its endpoints 404. So
+          // the badge was stuck permanently at 1 from the last 404 before it
+          // was switched off, reporting failure while PowerSync was healthy.
+          //
+          // That is the rule from docs/STATE-2026-09-05.md: an indicator must
+          // be able to reach every state reality can reach, including the good
+          // one. Retiring the engine without retiring its error surface left
+          // exactly that defect behind. PowerSync's own status is shown by
+          // _PowerSyncStatus, which can reach every state.
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
@@ -780,139 +762,8 @@ class _ActionButton extends StatelessWidget {
 
 // ── Sync error sheet ──────────────────────────────────────────────────────────
 
-class _SyncErrorSheet extends ConsumerWidget {
-  const _SyncErrorSheet({required this.onRetry});
-  final VoidCallback onRetry;
-
-  static const _labels = <String, String>{
-    'sync_assets': 'Asset sync failed',
-    'sync_templates': 'Template sync failed',
-    'sync_test_equipment': 'Test equipment sync failed',
-    'push_certificates': 'Certificate upload failed',
-    'pull_certificates': 'Certificate download failed',
-  };
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final errorsAsync = ref.watch(unresolvedSyncErrorsProvider);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Sync Errors',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'These operations failed on the last sync.\nTapping Retry will attempt them again.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: brandGrey),
-          ),
-          const SizedBox(height: 16),
-          errorsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Could not load errors: $e'),
-            data: (errors) => errors.isEmpty
-                ? const Text('No unresolved errors.')
-                : Column(
-                    children: errors
-                        .map((e) => _ErrorTile(entry: e, labels: _labels))
-                        .toList(),
-                  ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              icon: const Icon(Icons.sync),
-              label: const Text('Retry Sync'),
-              onPressed: onRetry,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorTile extends StatelessWidget {
-  const _ErrorTile({required this.entry, required this.labels});
-  final SyncErrorEntry entry;
-  final Map<String, String> labels;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = labels[entry.operation] ?? entry.operation;
-    final ago = _timeAgo(entry.occurredAt);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.error_outline, size: 18, color: brandError),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        label,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      ago,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: brandGrey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                SelectableText(
-                  entry.errorMessage,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: brandGrey),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _timeAgo(DateTime t) {
-    final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
-  }
-}
+// _SyncErrorSheet removed with the Horse-era badge: it listed sync_error_log
+// rows that no successful sync can ever resolve.
 
 class _SyncDonePill extends StatelessWidget {
   const _SyncDonePill({required this.lastSyncedAt});
