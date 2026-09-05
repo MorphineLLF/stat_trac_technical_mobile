@@ -65,5 +65,11 @@ Future<AssetStats> assetStats(Ref ref) =>
 // ── Detail ────────────────────────────────────────────────────────────────────
 
 @riverpod
-Future<AssetDetail> assetDetail(Ref ref, int assetId) =>
-    ref.watch(assetRepositoryProvider).getAssetDetail(assetId);
+Future<AssetDetail> assetDetail(Ref ref, int assetId) async {
+  final ds = await ref.watch(powerSyncAssetsProvider.future);
+  final detail = await ds.getAssetDetail(assetId);
+  if (detail == null) {
+    throw StateError('Asset $assetId is not on this device');
+  }
+  return detail;
+}

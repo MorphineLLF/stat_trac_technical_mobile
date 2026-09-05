@@ -1,6 +1,7 @@
 import 'package:powersync/powersync.dart';
 
 import '../domain/entities/asset.dart';
+import '../domain/entities/asset_detail.dart';
 import 'datasources/asset_local_data_source.dart' show AssetStats;
 import 'powersync_asset_mapper.dart';
 
@@ -117,5 +118,17 @@ class PowerSyncAssetDataSource {
       serviceDue: n(r['service_due']),
       condemned: n(r['condemned']),
     );
+  }
+
+  /// The full detail record, read locally.
+  ///
+  /// Was a Horse REST call. Reading from the device instead is both correct
+  /// (that API is gone) and what offline-first demands.
+  Future<AssetDetail?> getAssetDetail(int assetId) async {
+    final rows = await _db.getAll(
+      'SELECT * FROM "Asset" WHERE "AssetID" = ?1 LIMIT 1',
+      [assetId],
+    );
+    return rows.isEmpty ? null : assetDetailFromPowerSync(rows.first);
   }
 }

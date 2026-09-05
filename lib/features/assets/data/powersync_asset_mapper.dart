@@ -1,5 +1,6 @@
 import '../../../sync/powersync_types.dart';
 import '../domain/entities/asset.dart';
+import '../domain/entities/asset_detail.dart';
 
 /// Maps a row from PowerSync's `Asset` table onto the app's [Asset].
 ///
@@ -40,5 +41,52 @@ Asset assetFromPowerSync(Map<String, Object?> row) {
     syncedAt: psDate(row['AssetUserDate']),
     createdAt: psDate(row['AssetUserDate']) ?? DateTime(1970),
     updatedAt: psDate(row['AssetUserDate']) ?? DateTime(1970),
+  );
+}
+
+/// Maps a row from PowerSync's `Asset` table onto the full detail view.
+///
+/// This replaces a call to the Horse REST API, which no longer exists — the
+/// detail screen was fetching over the network for data already sitting on the
+/// device. Reading it locally is also what the offline-first rule requires: a
+/// technician opening an asset in a basement should not need signal.
+///
+/// `AssetPurchasePrice` and `AssetServicePlanValue` are Postgres numerics and
+/// arrive as strings, so they go through [psNum].
+AssetDetail assetDetailFromPowerSync(Map<String, Object?> row) {
+  return AssetDetail(
+    assetId: psInt(row['AssetID']) ?? 0,
+    equipmentType: row['AssetEquipmentType'] as String?,
+    model: row['AssetModel'] as String?,
+    manufacturer: row['AssetManufacturer'] as String?,
+    serialNumber: row['AssetSerialNo'] as String?,
+    barcode: row['AssetBarcode'] as String?,
+    hospital: row['AssetHospital'] as String?,
+    hospitalGroup: row['AssetHospitalGroup'] as String?,
+    location: row['AssetLocation'] as String?,
+    condition: row['AssetCondition'] as String?,
+    notes: row['AssetNotes'] as String?,
+    softwareVersion: row['AssetSoftwareVer'] as String?,
+    accessories: row['AssetAccessories'] as String?,
+    isActive: psBool(row['AssetActive']),
+    isCondemned: psBool(row['AssetCondemned']),
+    isLoan: psBool(row['AssetLoan']),
+    isDemo: psBool(row['AssetDemo']),
+    risk: psInt(row['AssetRisk']),
+    assetType: psInt(row['AssetType']),
+    moduletype: psInt(row['AssetModuleType']),
+    hours: psInt(row['AssetHours']),
+    nextServiceDate: psDate(row['AssetNextServiceDate']),
+    lastServiceDate: psDate(row['AssetLastServiceDate']),
+    warrantyDateStart: psDate(row['AssetWarrantyDateStart']),
+    warrantyEndDate: psDate(row['AssetWarrantyEndDate']),
+    warrantyPeriod: psInt(row['AssetWarrantyPeriod']),
+    hasServicePlan: psBool(row['AssetServicePlan']),
+    servicePlanStartDate: psDate(row['AssetServicePlanStartDate']),
+    servicePlanExpDate: psDate(row['AssetServicePlanExpDate']),
+    servicePlanValue: psNum(row['AssetServicePlanValue']),
+    manufactureDate: psDate(row['AssetManufactureDate']),
+    deliverDate: psDate(row['AssetDeliverDate']),
+    commissionDate: psDate(row['AssetCommissionDate']),
   );
 }

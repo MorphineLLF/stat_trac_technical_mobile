@@ -431,7 +431,7 @@ final class AssetDetailProvider
   }
 }
 
-String _$assetDetailHash() => r'7ca85aed7f7e091dea4effbc8ff8f1f4600eda8f';
+String _$assetDetailHash() => r'6da48e12d19fdf2e541c9c8951e4ba5122274c8d';
 
 final class AssetDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<AssetDetail>, int> {
