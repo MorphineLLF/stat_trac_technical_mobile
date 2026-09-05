@@ -16,6 +16,7 @@ import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
+import '../../../../sync/upload/upload_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -43,6 +44,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       // PowerSync schema -- that is the remaining migration work, tracked in
       // docs/superpowers/specs/2026-09-05-powersync-migration-design.md.
       // ref.read(syncProvider.notifier).triggerSync();
+
+    // Uploads ARE driven from here. PowerSync only pulls; a certificate the
+    // technician finished goes out through our own outbox, and something has
+    // to start it.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _drainUploads());
+  }
+
+  /// Sends whatever is waiting in the outbox.
+  ///
+  /// Safe to call at any time: it does nothing when the queue is empty or
+  /// nobody is signed in, and it stops itself the moment the server cannot be
+  /// reached rather than working through a queue that will fail identically.
+  Future<void> _drainUploads() async {
+    try {
+      final worker = await ref.read(uploadWorkerProvider.future);
+      final result = await worker.drain();
+      if (result.attempted > 0 && mounted) {
+        ref.invalidate(pendingUploadCountProvider);
+      }
+    } on Exception {
+      // Never surfaced here. A failed drain leaves the work queued, which is
+      // the whole point of the queue -- and an error banner on the dashboard
+      // for something that will retry on its own trains people to ignore
+      // banners.
+    }
   }
 
   @override
@@ -57,6 +83,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       // Horse-era sync disabled -- see initState. PowerSync reconnects on
       // its own when the app resumes.
       // ref.read(syncProvider.notifier).triggerSync();
+
+      // Coming back to the app is the most likely moment for signal to have
+      // returned -- a technician walking out of a basement.
+      _drainUploads();
     }
   }
 
@@ -103,6 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         title: Text(userName.isNotEmpty ? 'Hi, $userName' : 'Dashboard'),
         actions: [
           const _PowerSyncStatus(),
+          const _PendingUploads(),
           if (syncState is SyncInProgress)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -901,6 +932,45 @@ class _StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Center(
         child: tooltip == null ? chip : Tooltip(message: tooltip!, child: chip),
+      ),
+    );
+  }
+}
+
+/// How much finished work has not reached the server.
+///
+/// Shown only when there is something waiting, because a permanent zero is
+/// noise — and hidden when it clears, so the indicator can reach every state
+/// including the good one.
+class _PendingUploads extends ConsumerWidget {
+  const _PendingUploads();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(pendingUploadCountProvider).asData?.value ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Center(
+        child: Tooltip(
+          message: '$count certificate${count == 1 ? '' : 's'} not yet sent',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.upload_file, size: 18, color: Color(0xFFFFB300)),
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFFFB300),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

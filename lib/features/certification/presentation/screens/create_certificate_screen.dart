@@ -184,6 +184,18 @@ class _CreateCertificateScreenState
 
     final queue = await ref.read(uploadQueueProvider.future);
     await queue.enqueue(upload);
+
+    // Try immediately. A technician normally still has signal when they
+    // finish a job, and waiting for the next dashboard visit would leave the
+    // record on the device for no reason. If it fails it stays queued, which
+    // is exactly what the queue is for -- so the failure is not surfaced
+    // here.
+    try {
+      final worker = await ref.read(uploadWorkerProvider.future);
+      await worker.drain();
+    } on Exception {
+      // Queued is a good enough outcome to report.
+    }
   }
 
   // Updates the saved cert record with signatures.
