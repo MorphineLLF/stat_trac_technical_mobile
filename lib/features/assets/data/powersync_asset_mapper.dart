@@ -18,8 +18,8 @@ Asset assetFromPowerSync(Map<String, Object?> row) {
     // no separate local identity to reconcile any more.
     id: assetId ?? 0,
     assetId: assetId,
-    equipmentType: (row['AssetEquipmentType'] as String?)?.trim().isNotEmpty ==
-            true
+    equipmentType:
+        (row['AssetEquipmentType'] as String?)?.trim().isNotEmpty == true
         ? (row['AssetEquipmentType']! as String).trim()
         // Never blank: the picker renders this as the primary line, and an
         // empty row is indistinguishable from a broken one.

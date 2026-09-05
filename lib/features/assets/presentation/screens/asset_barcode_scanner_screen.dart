@@ -38,34 +38,30 @@ class _AssetBarcodeScannerScreenState
         ),
       );
     } else {
-      // Asset not found — prompt for provisional registration.
-      final confirmed = await showDialog<bool>(
+      // Asset not found. Registration is the office's, so there is nothing
+      // to offer here beyond telling the technician what happened — and that
+      // a machine missing from the tablet is a question for the office, not a
+      // gap the technician can fill.
+      await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Asset Not Found'),
           content: Text(
-            'No asset with barcode "$barcode" in local database.\n\n'
-            'Register as a provisional asset?',
+            'No asset with barcode "$barcode" has synced to this device. '
+            'If the equipment is new, the office needs to register it before '
+            'it can be worked on.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Register Provisional'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
             ),
           ],
         ),
       );
 
       if (mounted) {
-        if (confirmed == true) {
-          Navigator.of(context).pop(); // Back to list — picker handles form
-        } else {
-          setState(() => _handled = false); // Allow next scan
-        }
+        setState(() => _handled = false); // Allow next scan
       }
     }
   }

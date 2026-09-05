@@ -526,7 +526,6 @@ class _AssetTile extends StatelessWidget {
 
   Color get _accentColor {
     if (asset.isCondemned) return brandGrey;
-    if (asset.isProvisional) return const Color(0xFFF57F17);
     if (asset.isServiceDue) return brandError;
     return brandTeal;
   }
@@ -558,7 +557,7 @@ class _AssetTile extends StatelessWidget {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Provisional asset — pending admin registration'),
+              content: Text('Asset registration is handled by the office'),
             ),
           );
         }
@@ -597,8 +596,6 @@ class _AssetTile extends StatelessWidget {
                             _StatusBadge('SVC DUE', brandError),
                           if (asset.isCondemned)
                             _StatusBadge('CONDEMNED', brandGrey),
-                          if (asset.isProvisional)
-                            _StatusBadge('PROV', const Color(0xFFF57F17)),
                         ],
                       ),
                       if (makeModel.isNotEmpty) ...[

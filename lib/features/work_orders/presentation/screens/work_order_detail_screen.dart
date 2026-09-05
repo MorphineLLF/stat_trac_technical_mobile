@@ -215,8 +215,6 @@ class _AsyncAssetRowState extends State<_AsyncAssetRow> {
       icon: Icons.medical_services_outlined,
       label: 'Asset',
       value: _asset!.displayName,
-      badge: _asset!.isProvisional ? 'PROVISIONAL' : null,
-      badgeColor: const Color(0xFFF57F17),
     );
   }
 }
@@ -545,15 +543,11 @@ class _DetailRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.valueColor,
-    this.badge,
-    this.badgeColor,
   });
   final IconData icon;
   final String label;
   final String value;
   final Color? valueColor;
-  final String? badge;
-  final Color? badgeColor;
 
   @override
   Widget build(BuildContext context) {
@@ -575,23 +569,6 @@ class _DetailRow extends StatelessWidget {
               ).textTheme.bodyMedium?.copyWith(color: valueColor),
             ),
           ),
-          if (badge != null && badgeColor != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: badgeColor!.withAlpha(30),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: badgeColor!),
-              ),
-              child: Text(
-                badge!,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: badgeColor,
-                ),
-              ),
-            ),
         ],
       ),
     );

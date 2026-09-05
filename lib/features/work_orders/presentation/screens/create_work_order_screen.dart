@@ -345,18 +345,6 @@ class _AssetPickerField extends StatelessWidget {
                           ].join('  ·  '),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        if (asset!.isProvisional)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text(
-                              'PROVISIONAL — pending admin registration',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFFF57F17),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
             ),

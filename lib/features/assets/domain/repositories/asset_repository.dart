@@ -29,13 +29,6 @@ abstract interface class AssetRepository {
   /// Fetch full asset record from Horse API (not stored locally).
   Future<AssetDetail> getAssetDetail(int assetId);
 
-  /// Create a provisional record offline.
-  Future<Asset> createProvisional({
-    required String equipmentType,
-    String? model,
-    String? manufacturer,
-    String? serialNumber,
-    String? hospital,
-    String? location,
-  });
+  // createProvisional removed 2026-09-05: technicians cannot create assets.
+  // Registration is the office's. Assets are read-only from the device.
 }

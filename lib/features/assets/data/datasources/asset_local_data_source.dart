@@ -41,14 +41,8 @@ abstract interface class AssetLocalDataSource {
   Future<AssetStats> getStats();
 
   /// Create a provisional (offline) asset record.
-  Future<Asset> createProvisional({
-    required String equipmentType,
-    String? model,
-    String? manufacturer,
-    String? serialNumber,
-    String? hospital,
-    String? location,
-  });
+  // createProvisional removed 2026-09-05: technicians cannot create
+  // assets. Registration is the office's; assets are read-only here.
 
   /// Fetch current synced records for a set of asset_ids (used for change detection).
   Future<List<AssetModel>> getByAssetIds(Set<int> ids);
@@ -203,35 +197,6 @@ class AssetLocalDataSourceImpl implements AssetLocalDataSource {
       serviceDue: (r['service_due'] as int?) ?? 0,
       condemned: (r['condemned'] as int?) ?? 0,
     );
-  }
-
-  @override
-  Future<Asset> createProvisional({
-    required String equipmentType,
-    String? model,
-    String? manufacturer,
-    String? serialNumber,
-    String? hospital,
-    String? location,
-  }) async {
-    final db = await _db.database;
-    final now = DateTime.now();
-    final draft = AssetModel(
-      id: 0,
-      equipmentType: equipmentType,
-      model: model,
-      manufacturer: manufacturer,
-      serialNumber: serialNumber,
-      hospital: hospital,
-      location: location,
-      isActive: true,
-      isCondemned: false,
-      isProvisional: true,
-      createdAt: now,
-      updatedAt: now,
-    );
-    final id = await db.insert(_table, draft.toMap());
-    return AssetModel.fromMap({...draft.toMap(), 'id': id});
   }
 
   @override

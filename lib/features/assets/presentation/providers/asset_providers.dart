@@ -40,10 +40,9 @@ AssetRepository assetRepository(Ref ref) => AssetRepositoryImpl(
 // ── Browse ────────────────────────────────────────────────────────────────────
 
 @riverpod
-Future<List<Asset>> assets(Ref ref, {String? hospital}) =>
-    ref.watch(powerSyncAssetsProvider.future).then(
-      (ds) => ds.getAssets(hospital: hospital),
-    );
+Future<List<Asset>> assets(Ref ref, {String? hospital}) => ref
+    .watch(powerSyncAssetsProvider.future)
+    .then((ds) => ds.getAssets(hospital: hospital));
 
 @riverpod
 Future<List<String>> hospitalList(Ref ref) =>
@@ -53,9 +52,9 @@ Future<List<String>> hospitalList(Ref ref) =>
 
 @riverpod
 Future<List<Asset>> assetSearch(Ref ref, String query, {String? hospital}) =>
-    ref.watch(powerSyncAssetsProvider.future).then(
-      (ds) => ds.searchAssets(query, hospital: hospital),
-    );
+    ref
+        .watch(powerSyncAssetsProvider.future)
+        .then((ds) => ds.searchAssets(query, hospital: hospital));
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 

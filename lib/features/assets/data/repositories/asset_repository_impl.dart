@@ -116,20 +116,6 @@ class AssetRepositoryImpl implements AssetRepository {
   Future<AssetDetail> getAssetDetail(int assetId) =>
       _remote.getAssetDetail(assetId);
 
-  @override
-  Future<Asset> createProvisional({
-    required String equipmentType,
-    String? model,
-    String? manufacturer,
-    String? serialNumber,
-    String? hospital,
-    String? location,
-  }) => _local.createProvisional(
-    equipmentType: equipmentType,
-    model: model,
-    manufacturer: manufacturer,
-    serialNumber: serialNumber,
-    hospital: hospital,
-    location: location,
-  );
+  // createProvisional removed 2026-09-05: technicians cannot create
+  // assets. Registration is the office's; assets are read-only here.
 }
