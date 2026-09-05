@@ -374,7 +374,7 @@ final class AssetStatsProvider
   }
 }
 
-String _$assetStatsHash() => r'bf665768ce66596b4aa8694e0850de09dae3360e';
+String _$assetStatsHash() => r'2086ae7656f921395da803de4eb27e1c6cf8c959';
 
 @ProviderFor(assetDetail)
 final assetDetailProvider = AssetDetailFamily._();

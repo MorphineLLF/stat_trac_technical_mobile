@@ -15,6 +15,8 @@ import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../../domain/repositories/certificate_repository.dart';
+import '../../data/powersync_cert_data_source.dart';
+import '../../../../sync/powersync_providers.dart';
 
 part 'certificate_providers.g.dart';
 
@@ -24,6 +26,12 @@ DatabaseHelper certDatabaseHelper(Ref ref) => DatabaseHelper.instance;
 @riverpod
 AssetLocalDataSource certAssetLocalDataSource(Ref ref) =>
     AssetLocalDataSourceImpl(ref.watch(certDatabaseHelperProvider));
+
+/// Certificates now come from PowerSync, not the retired Horse tables.
+@riverpod
+Future<PowerSyncCertDataSource> powerSyncCerts(Ref ref) async {
+  return PowerSyncCertDataSource(await ref.watch(syncDatabaseProvider.future));
+}
 
 @riverpod
 CertLocalDataSource certLocalDataSource(Ref ref) =>
@@ -54,15 +62,17 @@ Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
 
 @riverpod
 Future<List<CertificateSummary>> certificateList(Ref ref) =>
-    ref.watch(certLocalDataSourceProvider).getCertificates();
+    ref.watch(powerSyncCertsProvider.future).then((ds) => ds.getCertificates());
 
 @riverpod
 Future<CertificateSummary?> certificateSummary(Ref ref, int id) =>
-    ref.watch(certLocalDataSourceProvider).getCertificateById(id);
+    ref.watch(powerSyncCertsProvider.future).then((ds) => ds.getCertificateById(id));
 
 @riverpod
 Future<List<TestOutput>> certOutputs(Ref ref, int certId) =>
-    ref.watch(certLocalDataSourceProvider).getOutputsByCertId(certId);
+    ref.watch(powerSyncCertsProvider.future).then(
+      (ds) => ds.getOutputsByCertId(certId),
+    );
 
 @riverpod
 Future<List<TestEquipmentAsset>> testEquipmentAssets(Ref ref) =>

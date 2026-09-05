@@ -99,6 +99,52 @@ final class CertAssetLocalDataSourceProvider
 String _$certAssetLocalDataSourceHash() =>
     r'2bd25646923ad63f4f81ebc7692e36f9a47d4fab';
 
+/// Certificates now come from PowerSync, not the retired Horse tables.
+
+@ProviderFor(powerSyncCerts)
+final powerSyncCertsProvider = PowerSyncCertsProvider._();
+
+/// Certificates now come from PowerSync, not the retired Horse tables.
+
+final class PowerSyncCertsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<PowerSyncCertDataSource>,
+          PowerSyncCertDataSource,
+          FutureOr<PowerSyncCertDataSource>
+        >
+    with
+        $FutureModifier<PowerSyncCertDataSource>,
+        $FutureProvider<PowerSyncCertDataSource> {
+  /// Certificates now come from PowerSync, not the retired Horse tables.
+  PowerSyncCertsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'powerSyncCertsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$powerSyncCertsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<PowerSyncCertDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<PowerSyncCertDataSource> create(Ref ref) {
+    return powerSyncCerts(ref);
+  }
+}
+
+String _$powerSyncCertsHash() => r'efad64c89424bd32ae8e9a9a4329ad9f55988c7b';
+
 @ProviderFor(certLocalDataSource)
 final certLocalDataSourceProvider = CertLocalDataSourceProvider._();
 
@@ -436,7 +482,7 @@ final class CertificateListProvider
   }
 }
 
-String _$certificateListHash() => r'673ef84d5894871eeb59d42e82531b400eef9f4f';
+String _$certificateListHash() => r'1139ced526bf9c3ecb819b0906de400cfef850a1';
 
 @ProviderFor(certificateSummary)
 final certificateSummaryProvider = CertificateSummaryFamily._();
@@ -496,7 +542,7 @@ final class CertificateSummaryProvider
 }
 
 String _$certificateSummaryHash() =>
-    r'c02b0da13d0ec6479b991c18ded7493f8a8d4531';
+    r'62ef8919576498391d1f6944132133e06c0321d1';
 
 final class CertificateSummaryFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<CertificateSummary?>, int> {
@@ -571,7 +617,7 @@ final class CertOutputsProvider
   }
 }
 
-String _$certOutputsHash() => r'db1ad17811c4ca06afa31e92120191f45f30670a';
+String _$certOutputsHash() => r'2a2903338bd5afee105ab7e52486609191c891ca';
 
 final class CertOutputsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TestOutput>>, int> {
