@@ -161,6 +161,10 @@ assumption to build on.
 
 ## 5. Open questions — this repository's to answer
 
+> **Answered 2026-09-05 and written up for the Go thread:**
+> `docs/sync-client-handover.md` — the table set, the client-identity finding,
+> the conflict-payload requirement and the signature-BLOB question.
+
 1. **Client-generated identity for this app's entities.** `sync-design.md` raises
    collision-safety for `SalesVisitID` in the *reps'* application, which per
    CLAUDE.md is a separate codebase. The equivalent question for certificates and
