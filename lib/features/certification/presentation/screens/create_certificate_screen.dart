@@ -18,6 +18,9 @@ import '../widgets/cert_template_picker.dart';
 import '../widgets/cert_test_grid.dart';
 import '../widgets/cert_type_selector.dart';
 import '../../../assets/presentation/providers/asset_providers.dart';
+import '../../../../sync/upload/upload_providers.dart';
+import '../../../../sync/upload/certificate_upload.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateCertificateScreen extends ConsumerStatefulWidget {
   const CreateCertificateScreen({super.key});
@@ -95,6 +98,8 @@ class _CreateCertificateScreenState
         serviceId: _serviceId,
         testType: (_selectedTemplate?.customerSigRequired == true) ? 1 : null,
       );
+      // Saved locally as before, so the wizard's later steps still have a
+      // record to attach signatures to.
       final certId = await ref
           .read(certificateRepositoryProvider)
           .issueCertificate(
@@ -103,10 +108,20 @@ class _CreateCertificateScreenState
             equipment: _equipment.whereType<TestEquipmentSelection>().toList(),
           );
       setState(() => _savedCertId = certId);
+
+      // AND queued for the server. Without this the certificate reaches the
+      // retired local table and nothing else: the old push path is disabled
+      // because its endpoints 404, and the certificate list reads PowerSync,
+      // so the technician's work would vanish with no error at all.
+      await _queueForUpload(cert);
+
       ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(pendingUploadCountProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Certificate data saved to device')),
+          const SnackBar(
+            content: Text('Saved and queued — it will be sent when online'),
+          ),
         );
       }
     } catch (e) {
@@ -121,6 +136,54 @@ class _CreateCertificateScreenState
     } finally {
       setState(() => _saving = false);
     }
+  }
+
+  /// Puts the finished certificate in the outbox.
+  ///
+  /// No issue op yet: closing a certificate needs the verdict, the next
+  /// service date and the two PM decisions, and the wizard does not ask for
+  /// them. So this uploads the record and its readings — the work stops
+  /// vanishing — and the certificate is not yet *issued* server-side. The
+  /// wizard must not imply otherwise.
+  Future<void> _queueForUpload(TestCertificate cert) async {
+    const uuid = Uuid();
+
+    final upload = CertificateUpload(
+      mobileId: uuid.v4(),
+      certificate: {
+        'TestAssetID': cert.assetId,
+        'TestDate': cert.testDate?.toIso8601String().substring(0, 10),
+        'TestCertType': cert.certType,
+        'TestTech': cert.technician,
+        'TestTechID': cert.technicianId,
+        'TestCertificateDescription': cert.certName,
+        'TestCertificateNotes': cert.notes,
+        'TestCertPatientSafe': cert.patientSafe,
+        'TestType': cert.testType,
+        'TestJobcardNo': cert.jobcardNo,
+      }..removeWhere((_, v) => v == null),
+      lines: [
+        for (final o in _outputs)
+          CertificateLineUpload(
+            mobileId: uuid.v4(),
+            data: {
+              'TestDescriptionID': o.descriptionId,
+              'TestDescription': o.description,
+              'TestValue': o.expectedValue,
+              // The dash survives: it is the register saying there is nothing
+              // to measure here, and the server counts it as a complete line.
+              'TestActualValue': o.actualValue,
+              'TestNote': o.notes,
+              'TestPass': o.pass,
+              'TestFail': o.fail,
+              'TestNA': o.na,
+            }..removeWhere((_, v) => v == null),
+          ),
+      ],
+    );
+
+    final queue = await ref.read(uploadQueueProvider.future);
+    await queue.enqueue(upload);
   }
 
   // Updates the saved cert record with signatures.
