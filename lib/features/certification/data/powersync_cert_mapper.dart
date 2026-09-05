@@ -89,8 +89,10 @@ AssetPmTask assetPmTaskFromPowerSync(Map<String, Object?> row) {
 /// These are `Asset` rows flagged `AssetTestEquipment = 1` — company property
 /// rather than a separate register, which is why the columns are Asset's.
 ///
-/// `AssetNextServiceDate` carries the calibration due date for an instrument:
-/// what "next service" means for an analyser is when its calibration expires.
+/// The calibration due date arrives as `cal_due` — the instrument's PM task
+/// schedule date, computed by the query. It is **not** `AssetNextServiceDate`,
+/// which is NULL on every asset in the register and therefore silently makes
+/// any check written against it pass.
 TestEquipmentAsset testEquipmentFromPowerSync(Map<String, Object?> row) {
   final assetId = psInt(row['AssetID']) ?? 0;
 
@@ -102,7 +104,7 @@ TestEquipmentAsset testEquipmentFromPowerSync(Map<String, Object?> row) {
     manufacturer: row['AssetManufacturer'] as String?,
     model: row['AssetModel'] as String?,
     serialNo: row['AssetSerialNo'] as String?,
-    calDate: psDate(row['AssetNextServiceDate']),
+    calDate: psDate(row['cal_due']),
     // The row is on the device because sync put it there, so "when did this
     // reach us" is now, not a stored column.
     syncedAt: DateTime.now(),

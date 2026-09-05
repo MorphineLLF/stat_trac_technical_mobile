@@ -91,24 +91,37 @@ class PowerSyncCertDataSource {
   /// `AssetTestEquipment = 1` on the Asset table — company property, not a
   /// separate register.
   ///
-  /// **This list may be empty for a narrow-scope technician, and that is a
-  /// live server-side question rather than a bug here.** Analysers live at the
-  /// company's own depot, and `Asset` is bucketed by hospital, so a technician
-  /// whose scope excludes the depot receives none of them. Measured on demo:
-  /// 5 of 7 users can see the holder, 2 of 4 on safeline. The proposed fix is
-  /// to put `AssetTestEquipment = 1` rows in the global bucket, which is the
-  /// user's decision.
+  /// **The calibration due date is the instrument's PM task schedule date,
+  /// not `AssetNextServiceDate`.** That column is NULL on all 5,121 assets —
+  /// dead register-wide rather than sparsely filled — so a check written
+  /// against it fires for nothing while looking like it works. This app had
+  /// exactly that bug: every analyser stayed selectable because none was ever
+  /// expired.
   ///
-  /// Ordered so instruments still in calibration come first — an expired one
-  /// is still shown, because the technician may need to record that it was
-  /// what they had, but it should never be the default choice.
+  /// Matched by `max(PmTaskScheduleDate)` over ALL of the instrument's tasks,
+  /// mirroring the desktop. Deliberately **not** by description: the register
+  /// already spells it three ways — "Calibration Check", "Calibration
+  /// Verification" and "Calibration check" — and a fourth spelling next year
+  /// would fail silently, which is the worst way for a calibration check to
+  /// fail.
+  ///
+  /// Deliberately a scalar subquery and **not a join**: joining Asset to
+  /// AssetPmTask without narrowing lists an instrument once per task, so one
+  /// carrying two could be ticked twice against a design asking for one.
+  ///
+  /// Open, and latent on the desktop too: `max()` means a second PM task with
+  /// a later date would become the calibration date. Every instrument
+  /// carrying a task has exactly one today, so it cannot happen on this data
+  /// — **if a second one ever appears, stop and ask rather than guessing.**
   Future<List<TestEquipmentAsset>> getTestEquipmentAssets() async {
-    final rows = await _db.getAll(
-      'SELECT * FROM "Asset" WHERE "AssetTestEquipment" = 1 '
-      'AND "AssetCondemned" != 1 '
-      'ORDER BY "AssetNextServiceDate" IS NULL, '
-      '"AssetNextServiceDate" DESC, "AssetEquipmentType"',
-    );
+    final rows = await _db.getAll('''
+      SELECT a.*,
+             (SELECT max(p."PmTaskScheduleDate") FROM "AssetPmTask" p
+               WHERE p."PmAssetID" = a."AssetID") AS cal_due
+        FROM "Asset" a
+       WHERE a."AssetTestEquipment" = 1 AND a."AssetCondemned" != 1
+       ORDER BY cal_due IS NULL, cal_due DESC, a."AssetEquipmentType"
+    ''');
     return rows.map(testEquipmentFromPowerSync).toList();
   }
 
