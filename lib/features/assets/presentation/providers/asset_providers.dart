@@ -61,7 +61,7 @@ Future<List<Asset>> assetSearch(Ref ref, String query, {String? hospital}) =>
 
 @riverpod
 Future<AssetStats> assetStats(Ref ref) =>
-    ref.watch(assetLocalDataSourceProvider).getStats();
+    ref.watch(powerSyncAssetsProvider.future).then((ds) => ds.getStats());
 
 // ── Detail ────────────────────────────────────────────────────────────────────
 

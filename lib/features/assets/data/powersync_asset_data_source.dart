@@ -1,6 +1,7 @@
 import 'package:powersync/powersync.dart';
 
 import '../domain/entities/asset.dart';
+import 'datasources/asset_local_data_source.dart' show AssetStats;
 import 'powersync_asset_mapper.dart';
 
 /// Reads assets from PowerSync's local database.
@@ -84,5 +85,37 @@ class PowerSyncAssetDataSource {
       [barcode],
     );
     return rows.isEmpty ? null : assetFromPowerSync(rows.first);
+  }
+
+  /// Counts for the summary tiles.
+  ///
+  /// Deliberately one query, not four: these render together, and four round
+  /// trips over a table this size is visible as a stutter on a tablet.
+  ///
+  /// "Service due" is within 30 days, matching what the Horse-era query
+  /// counted, so the number a technician sees does not silently change meaning
+  /// with the migration. Dates are ISO text here, which compares correctly
+  /// lexicographically — date() cannot be used on a text column.
+  Future<AssetStats> getStats() async {
+    final rows = await _db.getAll('''
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN "AssetCondemned" != 1 THEN 1 ELSE 0 END) AS active,
+        SUM(CASE WHEN "AssetNextServiceDate" IS NOT NULL
+                  AND "AssetNextServiceDate" != ''
+                  AND "AssetNextServiceDate" <= date('now', '+30 days')
+                  AND "AssetCondemned" != 1 THEN 1 ELSE 0 END) AS service_due,
+        SUM(CASE WHEN "AssetCondemned" = 1 THEN 1 ELSE 0 END) AS condemned
+      FROM "Asset"
+    ''');
+
+    final r = rows.first;
+    int n(Object? v) => (v as num?)?.toInt() ?? 0;
+    return AssetStats(
+      total: n(r['total']),
+      active: n(r['active']),
+      serviceDue: n(r['service_due']),
+      condemned: n(r['condemned']),
+    );
   }
 }
