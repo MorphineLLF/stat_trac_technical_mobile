@@ -267,3 +267,50 @@ one disagree, that one wins.
 
 This app's own migration design:
 `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`.
+
+---
+
+## 7. TestOutput — contract details confirmed 2026-09-05
+
+Measured server-side across 152,884 rows. These shape how certificate rendering
+must be written.
+
+**`TestDescriptionID` is a free-text section heading, not an identifier.**
+102 distinct values, **zero** of them numeric — e.g. "ELECTRICAL SAFETY TESTS",
+"POWER ON SELF TEST / CONFIGURATION", "SET-UP". The name is the trap: a column
+ending in `ID` that is neither a key nor a foreign key. There is no lookup table
+and looking for one is wasted time. It also is **not unique within a
+certificate** — 21,131 (cert, section) pairs hold more than one row — so it
+groups sections containing lines and can never serve as a row key.
+
+Note this means the numeric-as-text trap does *not* apply to it. It does apply
+to `TestValue` and `TestActualValue` (both varchar), and `TestPass` / `TestFail`
+/ `TestNA` are booleans arriving as 0/1 — the `psNum` / `psBool` seams cover
+those.
+
+**Nothing in the table orders lines within a section.** There is no sequence or
+position column. The only stable ordering available is `TestOutPutID` ascending.
+
+> **Live defect in this app.** `CertLocalDataSourceImpl.getOutputsByCertId`
+> issues its query with **no `orderBy` clause**, so SQLite returns rows in
+> unspecified order. A certificate is evidence, and rendering its measurement
+> lines in a different order from the office copy undermines exactly that. Must
+> order by the key ascending when the reads move to PowerSync.
+
+**8,850 orphaned lines.** They point at 238 distinct certificate ids, ~37 lines
+each, all inside the live id range, with **zero** rows carrying
+`TestOutputCertID = 0` — so there is no benign unattached state. 238
+certificates were deleted and their lines left behind. A records question for
+the business, not a bug to script around.
+
+### If this app ever surfaces missing or unbucketed rows
+
+**One condition per table, cleared by the count returning to zero — never one
+alert per row.** An orphan is a row sync will never select, so a per-row alert
+can never clear: the count only climbs and a badge that cannot reach zero trains
+a technician to ignore the next real failure. The rep app shipped exactly this
+and needed a data-only migration to undo it on devices already carrying it.
+
+This is the same lesson as the sticky-`downloadError` fix in
+`lib/sync/sync_indicator.dart`: an indicator that cannot return to a good state
+is worse than no indicator.
