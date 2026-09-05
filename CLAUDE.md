@@ -177,7 +177,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 
 - Assets are **master data** — read-only, sourced from the Stat Trac PostgreSQL DB via Horse API sync.
 - The field app cannot create real assets. Asset registration is a back-office function.
-- **Provisional assets** — if a technician needs to raise a callout against an asset that is not yet in the system and no admin is available, they may capture minimum details (serial number, equipment name, manufacturer, model, facility/department) directly in the app. This creates a local asset record flagged `is_provisional = true`. The WO is created against it immediately. On next sync, the provisional asset is pushed to the master DB and lands in an admin review queue for proper registration.
+- ~~**Provisional assets**~~ — **REMOVED 2026-09-05 by the user: technicians CANNOT create assets. Registration is the office admin's, full stop.** This rule previously said a technician could capture minimum details in the field and push them to an admin review queue. It was wrong, and it was implemented across 13 files before anyone questioned it. The code is still present and is dead; `is_provisional` is never set by anything the user sanctions. Assets are read-only from the device with **no exception**.
 - The asset picker always shows the local asset list (synced from master + any provisional records). If the list is empty, an empty-state screen prompts the user to sync. There is no free-text asset ID entry.
 - `is_provisional` records are visually flagged in the asset picker and WO detail so the tech and admin are aware registration is pending.
 
@@ -349,7 +349,7 @@ Work in this order. Each phase builds on the previous.
 - Assets table includes `is_provisional INTEGER NOT NULL DEFAULT 0`
 - When a tech creates a provisional asset: `is_provisional = 1`, `server_id = NULL`
 - On sync, the server registers the asset and returns a `server_id`; app patches `is_provisional = 0` and `server_id`
-- Provisional assets are shown with an amber "PROVISIONAL — pending admin registration" badge in the picker and WO detail
+- ~~Provisional asset badge~~ — dead, see the removed rule above. Nothing sets `is_provisional` any more.
 
 ### Work Orders — domain + data + list + detail + create screens
 - `lib/features/work_orders/domain/entities/work_order_enums.dart` — `WoType`, `WoPriority`, `WoStatus`, `WoOrigin`, `WoOutcome`, `BillingFlag`, `PhotoStage`, `SignerRole`
