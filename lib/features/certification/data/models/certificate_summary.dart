@@ -16,6 +16,8 @@ class CertificateSummary {
     this.pmTaskDescription,
     this.hospital,
     this.mobileId,
+    this.testType,
+    this.clientNameSignature,
     this.isLocal = false,
   });
 
@@ -46,6 +48,16 @@ class CertificateSummary {
   /// resolves it from the table, so one uploaded last week signs today. A
   /// certificate created in the office has none and cannot be signed here.
   final String? mobileId;
+
+  /// The certificate's TestType. 1 means the design asks for a client
+  /// signature; anything else means it does not.
+  final int? testType;
+
+  /// TestClientNameSignature — the name recorded when the client signed.
+  ///
+  /// Non-blank is the evidence that they have. The signature itself is bytea
+  /// and does not cross the sync stream, so this is what the device can know.
+  final String? clientNameSignature;
 
   /// Finished on this device and not yet confirmed by the server.
   ///
@@ -154,6 +166,8 @@ class CertificateSummary {
         pmTaskDescription: pmTaskDescription,
         hospital: hospital ?? this.hospital,
         mobileId: mobileId,
+        testType: testType,
+        clientNameSignature: clientNameSignature,
         isLocal: isLocal,
       );
 }

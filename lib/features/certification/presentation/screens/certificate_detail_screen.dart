@@ -14,6 +14,7 @@ import '../../data/cert_document_result.dart';
 import '../providers/cert_document_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/add_facility_signature_sheet.dart';
+import 'facility_signature_gate.dart';
 import 'facility_signature_upload.dart';
 
 class CertificateDetailScreen extends ConsumerStatefulWidget {
@@ -240,17 +241,34 @@ class _CertificateDetailScreenState
           // A certificate can sit issued and unsigned indefinitely, so this
           // fills that gap rather than working around a rule.
           summaryAsync.maybeWhen(
-            data: (s) => Tooltip(
-              message: s?.mobileId == null
-                  ? 'This certificate cannot be signed from the app'
-                  : 'Add facility signature',
-              child: IconButton(
-                icon: const Icon(Icons.draw_outlined),
-                onPressed: s?.mobileId == null || _signing
-                    ? null
-                    : () => _addFacilitySignature(s!.mobileId!),
-              ),
-            ),
+            data: (s) {
+              // Gated on the design and on whether anybody has signed. The
+              // server refuses a client signature the design never asked for,
+              // and refuses a second one outright — and a technician who has
+              // watched somebody sign believes it is filed. Taking a real
+              // signature and discarding it is worse than not offering.
+              final state = facilitySignatureState(
+                testType: s?.testType,
+                clientNameSignature: s?.clientNameSignature,
+                mobileId: s?.mobileId,
+              );
+              final canSign =
+                  state == FacilitySignatureState.available && !_signing;
+
+              return Tooltip(
+                message: facilitySignatureTooltip(state),
+                child: IconButton(
+                  icon: Icon(
+                    state == FacilitySignatureState.alreadySigned
+                        ? Icons.how_to_reg
+                        : Icons.draw_outlined,
+                  ),
+                  onPressed: canSign
+                      ? () => _addFacilitySignature(s!.mobileId!)
+                      : null,
+                ),
+              );
+            },
             orElse: () => const SizedBox.shrink(),
           ),
           // ── Email ─────────────────────────────────────────────

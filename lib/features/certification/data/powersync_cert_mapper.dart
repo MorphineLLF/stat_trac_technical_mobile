@@ -31,6 +31,8 @@ CertificateSummary certificateSummaryFromPowerSync(Map<String, Object?> row) {
     // asset — they do not live on TestCertificate and joining for them
     // stopped the list appearing at all.
     mobileId: row['TestMobileID'] as String?,
+    testType: psInt(row['TestType']),
+    clientNameSignature: row['TestClientNameSignature'] as String?,
   );
 }
 
