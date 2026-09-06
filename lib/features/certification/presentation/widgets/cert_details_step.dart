@@ -8,6 +8,7 @@ import '../../domain/entities/asset_pm_task.dart';
 import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../providers/certificate_providers.dart';
+import 'next_service_field.dart';
 
 class CertDetailsStep extends ConsumerStatefulWidget {
   const CertDetailsStep({
@@ -18,6 +19,8 @@ class CertDetailsStep extends ConsumerStatefulWidget {
     required this.initialEquipment,
     required this.onChanged,
     required this.onNext,
+    this.nextService,
+    required this.onNextServiceChanged,
   });
 
   final TestTemplateName template;
@@ -33,6 +36,16 @@ class CertDetailsStep extends ConsumerStatefulWidget {
     int? serviceId,
   )
   onChanged;
+
+  /// The next service date, asked here rather than at the end.
+  ///
+  /// **Asked beside the PM task, while the technician is still thinking about
+  /// the machine's schedule** — and before the signature, because a signed
+  /// certificate is final. Asking for it last invited somebody to be standing
+  /// at the van when they remembered.
+  final DateTime? nextService;
+  final ValueChanged<DateTime?> onNextServiceChanged;
+
   final VoidCallback onNext;
 
   @override
@@ -279,6 +292,17 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                 _notify();
               },
             ),
+          // Only where the design asks for one. A template that does not tick
+          // Next Service Due does not want a date, and the server ignores one
+          // sent against it.
+          if (widget.template.nextService) ...[
+            const SizedBox(height: 16),
+            NextServiceField(
+              testDate: _testDate,
+              value: widget.nextService,
+              onChanged: widget.onNextServiceChanged,
+            ),
+          ],
           const SizedBox(height: 24),
           if (widget.selectedAsset?.assetId != null)
             _PmTaskNextButton(
