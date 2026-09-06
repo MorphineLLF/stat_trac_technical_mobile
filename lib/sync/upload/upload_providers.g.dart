@@ -48,6 +48,50 @@ final class UploadQueueProvider
 
 String _$uploadQueueHash() => r'a96b7ae4666c7d6bd80430940cac524de9d758d9';
 
+/// What was sent and what came back, kept after the queue row is deleted.
+
+@ProviderFor(uploadArchive)
+final uploadArchiveProvider = UploadArchiveProvider._();
+
+/// What was sent and what came back, kept after the queue row is deleted.
+
+final class UploadArchiveProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<UploadArchive>,
+          UploadArchive,
+          FutureOr<UploadArchive>
+        >
+    with $FutureModifier<UploadArchive>, $FutureProvider<UploadArchive> {
+  /// What was sent and what came back, kept after the queue row is deleted.
+  UploadArchiveProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'uploadArchiveProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$uploadArchiveHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<UploadArchive> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<UploadArchive> create(Ref ref) {
+    return uploadArchive(ref);
+  }
+}
+
+String _$uploadArchiveHash() => r'f390c7c21b4b2f58609445dd69ab896304cb936d';
+
 /// The upload client. No interceptor: this route takes the ninety-day device
 /// token as a Bearer, and a cookie is turned away by the CSRF guard.
 
@@ -139,7 +183,7 @@ final class UploadWorkerProvider
   }
 }
 
-String _$uploadWorkerHash() => r'9c34c65add347117d5d835888181fc72aaa72b33';
+String _$uploadWorkerHash() => r'c4cd419abc4ff47ed22cae8c3882bf96d9ff3da3';
 
 /// How many certificates are waiting to reach the server.
 ///

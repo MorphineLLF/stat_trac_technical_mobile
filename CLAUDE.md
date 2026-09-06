@@ -23,21 +23,35 @@
 > **Start here next session:** `docs/STATE-2026-09-05.md` — what works, what is
 > next, and the decisions waiting on the user.
 >
-> ⛔ **OPEN BUG — a certificate uploads without its measurement lines.** The
-> user saw a certificate reach the server with no test data. A batch is
-> all-or-nothing, so the lines were never sent. **Add diagnostics before
-> changing anything** — the queue row is deleted on success, which destroys
-> the evidence. Detail in `docs/STATE-2026-09-05.md`.
+> ✅ **The lineless-certificate bug is RESOLVED, and it was not this app.**
+> A stale server binary — nine hours older than its source — silently dropped
+> `TestOutputCertMobileID` from its column allowlist, so the readings uploaded
+> and landed attached to nothing. **46 orphaned readings on that host; this
+> device holds exactly 46 local outputs.** The client was correct throughout.
+> The server now refuses a `TestOutput` op that names no certificate (400) and
+> reports what it guarantees in an `enforces` key. Detail in
+> `docs/STATE-2026-09-05.md`.
 >
-> ⛔ **Signatures cannot reach the server at all.** `bytea` crosses neither the
-> sync stream nor the upload allowlist, and a certificate is not valid without
-> them — so the printed PDF will differ from what the technician signed.
+> ⚠️ **A missing `enforces` key means "no guarantees", not "old build".**
+> Nothing in this app reads it yet. That check is what would have caught the
+> stale binary, and it is the first thing to add to the upload client.
 >
-> ⛔ **Do not use this build for real certificates.** A completed certificate is
-> silently lost: it writes to the retired local table, nothing pushes it, and
-> the list reads PowerSync so it never appears. **The certificate upload
-> endpoint must be created server-side** — that is the next thing to build and
-> it blocks the whole write half.
+> ⚠️ **Signatures upload but do not come back.** They now travel as
+> `action: "sign"` (base64 PNG, standard and padded, never URL-safe), so the
+> write half is solved. `bytea` still crosses neither the sync stream nor the
+> read path, so the device cannot display a signature it did not capture
+> itself. Separately, **no client signature and no `client_name` was captured
+> on either local certificate** — check the wizard's signature step reaches
+> the end at all.
+>
+> ⚠️ **Do not use this build for real certificates — but not for the reason
+> previously recorded here.** The upload endpoint exists and has since
+> 2026-09-05; the claim that it "must be created server-side" was wrong and is
+> withdrawn. What is actually missing is **the three issue inputs** — verdict
+> as a forced choice, next service, and the two PM completion flags. Until
+> they exist no `action: "issue"` is sent, so a certificate uploads as a
+> record and never becomes an issued certificate: no completeness check, no
+> `TestNextService`, no PM schedule move, no job card.
 >
 > This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
 > Contract with the Go side: `docs/sync-client-handover.md`

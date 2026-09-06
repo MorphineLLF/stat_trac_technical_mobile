@@ -14,6 +14,7 @@ class CertificateSummary {
     this.templateNameId,
     this.templateName,
     this.pmTaskDescription,
+    this.isLocal = false,
   });
 
   final int id;
@@ -29,6 +30,30 @@ class CertificateSummary {
   final int? patientSafe;
   final int? templateNameId;
   final String? pmTaskDescription;
+
+  /// Finished on this device and not yet confirmed by the server.
+  ///
+  /// A local certificate's readings live in local storage only, so every
+  /// screen showing one must read them from there — the server has nothing to
+  /// give back yet. It is also the flag that keeps the list from showing the
+  /// same certificate twice once the server's copy arrives.
+  final bool isLocal;
+
+  /// The same summary, marked as this device's own copy.
+  CertificateSummary asLocal() => CertificateSummary(
+    id: id,
+    certificateNo: certificateNo,
+    certType: certType,
+    syncStatus: syncStatus,
+    createdAt: createdAt,
+    certName: certName,
+    templateName: templateName,
+    equipmentType: equipmentType,
+    patientSafe: patientSafe,
+    templateNameId: templateNameId,
+    pmTaskDescription: pmTaskDescription,
+    isLocal: true,
+  );
 
   /// Resolved display name for the template.
   /// Null when no name can be determined — callers should fall back to

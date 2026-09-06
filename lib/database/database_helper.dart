@@ -15,13 +15,15 @@ import 'migrations/migration_013_pm_task_interval.dart';
 import 'migrations/migration_014_cert_service_id.dart';
 import 'migrations/migration_015_cert_test_type.dart';
 import 'migrations/migration_016_upload_queue.dart';
+import 'migrations/migration_017_upload_archive.dart';
+import 'migrations/migration_018_cert_mobile_id.dart';
 
 class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static const _dbName = 'stat_trac_technical.db';
-  static const _dbVersion = 16;
+  static const _dbVersion = 18;
 
   Database? _db;
 
@@ -55,6 +57,8 @@ class DatabaseHelper {
     await migration014CertServiceId(db);
     await migration015CertTestType(db);
     await migration016UploadQueue(db);
+    await migration017UploadArchive(db);
+    await migration018CertMobileId(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -72,6 +76,8 @@ class DatabaseHelper {
     if (oldVersion < 14) await migration014CertServiceId(db);
     if (oldVersion < 15) await migration015CertTestType(db);
     if (oldVersion < 16) await migration016UploadQueue(db);
+    if (oldVersion < 17) await migration017UploadArchive(db);
+    if (oldVersion < 18) await migration018CertMobileId(db);
   }
 
   Future<void> close() async {

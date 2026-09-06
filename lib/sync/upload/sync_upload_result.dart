@@ -14,15 +14,41 @@
 /// bug hides an answerable message; treating a 400 as a rejection invites a
 /// technician to fix something that is not theirs to fix.
 sealed class SyncUploadResult {
-  const SyncUploadResult();
+  const SyncUploadResult({this.enforces = const []});
+
+  /// What this build of the server guarantees, sent on **every** response
+  /// including the refusals.
+  ///
+  /// **A missing key means "no guarantees", never "not yet deployed".** That
+  /// distinction is the whole point: a server running a binary older than its
+  /// code is otherwise indistinguishable from a compliant one at the moment it
+  /// matters, and one such server silently orphaned 46 real readings by
+  /// dropping `TestOutputCertMobileID` as an unknown column.
+  final List<String> enforces;
+
+  /// The server promises a measurement line must name its certificate.
+  ///
+  /// Without this, a line's certificate reference is dropped silently and the
+  /// reading is written attached to nothing — applied, counted, and lost.
+  bool get guaranteesCertRef => enforces.contains(SyncUploadGuarantee.certRef);
 
   /// Whether sending the same batch again could ever succeed.
   bool get isRetryable;
 
+  static List<String> _enforcesOf(Map<String, Object?> body) => [
+    for (final e in (body['enforces'] as List?) ?? const []) e as String,
+  ];
+
   factory SyncUploadResult.fromResponse(int status, Map<String, Object?> body) {
+    final enforces = _enforcesOf(body);
     switch (status) {
       case 200:
         return UploadApplied(
+          enforces: enforces,
+          signed: [
+            for (final id in (body['signed'] as List?) ?? const [])
+              id as String,
+          ],
           applied: (body['applied'] as num?)?.toInt() ?? 0,
           assigned: {
             for (final e
@@ -35,23 +61,25 @@ sealed class SyncUploadResult {
           ],
         );
       case 409:
-        return UploadConflict([
+        return UploadConflict(enforces: enforces, [
           for (final c in (body['conflicts'] as List?) ?? const [])
             UploadRowConflict.fromJson(c as Map<String, Object?>),
         ]);
       case 422:
-        return UploadRejected([
+        return UploadRejected(enforces: enforces, [
           for (final r in (body['rejections'] as List?) ?? const [])
             UploadRejection.fromJson(r as Map<String, Object?>),
         ]);
       case 400:
         return UploadClientError(
           (body['error'] as String?) ?? 'The server rejected the request.',
+          enforces: enforces,
         );
       default:
         return UploadTransportError(
           status,
           (body['error'] as String?) ?? 'Upload failed ($status).',
+          enforces: enforces,
         );
     }
   }
@@ -64,6 +92,8 @@ class UploadApplied extends SyncUploadResult {
     required this.applied,
     required this.assigned,
     required this.issued,
+    this.signed = const [],
+    super.enforces,
   });
 
   final int applied;
@@ -72,13 +102,20 @@ class UploadApplied extends SyncUploadResult {
   /// The certificates closed by an issue op. `applied` counts row ops only.
   final List<String> issued;
 
+  /// The certificates this batch signed, by mobile id.
+  ///
+  /// A certificate signed by both sides appears twice — a signature is per
+  /// side, and this says which ops landed rather than which certificates have
+  /// a signature.
+  final List<String> signed;
+
   @override
   bool get isRetryable => false;
 }
 
 /// Nothing was applied: at least one row moved underneath the device.
 class UploadConflict extends SyncUploadResult {
-  const UploadConflict(this.conflicts);
+  const UploadConflict(this.conflicts, {super.enforces});
   final List<UploadRowConflict> conflicts;
 
   /// The local change stays queued and the person decides — never resolved by
@@ -157,7 +194,7 @@ class UploadFieldDiff {
 
 /// Understood, and refused. Retrying the same batch will never help.
 class UploadRejected extends SyncUploadResult {
-  const UploadRejected(this.rejections);
+  const UploadRejected(this.rejections, {super.enforces});
   final List<UploadRejection> rejections;
 
   @override
@@ -184,8 +221,8 @@ class UploadRejection {
   final String table;
   final String mobileId;
 
-  /// `incomplete_tests`, `incomplete_values`, `already_issued`, `void`,
-  /// `not_found`, `invalid`.
+  /// `incomplete_tests`, `incomplete_values`, `already_issued`,
+  /// `already_signed`, `no_client_signature`, `void`, `not_found`, `invalid`.
   ///
   /// **`not_found` also means out of scope** — a person who may not see a
   /// certificate is not told that it exists.
@@ -202,7 +239,7 @@ class UploadRejection {
 /// The app sent something malformed. Not a technician's problem, and not
 /// something they can fix by trying again.
 class UploadClientError extends SyncUploadResult {
-  const UploadClientError(this.message);
+  const UploadClientError(this.message, {super.enforces});
   final String message;
 
   @override
@@ -211,10 +248,56 @@ class UploadClientError extends SyncUploadResult {
 
 /// Anything else — an expired token, an outage, no signal. Worth retrying.
 class UploadTransportError extends SyncUploadResult {
-  const UploadTransportError(this.status, this.message);
+  const UploadTransportError(this.status, this.message, {super.enforces});
   final int status;
   final String message;
 
   @override
   bool get isRetryable => true;
+}
+
+
+/// The guarantee names a server can advertise in `enforces`.
+abstract final class SyncUploadGuarantee {
+  /// A measurement line must name its certificate, or the batch is refused.
+  static const certRef = 'cert_ref_required';
+
+  /// A batch is applied whole or not at all.
+  static const batchAtomic = 'batch_atomic';
+
+  /// A 409 lists every field the op set, with the server's own `differs`.
+  static const conflictFields = 'conflict_fields';
+
+  /// `action: "issue"` runs the certificate's whole issue transaction.
+  static const issueAction = 'issue_action';
+
+  /// `action: "sign"` attaches a signature through `SaveSignature`.
+  static const signAction = 'sign_action';
+}
+
+/// The 422 codes, and what each means for the person holding the device.
+abstract final class UploadRejectionReason {
+  static const alreadyIssued = 'already_issued';
+
+  /// That side has already signed. **The first signature stands** — a batch
+  /// sent twice, or the office signing while the handset was out of signal.
+  static const alreadySigned = 'already_signed';
+
+  /// The certificate's design does not ask for a client signature.
+  static const noClientSignature = 'no_client_signature';
+
+  static const incompleteTests = 'incomplete_tests';
+  static const incompleteValues = 'incomplete_values';
+  static const notFound = 'not_found';
+  static const voided = 'void';
+  static const invalid = 'invalid';
+
+  /// Whether the technician has already got what they wanted.
+  ///
+  /// A signature refused because that side has already signed is not a
+  /// failure to show anyone: the certificate has the signature. Telling a
+  /// technician their work was rejected when it is safely filed teaches them
+  /// to ignore the message that matters.
+  static bool isBenign(String reason) =>
+      reason == alreadySigned || reason == alreadyIssued;
 }

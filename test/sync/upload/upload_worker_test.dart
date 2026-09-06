@@ -4,6 +4,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:stat_trac_technical/sync/upload/certificate_upload.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_client.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_result.dart';
+import 'package:stat_trac_technical/sync/upload/upload_archive.dart';
 import 'package:stat_trac_technical/sync/upload/upload_queue.dart';
 import 'package:stat_trac_technical/sync/upload/upload_worker.dart';
 
@@ -21,17 +22,27 @@ void main() {
 
   late Database db;
   late UploadQueue queue;
+  late UploadArchive archive;
   late MockClient client;
   late UploadWorker worker;
+  late List<(String, int)> confirmed;
 
   setUp(() async {
     db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     await UploadQueue.createTable(db);
+    await UploadArchive.createTable(db);
     queue = UploadQueue(db);
+    archive = UploadArchive(db);
     client = MockClient();
+    confirmed = [];
     worker = UploadWorker(
       queue: queue,
+      archive: archive,
       client: client,
+      confirm: (mobileId, serverId) async {
+        confirmed.add((mobileId, serverId));
+        return true;
+      },
       company: () async => 'demo',
       deviceToken: () async => 'token',
     );
@@ -153,7 +164,9 @@ void main() {
     await queue.enqueue(_upload('cert-1'));
     final signedOut = UploadWorker(
       queue: queue,
+      archive: archive,
       client: client,
+      confirm: (_, _) async => true,
       company: () async => 'demo',
       deviceToken: () async => null,
     );
@@ -162,5 +175,75 @@ void main() {
 
     expect(result.attempted, 0);
     expect(await queue.pending(), hasLength(1));
+  });
+
+  test('a certificate applied without its readings is reported, not counted '
+      'as a clean success', () async {
+    // The batch is the certificate plus one reading, so the server applying
+    // one row op means the reading did not land. A 200 said success and the
+    // count that contradicted it used to be discarded.
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(applied: 1, assigned: {'cert-1': 5031},
+        issued: []));
+
+    final result = await worker.drain();
+
+    expect(result.applied, 1);
+    expect(result.shortApplied, 1);
+
+    final entry = (await archive.shortApplies()).single;
+    expect(entry.mobileId, 'cert-1');
+    expect(entry.opsSent, 2);
+    expect(entry.applied, 1);
+    expect(entry.shortBy, 1);
+  });
+
+  test('a full apply is archived with nothing short', () async {
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
+        issued: []));
+
+    final result = await worker.drain();
+
+    expect(result.shortApplied, 0);
+    expect(await archive.shortApplies(), isEmpty);
+
+    final entry = (await archive.all()).single;
+    expect(entry.opsSent, 2);
+    expect(entry.applied, 2);
+    expect(entry.assigned['cert-1'], 5031);
+  });
+
+  test('the payload survives the queue row being deleted', () async {
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(applied: 1, assigned: {}, issued: []));
+
+    await worker.drain();
+
+    // The queue is drained, which is what destroyed the evidence before.
+    expect(await queue.count(), 0);
+    expect((await archive.all()).single.upload.lines, hasLength(1));
+  });
+
+  test('the server key is written back against the mobile id', () async {
+    // Without this the device can never say its own work landed: the server
+    // names the certificate by the uuid it travelled under and by nothing
+    // else, and the queue row is gone the moment it succeeds.
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
+        issued: []));
+
+    await worker.drain();
+
+    expect(confirmed, [('cert-1', 5031)]);
+  });
+
+  test('nothing is written back when the server assigned no key', () async {
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(applied: 2, assigned: {}, issued: []));
+
+    await worker.drain();
+
+    expect(confirmed, isEmpty);
   });
 }

@@ -26,6 +26,28 @@ abstract interface class CertLocalDataSource {
   Future<List<TestCertificate>> getPendingSyncCertificates();
   Future<List<TestOutput>> getOutputsByCertId(int certId);
   Future<void> markSynced(int certificateId, int serverId);
+
+  /// Stamps the certificate with the UUID its upload will travel under.
+  ///
+  /// Written before the upload leaves, so the row can be found again from the
+  /// server's answer — which names the certificate by that UUID and nothing
+  /// else.
+  Future<void> setMobileId(int certificateId, String mobileId);
+
+  /// Records the server key against the UUID the upload travelled under.
+  ///
+  /// This is how a device finally knows its work landed. Returns false when no
+  /// row carries that UUID, rather than failing silently — an upload nothing
+  /// on the device claims is a fact worth surfacing.
+  Future<bool> markSyncedByMobileId(String mobileId, int serverId);
+
+  /// Certificates finished on this device that the server has not confirmed.
+  ///
+  /// These are invisible everywhere else: the list, the detail and the
+  /// readings all read the server's copy, so a technician's own finished work
+  /// does not appear until it round-trips. Until it does, this is the only
+  /// place it exists.
+  Future<List<CertificateSummary>> getUnconfirmedCertificates();
   Future<void> updateSignatures(
     int certId,
     List<int> techSignature,
@@ -189,6 +211,41 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       where: 'id = ?',
       whereArgs: [certificateId],
     );
+  }
+
+  @override
+  Future<void> setMobileId(int certificateId, String mobileId) async {
+    final db = await _db.database;
+    await db.update(
+      'test_certificates',
+      {'mobile_id': mobileId},
+      where: 'id = ?',
+      whereArgs: [certificateId],
+    );
+  }
+
+  @override
+  Future<bool> markSyncedByMobileId(String mobileId, int serverId) async {
+    final db = await _db.database;
+    final rows = await db.update(
+      'test_certificates',
+      {'sync_status': 'synced', 'server_id': serverId},
+      where: 'mobile_id = ?',
+      whereArgs: [mobileId],
+    );
+    return rows > 0;
+  }
+
+  @override
+  Future<List<CertificateSummary>> getUnconfirmedCertificates() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      '$_certSummarySelect WHERE tc.server_id IS NULL '
+      'ORDER BY tc.created_at DESC',
+    );
+    return rows.map(CertificateSummary.fromMap).map(
+      (c) => c.asLocal(),
+    ).toList();
   }
 
   @override

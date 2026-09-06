@@ -87,7 +87,11 @@ class UploadQueue {
   Future<void> enqueue(CertificateUpload upload) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.insert(table, {
-      'mobile_id': upload.mobileId,
+      // Keyed by the queue key, not the certificate's mobile id: a signature
+      // captured after the readings were sent travels as its own batch under
+      // the same certificate, and keying on the certificate would make the
+      // second batch replace the first.
+      'mobile_id': upload.queueKey,
       'payload': jsonEncode(upload.toJson()),
       'status': UploadStatus.pending.name,
       'attempts': 0,

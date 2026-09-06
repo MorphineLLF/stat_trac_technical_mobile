@@ -20,6 +20,7 @@ import '../widgets/cert_type_selector.dart';
 import '../../../assets/presentation/providers/asset_providers.dart';
 import '../../../../sync/upload/upload_providers.dart';
 import '../../../../sync/upload/certificate_upload.dart';
+import '../../../../sync/upload/sync_upload_archive_note.dart';
 import 'package:uuid/uuid.dart';
 
 class CreateCertificateScreen extends ConsumerStatefulWidget {
@@ -113,7 +114,7 @@ class _CreateCertificateScreenState
       // retired local table and nothing else: the old push path is disabled
       // because its endpoints 404, and the certificate list reads PowerSync,
       // so the technician's work would vanish with no error at all.
-      await _queueForUpload(cert);
+      await _queueForUpload(cert, certId);
 
       ref.invalidate(dashboardStatsProvider);
       ref.invalidate(pendingUploadCountProvider);
@@ -145,7 +146,7 @@ class _CreateCertificateScreenState
   /// them. So this uploads the record and its readings — the work stops
   /// vanishing — and the certificate is not yet *issued* server-side. The
   /// wizard must not imply otherwise.
-  Future<void> _queueForUpload(TestCertificate cert) async {
+  Future<void> _queueForUpload(TestCertificate cert, int certId) async {
     const uuid = Uuid();
 
     final upload = CertificateUpload(
@@ -180,6 +181,30 @@ class _CreateCertificateScreenState
             }..removeWhere((_, v) => v == null),
           ),
       ],
+    );
+
+    // Stamped on the row before it leaves. The server's answer names this
+    // certificate by this UUID and by nothing else, so without it here the
+    // device could never match the reply to the work.
+    await ref
+        .read(certLocalDataSourceProvider)
+        .setMobileId(certId, upload.mobileId);
+
+    // The first boundary, logged before anything leaves the device. A
+    // certificate once reached the server without its readings and the only
+    // record of what was sent had already been deleted, so the count is stated
+    // here against the count that was actually saved locally — the two read
+    // the same field and must agree.
+    final savedLocally = (await ref
+            .read(certLocalDataSourceProvider)
+            .getOutputsByCertId(certId))
+        .length;
+    debugPrint(
+      queuedNote(
+        mobileId: upload.mobileId,
+        lines: upload.lines.length,
+        savedLocally: savedLocally,
+      ),
     );
 
     final queue = await ref.read(uploadQueueProvider.future);

@@ -443,8 +443,26 @@ final class TemplateItemsFamily extends $Family
   String toString() => r'templateItemsProvider';
 }
 
+/// Every certificate the technician can see: the server's, plus this device's
+/// own work that the server has not confirmed yet.
+///
+/// The list used to read PowerSync alone, which meant a technician's finished
+/// certificate did not appear on their own screen — the app only ever showed
+/// what the server sent back, so work that failed to round-trip looked
+/// identical to work that was never done. Local rows drop out of this list the
+/// moment the server confirms them, so nothing is ever listed twice.
+
 @ProviderFor(certificateList)
 final certificateListProvider = CertificateListProvider._();
+
+/// Every certificate the technician can see: the server's, plus this device's
+/// own work that the server has not confirmed yet.
+///
+/// The list used to read PowerSync alone, which meant a technician's finished
+/// certificate did not appear on their own screen — the app only ever showed
+/// what the server sent back, so work that failed to round-trip looked
+/// identical to work that was never done. Local rows drop out of this list the
+/// moment the server confirms them, so nothing is ever listed twice.
 
 final class CertificateListProvider
     extends
@@ -456,6 +474,14 @@ final class CertificateListProvider
     with
         $FutureModifier<List<CertificateSummary>>,
         $FutureProvider<List<CertificateSummary>> {
+  /// Every certificate the technician can see: the server's, plus this device's
+  /// own work that the server has not confirmed yet.
+  ///
+  /// The list used to read PowerSync alone, which meant a technician's finished
+  /// certificate did not appear on their own screen — the app only ever showed
+  /// what the server sent back, so work that failed to round-trip looked
+  /// identical to work that was never done. Local rows drop out of this list the
+  /// moment the server confirms them, so nothing is ever listed twice.
   CertificateListProvider._()
     : super(
         from: null,
@@ -482,10 +508,22 @@ final class CertificateListProvider
   }
 }
 
-String _$certificateListHash() => r'1139ced526bf9c3ecb819b0906de400cfef850a1';
+String _$certificateListHash() => r'e5495b8c23fde46f64a3c72c377ca9d7eb8ad048';
+
+/// One certificate, from whichever side holds it.
+///
+/// A local id and a server key are different number spaces, so the device's
+/// own unconfirmed work is looked up first — it is the only place that copy
+/// exists.
 
 @ProviderFor(certificateSummary)
 final certificateSummaryProvider = CertificateSummaryFamily._();
+
+/// One certificate, from whichever side holds it.
+///
+/// A local id and a server key are different number spaces, so the device's
+/// own unconfirmed work is looked up first — it is the only place that copy
+/// exists.
 
 final class CertificateSummaryProvider
     extends
@@ -497,6 +535,11 @@ final class CertificateSummaryProvider
     with
         $FutureModifier<CertificateSummary?>,
         $FutureProvider<CertificateSummary?> {
+  /// One certificate, from whichever side holds it.
+  ///
+  /// A local id and a server key are different number spaces, so the device's
+  /// own unconfirmed work is looked up first — it is the only place that copy
+  /// exists.
   CertificateSummaryProvider._({
     required CertificateSummaryFamily super.from,
     required int super.argument,
@@ -542,7 +585,13 @@ final class CertificateSummaryProvider
 }
 
 String _$certificateSummaryHash() =>
-    r'62ef8919576498391d1f6944132133e06c0321d1';
+    r'62291c1268236cb3170a67809e08985cc852ec73';
+
+/// One certificate, from whichever side holds it.
+///
+/// A local id and a server key are different number spaces, so the device's
+/// own unconfirmed work is looked up first — it is the only place that copy
+/// exists.
 
 final class CertificateSummaryFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<CertificateSummary?>, int> {
@@ -555,6 +604,12 @@ final class CertificateSummaryFamily extends $Family
         isAutoDispose: true,
       );
 
+  /// One certificate, from whichever side holds it.
+  ///
+  /// A local id and a server key are different number spaces, so the device's
+  /// own unconfirmed work is looked up first — it is the only place that copy
+  /// exists.
+
   CertificateSummaryProvider call(int id) =>
       CertificateSummaryProvider._(argument: id, from: this);
 
@@ -562,8 +617,20 @@ final class CertificateSummaryFamily extends $Family
   String toString() => r'certificateSummaryProvider';
 }
 
+/// A certificate's readings, read from wherever that certificate lives.
+///
+/// For the device's own unconfirmed work this is local storage — the server
+/// has nothing to give back yet, and reading it there is what showed a
+/// technician an empty certificate they had just filled in themselves.
+
 @ProviderFor(certOutputs)
 final certOutputsProvider = CertOutputsFamily._();
+
+/// A certificate's readings, read from wherever that certificate lives.
+///
+/// For the device's own unconfirmed work this is local storage — the server
+/// has nothing to give back yet, and reading it there is what showed a
+/// technician an empty certificate they had just filled in themselves.
 
 final class CertOutputsProvider
     extends
@@ -573,6 +640,11 @@ final class CertOutputsProvider
           FutureOr<List<TestOutput>>
         >
     with $FutureModifier<List<TestOutput>>, $FutureProvider<List<TestOutput>> {
+  /// A certificate's readings, read from wherever that certificate lives.
+  ///
+  /// For the device's own unconfirmed work this is local storage — the server
+  /// has nothing to give back yet, and reading it there is what showed a
+  /// technician an empty certificate they had just filled in themselves.
   CertOutputsProvider._({
     required CertOutputsFamily super.from,
     required int super.argument,
@@ -617,7 +689,13 @@ final class CertOutputsProvider
   }
 }
 
-String _$certOutputsHash() => r'2a2903338bd5afee105ab7e52486609191c891ca';
+String _$certOutputsHash() => r'57367385c990821c40554a878de932b2f50dc59e';
+
+/// A certificate's readings, read from wherever that certificate lives.
+///
+/// For the device's own unconfirmed work this is local storage — the server
+/// has nothing to give back yet, and reading it there is what showed a
+/// technician an empty certificate they had just filled in themselves.
 
 final class CertOutputsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TestOutput>>, int> {
@@ -629,6 +707,12 @@ final class CertOutputsFamily extends $Family
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
+
+  /// A certificate's readings, read from wherever that certificate lives.
+  ///
+  /// For the device's own unconfirmed work this is local storage — the server
+  /// has nothing to give back yet, and reading it there is what showed a
+  /// technician an empty certificate they had just filled in themselves.
 
   CertOutputsProvider call(int certId) =>
       CertOutputsProvider._(argument: certId, from: this);

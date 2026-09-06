@@ -137,7 +137,97 @@ class SyncUploadOp {
     });
   }
 
+  /// Attach a signature to a certificate.
+  ///
+  /// **An action, not a column, and that is the whole design.** The two
+  /// signature columns are `bytea` and are deliberately absent from the row
+  /// allowlist: a device able to write them directly would bypass every rule
+  /// that makes a signature mean anything — that the certificate is not void,
+  /// that this side has not already signed, that the design asked for a client
+  /// signature at all, that a client signature carries the name of the person
+  /// who gave it. The op calls the server's `SaveSignature`, so those rules
+  /// run.
+  ///
+  /// **Signing is allowed after issue** — the only write in this application
+  /// that is. What was measured cannot change; who signed for it is what
+  /// happens next. Sign ops are therefore applied after issue ops.
+  ///
+  /// [png] must be **standard, padded** base64. URL-safe or unpadded is
+  /// refused rather than guessed at, so it is checked here instead of costing
+  /// a round trip.
+  ///
+  /// [clientName] is required for the client side and refused on the
+  /// technician's: a client signature with no record of who signed is not
+  /// evidence of anything, and unknown fields are refused rather than dropped.
+  factory SyncUploadOp.sign({
+    required String mobileId,
+    required SignatureSide which,
+    required String png,
+    String? clientName,
+  }) {
+    if (png.isEmpty) {
+      throw ArgumentError.value(png, 'png', 'a signature with no bytes');
+    }
+    if (!_standardPaddedBase64.hasMatch(png)) {
+      throw ArgumentError.value(
+        '${png.length} chars',
+        'png',
+        'the server takes standard, padded base64 and refuses URL-safe or '
+            'unpadded rather than guessing — encode with base64Encode, not '
+            'base64UrlEncode',
+      );
+    }
+
+    final name = clientName?.trim();
+    if (which == SignatureSide.client && (name == null || name.isEmpty)) {
+      throw ArgumentError.value(
+        clientName,
+        'clientName',
+        'a client signature must name the person who gave it',
+      );
+    }
+    if (which == SignatureSide.tech && name != null && name.isNotEmpty) {
+      throw ArgumentError.value(
+        clientName,
+        'clientName',
+        'client_name belongs to the client signature; the server refuses '
+            'unknown fields on a sign op rather than dropping them',
+      );
+    }
+
+    return SyncUploadOp._({
+      'table': 'TestCertificate',
+      'mobile_id': mobileId,
+      'action': 'sign',
+      'data': {
+        'which': which.wire,
+        'png': png,
+        if (which == SignatureSide.client) 'client_name': name,
+      },
+    });
+  }
+
+  /// Standard base64: the alphabet plus `+/`, padded to a multiple of four.
+  static final _standardPaddedBase64 = RegExp(
+    r'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$',
+  );
+
   final Map<String, Object?> _json;
 
   Map<String, Object?> toJson() => _json;
+}
+
+
+/// Which side of a certificate a signature belongs to.
+///
+/// A signature is per side and each side signs once — the first stands, and a
+/// second attempt is refused as `already_signed` rather than overwriting it.
+enum SignatureSide {
+  tech('tech'),
+  client('client');
+
+  const SignatureSide(this.wire);
+
+  /// The value the server expects in `which`.
+  final String wire;
 }

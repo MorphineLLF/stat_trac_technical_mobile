@@ -81,6 +81,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       } else if (r.conflicted > 0) {
         message = '${r.conflicted} changed on the server and need you.';
         colour = const Color(0xFFFFB300);
+      } else if (r.shortApplied > 0) {
+        // The server said yes and applied less than it was sent. Reporting
+        // this green is what let a certificate be filed with no test data
+        // against it and nobody know.
+        message = '${r.shortApplied} certificate'
+            '${r.shortApplied == 1 ? '' : 's'} reached the server without '
+            'all readings — do not leave site, report this.';
+        colour = Theme.of(context).colorScheme.error;
       } else {
         message = 'Sent ${r.applied} certificate'
             '${r.applied == 1 ? '' : 's'}.';

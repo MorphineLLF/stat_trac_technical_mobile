@@ -4,7 +4,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/config/app_config.dart';
 import '../../database/database_helper.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
+import '../../features/certification/presentation/providers/certificate_providers.dart';
 import 'sync_upload_client.dart';
+import 'upload_archive.dart';
 import 'upload_queue.dart';
 import 'upload_worker.dart';
 
@@ -13,6 +15,12 @@ part 'upload_providers.g.dart';
 @riverpod
 Future<UploadQueue> uploadQueue(Ref ref) async {
   return UploadQueue(await DatabaseHelper.instance.database);
+}
+
+/// What was sent and what came back, kept after the queue row is deleted.
+@riverpod
+Future<UploadArchive> uploadArchive(Ref ref) async {
+  return UploadArchive(await DatabaseHelper.instance.database);
 }
 
 /// The upload client. No interceptor: this route takes the ninety-day device
@@ -35,7 +43,9 @@ Future<UploadWorker> uploadWorker(Ref ref) async {
   final local = ref.watch(authLocalDataSourceProvider);
   return UploadWorker(
     queue: await ref.watch(uploadQueueProvider.future),
+    archive: await ref.watch(uploadArchiveProvider.future),
     client: ref.watch(syncUploadClientProvider),
+    confirm: ref.watch(certLocalDataSourceProvider).markSyncedByMobileId,
     company: local.readDbName,
     deviceToken: () async => (await local.readDeviceToken())?.token,
   );

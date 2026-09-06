@@ -1,0 +1,436 @@
+<h2>Test Grid Layout Approaches</h2>
+<p class="subtitle">Current layout is ~6 lines per test item. Which approach works better on a phone?</p>
+
+<style>
+.phone-wrap {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 16px;
+}
+.phone {
+  width: 260px;
+  background: #fff;
+  border-radius: 24px;
+  border: 3px solid #ccc;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.phone-bar {
+  background: #0D2B3E;
+  color: #fff;
+  font-size: 11px;
+  padding: 8px 14px 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.phone-body {
+  padding: 0;
+  max-height: 460px;
+  overflow: hidden;
+  position: relative;
+  font-size: 11px;
+  background: #F5F7FA;
+}
+.phone-body::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, rgba(245,247,250,0.95));
+  pointer-events: none;
+}
+/* Progress banner */
+.prog {
+  background: #fff3cd;
+  border-bottom: 1px solid #ffe082;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: #856404;
+  font-weight: 600;
+}
+/* ─── Approach A: Compact rows ─────── */
+.item-a {
+  background: #fff;
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef0f3;
+}
+.item-a-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.item-a-desc {
+  flex: 1;
+  font-weight: 600;
+  color: #0D2B3E;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.item-a-exp {
+  font-size: 10px;
+  color: #8A9BAE;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+.item-a-bottom {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.chip-sm {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1.5px solid;
+  cursor: pointer;
+}
+.chip-pass { border-color: #2E7D32; color: #2E7D32; background: rgba(46,125,50,0.08); }
+.chip-pass.sel { background: #2E7D32; color: #fff; }
+.chip-fail { border-color: #C62828; color: #C62828; background: rgba(198,40,40,0.08); }
+.chip-na { border-color: #546E7A; color: #546E7A; background: rgba(84,110,122,0.08); }
+.actual-field {
+  border: 1px solid #DDE3EA;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 10px;
+  color: #0D2B3E;
+  background: #fff;
+  width: 52px;
+}
+.notes-field {
+  border: 1px solid #DDE3EA;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 10px;
+  color: #8A9BAE;
+  background: #fff;
+  flex: 1;
+}
+.section-hdr {
+  background: rgba(27,126,166,0.1);
+  padding: 4px 12px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #1B7EA6;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ─── Approach B: One at a time ─────── */
+.wizard-card {
+  background: #fff;
+  margin: 10px;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #DDE3EA;
+}
+.wiz-counter {
+  font-size: 9px;
+  color: #8A9BAE;
+  font-weight: 600;
+  text-align: right;
+  margin-bottom: 4px;
+}
+.wiz-desc {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0D2B3E;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.wiz-exp {
+  font-size: 10px;
+  color: #8A9BAE;
+  margin-bottom: 10px;
+}
+.wiz-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.wiz-chip {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid;
+}
+.wiz-chip-pass { border-color: #2E7D32; color: #2E7D32; background: rgba(46,125,50,0.06); }
+.wiz-chip-fail { border-color: #C62828; color: #C62828; background: rgba(198,40,40,0.06); }
+.wiz-chip-na { border-color: #546E7A; color: #546E7A; background: rgba(84,110,122,0.06); }
+.wiz-actual {
+  border: 1.5px solid #1B7EA6;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #0D2B3E;
+  background: #fff;
+  width: 100%;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.wiz-notes {
+  border: 1px solid #DDE3EA;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 10px;
+  color: #8A9BAE;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+.wiz-nav {
+  display: flex;
+  gap: 8px;
+}
+.wiz-btn-back {
+  flex: 1;
+  padding: 7px;
+  border-radius: 6px;
+  border: 1.5px solid #1B7EA6;
+  background: #fff;
+  color: #1B7EA6;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.wiz-btn-next {
+  flex: 2;
+  padding: 7px;
+  border-radius: 6px;
+  background: #1B7EA6;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.wiz-progress {
+  height: 3px;
+  background: #DDE3EA;
+  margin: 0 10px 0;
+}
+.wiz-progress-fill {
+  height: 3px;
+  background: #1B7EA6;
+  width: 25%;
+  border-radius: 2px;
+}
+
+/* ─── Approach C: Expandable rows ─── */
+.item-c {
+  background: #fff;
+  margin: 0;
+  border-bottom: 1px solid #eef0f3;
+}
+.item-c-row {
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  gap: 8px;
+}
+.item-c-desc {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0D2B3E;
+  line-height: 1.3;
+}
+.item-c-chips {
+  display: flex;
+  gap: 4px;
+}
+.item-c-expanded {
+  background: #f8fafc;
+  padding: 0 12px 10px;
+  border-top: 1px solid #eef0f3;
+}
+.expand-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-top: 8px;
+}
+.expand-label {
+  font-size: 9px;
+  color: #8A9BAE;
+  font-weight: 600;
+  width: 40px;
+}
+</style>
+
+<div class="phone-wrap">
+
+  <!-- APPROACH A -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)" style="background:transparent;border:none;padding:0;width:260px;">
+    <div class="letter" style="position:absolute;margin:8px;">A</div>
+    <div class="phone" style="margin-top:0">
+      <div class="phone-bar">Create Certificate · Test Items &nbsp; <span style="float:right;opacity:0.7">Step 4/6</span></div>
+      <div class="phone-body">
+        <div class="prog">✓ 1 / 8 &nbsp;·&nbsp; Actual: 0 / 6</div>
+        <div class="section-hdr">Electrical Safety</div>
+        <div class="item-a">
+          <div class="item-a-top">
+            <div class="item-a-desc">Earth Leakage Current</div>
+            <div class="item-a-exp">≤ 0.5mA</div>
+          </div>
+          <div class="item-a-bottom">
+            <div class="chip-sm chip-pass sel">Pass</div>
+            <div class="chip-sm chip-fail">Fail</div>
+            <div class="chip-sm chip-na">N/A</div>
+            <div class="actual-field">0.3mA</div>
+            <div class="notes-field">Notes…</div>
+          </div>
+        </div>
+        <div class="item-a">
+          <div class="item-a-top">
+            <div class="item-a-desc">Insulation Resistance</div>
+            <div class="item-a-exp">≥ 20MΩ</div>
+          </div>
+          <div class="item-a-bottom">
+            <div class="chip-sm chip-pass">Pass</div>
+            <div class="chip-sm chip-fail">Fail</div>
+            <div class="chip-sm chip-na">N/A</div>
+            <div class="actual-field">Actual</div>
+            <div class="notes-field">Notes…</div>
+          </div>
+        </div>
+        <div class="section-hdr">Output Verification</div>
+        <div class="item-a">
+          <div class="item-a-top">
+            <div class="item-a-desc">Output Voltage at 100% Load</div>
+            <div class="item-a-exp">12V ± 5%</div>
+          </div>
+          <div class="item-a-bottom">
+            <div class="chip-sm chip-pass">Pass</div>
+            <div class="chip-sm chip-fail">Fail</div>
+            <div class="chip-sm chip-na">N/A</div>
+            <div class="actual-field">Actual</div>
+            <div class="notes-field">Notes…</div>
+          </div>
+        </div>
+        <div class="item-a">
+          <div class="item-a-top">
+            <div class="item-a-desc">Alarm Threshold</div>
+            <div class="item-a-exp">—</div>
+          </div>
+          <div class="item-a-bottom">
+            <div class="chip-sm chip-pass">Pass</div>
+            <div class="chip-sm chip-fail">Fail</div>
+            <div class="chip-sm chip-na">N/A</div>
+            <div class="notes-field" style="flex:1">Notes…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;padding:8px 4px 0;font-size:11px;font-weight:700;color:#0D2B3E;">A — Compact scrollable list</div>
+    <div style="text-align:center;font-size:10px;color:#8A9BAE;padding:0 4px 8px;">All items visible, 2 lines each. Scroll to see more.</div>
+  </div>
+
+  <!-- APPROACH B -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)" style="background:transparent;border:none;padding:0;width:260px;">
+    <div class="letter" style="position:absolute;margin:8px;">B</div>
+    <div class="phone">
+      <div class="phone-bar">Create Certificate · Test Items &nbsp; <span style="float:right;opacity:0.7">Step 4/6</span></div>
+      <div class="phone-body">
+        <div class="wiz-progress" style="margin-top:6px;"><div class="wiz-progress-fill"></div></div>
+        <div class="wizard-card">
+          <div class="wiz-counter">Item 2 of 8 · Electrical Safety</div>
+          <div class="wiz-desc">Earth Leakage Current</div>
+          <div class="wiz-exp">Expected: ≤ 0.5 mA</div>
+          <div class="wiz-chips">
+            <div class="wiz-chip wiz-chip-pass">Pass</div>
+            <div class="wiz-chip wiz-chip-fail">Fail</div>
+            <div class="wiz-chip wiz-chip-na">N/A</div>
+          </div>
+          <div class="wiz-actual">Actual value…</div>
+          <div class="wiz-notes">Notes (optional)…</div>
+          <div class="wiz-nav">
+            <div class="wiz-btn-back">← Back</div>
+            <div class="wiz-btn-next">Next →</div>
+          </div>
+        </div>
+        <div style="padding:4px 10px;font-size:9px;color:#8A9BAE;text-align:center;">Tap next to advance. You can go back to change answers.</div>
+      </div>
+    </div>
+    <div style="text-align:center;padding:8px 4px 0;font-size:11px;font-weight:700;color:#0D2B3E;">B — One item at a time</div>
+    <div style="text-align:center;font-size:10px;color:#8A9BAE;padding:0 4px 8px;">Large tap targets, focused. Can't see all items at once.</div>
+  </div>
+
+  <!-- APPROACH C -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)" style="background:transparent;border:none;padding:0;width:260px;">
+    <div class="letter" style="position:absolute;margin:8px;">C</div>
+    <div class="phone">
+      <div class="phone-bar">Create Certificate · Test Items &nbsp; <span style="float:right;opacity:0.7">Step 4/6</span></div>
+      <div class="phone-body">
+        <div class="prog">✓ 1 / 8 &nbsp;·&nbsp; Actual: 0 / 6</div>
+        <div class="section-hdr">Electrical Safety</div>
+        <div class="item-c">
+          <div class="item-c-row">
+            <div class="item-c-desc">Earth Leakage Current</div>
+            <div class="item-c-chips">
+              <div class="chip-sm chip-pass sel">P</div>
+              <div class="chip-sm chip-fail">F</div>
+              <div class="chip-sm chip-na">N</div>
+            </div>
+            <span style="font-size:10px;color:#1B7EA6;">▼</span>
+          </div>
+        </div>
+        <div class="item-c">
+          <div class="item-c-row">
+            <div class="item-c-desc">Insulation Resistance</div>
+            <div class="item-c-chips">
+              <div class="chip-sm chip-pass">P</div>
+              <div class="chip-sm chip-fail">F</div>
+              <div class="chip-sm chip-na">N</div>
+            </div>
+            <span style="font-size:10px;color:#1B7EA6;">▶</span>
+          </div>
+          <div class="item-c-expanded">
+            <div style="font-size:9px;color:#8A9BAE;margin-bottom:4px;">Expected: ≥ 20MΩ</div>
+            <div class="expand-row">
+              <div class="expand-label">Actual</div>
+              <input class="actual-field" style="flex:1;width:auto" placeholder="Enter value">
+            </div>
+            <div class="expand-row">
+              <div class="expand-label">Notes</div>
+              <input class="notes-field" style="flex:1" placeholder="Optional notes">
+            </div>
+          </div>
+        </div>
+        <div class="item-c">
+          <div class="item-c-row">
+            <div class="item-c-desc">Output Voltage at 100% Load</div>
+            <div class="item-c-chips">
+              <div class="chip-sm chip-pass">P</div>
+              <div class="chip-sm chip-fail">F</div>
+              <div class="chip-sm chip-na">N</div>
+            </div>
+            <span style="font-size:10px;color:#1B7EA6;">▶</span>
+          </div>
+        </div>
+        <div class="item-c">
+          <div class="item-c-row">
+            <div class="item-c-desc">Alarm Threshold</div>
+            <div class="item-c-chips">
+              <div class="chip-sm chip-pass">P</div>
+              <div class="chip-sm chip-fail">F</div>
+              <div class="chip-sm chip-na">N</div>
+            </div>
+            <span style="font-size:10px;color:#1B7EA6;">▶</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;padding:8px 4px 0;font-size:11px;font-weight:700;color:#0D2B3E;">C — Collapsed rows, tap to expand</div>
+    <div style="text-align:center;font-size:10px;color:#8A9BAE;padding:0 4px 8px;">P/F/N visible always; tap row for actual value + notes.</div>
+  </div>
+
+</div>

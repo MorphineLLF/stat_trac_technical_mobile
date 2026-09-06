@@ -117,13 +117,25 @@ class _CertTile extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
-                if (cert.certificateNo != null)
-                  Text(
-                    'Cert #${cert.certificateNo}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: brandGrey),
+                // The certificate number is how the office refers to this
+                // document, so it leads. When there is none it says so rather
+                // than showing nothing: a missing number and a number that
+                // failed to arrive look identical otherwise, and that is
+                // exactly the confusion this list caused before.
+                Text(
+                  cert.certificateNo != null
+                      ? 'Cert #${cert.certificateNo}'
+                      : 'No cert no. yet',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cert.certificateNo != null ? brandDark : brandGrey,
+                    fontWeight: cert.certificateNo != null
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    fontStyle: cert.certificateNo != null
+                        ? FontStyle.normal
+                        : FontStyle.italic,
                   ),
+                ),
                 if (cert.isPending)
                   Container(
                     padding: const EdgeInsets.symmetric(

@@ -14,7 +14,9 @@ class CertificateUpload {
     required this.lines,
     this.issue,
     this.seenAt,
-  }) {
+    this.signatures = const [],
+    String? queueKey,
+  }) : _queueKey = queueKey {
     for (final column in _serverOwned) {
       if (certificate.containsKey(column)) {
         throw ArgumentError.value(
@@ -63,8 +65,33 @@ class CertificateUpload {
   /// Present only when the technician is closing the certificate.
   final CertificateIssue? issue;
 
+  /// The signatures to attach, at most one per side.
+  ///
+  /// Held separately from the certificate map because a signature is not a
+  /// column here — it is an action the server runs, and the two columns are
+  /// deliberately not writable.
+  final List<CertificateSignature> signatures;
+
+  /// The outbox key. Defaults to [mobileId].
+  ///
+  /// A signature captured after the readings were already sent travels as its
+  /// own batch — the contract allows signing a certificate uploaded last week.
+  /// The outbox is keyed by this, so without a distinct value that second
+  /// batch would silently replace the first and the readings would never go.
+  final String? _queueKey;
+
+  String get queueKey => _queueKey ?? mobileId;
+
   /// The `SyncUpdatedAt` last seen, for optimistic concurrency.
   final String? seenAt;
+
+  /// Row ops this upload becomes: the certificate, plus one per reading.
+  ///
+  /// An issue op is deliberately excluded — the server's `applied` counts row
+  /// ops only, so this is the number that answer can be compared against. A
+  /// server reporting fewer than this applied the certificate without all of
+  /// its readings.
+  int get rowOpCount => 1 + lines.length;
 
   /// Restores one from the queue.
   factory CertificateUpload.fromJson(Map<String, Object?> j) =>
@@ -84,6 +111,13 @@ class CertificateUpload {
                 Map<String, Object?>.from(j['issue']! as Map),
               ),
         seenAt: j['seen_at'] as String?,
+        queueKey: j['queue_key'] as String?,
+        signatures: [
+          for (final g in (j['signatures'] as List?) ?? const [])
+            CertificateSignature.fromJson(
+              Map<String, Object?>.from(g as Map),
+            ),
+        ],
       );
 
   /// How it is held in the queue. Deliberately not the wire shape: the batch
@@ -97,6 +131,8 @@ class CertificateUpload {
     ],
     'issue': issue?.toJson(),
     'seen_at': seenAt,
+    'queue_key': queueKey,
+    'signatures': [for (final g in signatures) g.toJson()],
   };
 
   /// Assembles the batch.
@@ -126,6 +162,15 @@ class CertificateUpload {
         nextService: i.nextService,
         completePmWorkOrder: i.completePmWorkOrder,
         completePmJobCard: i.completePmJobCard,
+      ),
+    // After the issue op, because signing is allowed after issue and is the
+    // only write here that is.
+    for (final g in signatures)
+      SyncUploadOp.sign(
+        mobileId: mobileId,
+        which: g.which,
+        png: g.png,
+        clientName: g.clientName,
       ),
   ]);
 }
@@ -193,5 +238,43 @@ class CertificateIssue {
     'next_service': nextService,
     'complete_pm_work_order': completePmWorkOrder,
     'complete_pm_job_card': completePmJobCard,
+  };
+}
+
+
+/// One side's signature, as it travels.
+///
+/// The bytes are held already base64-encoded: the encoding is part of the
+/// contract (standard and padded, never URL-safe) and doing it once at capture
+/// keeps a re-queued signature from being re-encoded differently.
+class CertificateSignature {
+  const CertificateSignature({
+    required this.which,
+    required this.png,
+    this.clientName,
+  });
+
+  factory CertificateSignature.fromJson(Map<String, Object?> j) =>
+      CertificateSignature(
+        which: SignatureSide.values.firstWhere(
+          (s) => s.wire == j['which'],
+          orElse: () => SignatureSide.tech,
+        ),
+        png: j['png']! as String,
+        clientName: j['client_name'] as String?,
+      );
+
+  final SignatureSide which;
+
+  /// Standard, padded base64 of the PNG the pad produced.
+  final String png;
+
+  /// Required for the client side, refused on the technician's.
+  final String? clientName;
+
+  Map<String, Object?> toJson() => {
+    'which': which.wire,
+    'png': png,
+    'client_name': clientName,
   };
 }
