@@ -169,7 +169,20 @@ class UploadWorker {
           // Already signed, or already issued, means the certificate has what
           // the technician was trying to give it. Holding the row and calling
           // it a rejection would teach them to ignore the queue.
-          if (UploadRejectionReason.isBenign(reason)) {
+          //
+          // **But only when nothing was lost with it.** A rejection refuses
+          // the WHOLE batch, so an already_issued on a batch that was also
+          // carrying the certificate and its readings means none of them
+          // landed. Treating that as benign deletes the queue row, marks the
+          // work applied, and reports a refusal as done — which is exactly
+          // how a certificate reached the server with no readings and nobody
+          // was told. The reason code describes the certificate; the batch
+          // describes what would be thrown away by believing it.
+          final carriesWork =
+              entry.upload.lines.isNotEmpty ||
+              entry.upload.certificate.isNotEmpty;
+
+          if (UploadRejectionReason.isBenign(reason) && !carriesWork) {
             await _archive.record(
               upload: entry.upload,
               applied: 0,

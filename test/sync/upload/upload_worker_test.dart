@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:stat_trac_technical/sync/upload/certificate_upload.dart';
+import 'package:stat_trac_technical/sync/upload/sync_upload_batch.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_client.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_result.dart';
 import 'package:stat_trac_technical/sync/upload/upload_archive.dart';
@@ -188,6 +189,8 @@ void main() {
     expect((await queue.pending()).first.lastError, contains('sign in'));
   });
 
+  _benignOnlyWhenNothingIsLost();
+
   test('a client error is held for a developer, not the technician', () async {
     await queue.enqueue(_upload('cert-1'));
     answers(const UploadClientError('unknown field "complete_pm_workorder"'));
@@ -315,7 +318,22 @@ void main() {
   test('already_signed clears the queue instead of holding it', () async {
     // The certificate has the signature. Calling that a rejection teaches a
     // technician to ignore the queue.
-    await queue.enqueue(_upload('cert-1'));
+    //
+    // A SIGNATURE-ONLY batch, which is the real shape of this case: nothing
+    // is lost by retiring it, because it carried no certificate and no
+    // readings. The same reason on a batch carrying work is kept instead —
+    // see the test above.
+    await queue.enqueue(
+      CertificateUpload(
+        mobileId: 'cert-1',
+        queueKey: 'cert-1:sign',
+        certificate: const {},
+        lines: const [],
+        signatures: [
+          CertificateSignature(which: SignatureSide.tech, png: 'QUJD'),
+        ],
+      ),
+    );
     answers(const UploadRejected([
       UploadRejection(
         table: 'TestCertificate',
@@ -348,5 +366,56 @@ void main() {
     final entry = (await queue.all()).single;
     expect(entry.status, UploadStatus.rejected);
     expect(entry.reason, 'no_client_signature');
+  });
+}
+
+// A refusal is only harmless when the technician already has what they were
+// trying to give. If the batch was also carrying the certificate and its
+// readings, and none of them landed, calling it benign deletes the queue row
+// and the work with it — refused, and reported as done.
+void _benignOnlyWhenNothingIsLost() {
+  test('an already_issued that also carried unapplied readings is kept', () async {
+    late Database db;
+    late UploadQueue queue;
+    late MockClient client;
+    late UploadWorker worker;
+
+    db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    await UploadQueue.createTable(db);
+    await UploadArchive.createTable(db);
+    queue = UploadQueue(db);
+    client = MockClient();
+    worker = UploadWorker(
+      queue: queue,
+      archive: UploadArchive(db),
+      client: client,
+      confirm: (_, _) async => true,
+      company: () async => 'demo',
+      deviceToken: () async => 'token',
+    );
+
+    await queue.enqueue(_upload('cert-1'));
+    when(
+      () => client.upload(
+        company: any(named: 'company'),
+        deviceToken: any(named: 'deviceToken'),
+        upload: any(named: 'upload'),
+      ),
+    ).thenAnswer(
+      (_) async => const UploadRejected([
+        UploadRejection(
+          table: 'TestCertificate',
+          mobileId: 'cert-1',
+          reason: UploadRejectionReason.alreadyIssued,
+          message: 'the certificate is closed',
+        ),
+      ]),
+    );
+
+    await worker.drain();
+
+    // Kept, not swallowed: the readings never landed.
+    expect((await queue.all()).single.status, UploadStatus.rejected);
+    await db.close();
   });
 }
