@@ -470,19 +470,19 @@ class _CreateCertificateScreenState
                         // where it could barely be seen — and a required field
                         // nobody notices is a 422 on site.
                         //
-                        // Shown on every certificate, by the user's decision.
-                        // It is sent whichever design this is: where Next
-                        // Service Due is ticked the server writes it and moves
-                        // the PM schedule, and where it is not the server
-                        // ignores it in full. So it is always visible and
-                        // always safe, and only required where the design
-                        // asks.
-                        _NextServiceField(
-                          testDate: _testDate,
-                          value: _nextService,
-                          onChanged: (d) => setState(() => _nextService = d),
-                        ),
-                        const SizedBox(height: 12),
+                        // ONLY where the design asks for it. A template that
+                        // does not tick Next Service Due does not want one,
+                        // and the server ignores a date sent against it — so
+                        // showing the field there offers a decision that is
+                        // not the technician's to make and records nothing.
+                        if (_selectedTemplate?.nextService == true) ...[
+                          _NextServiceField(
+                            testDate: _testDate,
+                            value: _nextService,
+                            onChanged: (d) => setState(() => _nextService = d),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         TextField(
                           controller: _notesController,
                           decoration: const InputDecoration(
