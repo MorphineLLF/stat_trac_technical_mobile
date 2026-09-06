@@ -4,6 +4,7 @@ import 'package:signature/signature.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import 'signature_export_size.dart';
+import 'signature_step_validation.dart';
 
 class CertSignatureStep extends StatefulWidget {
   const CertSignatureStep({
@@ -58,11 +59,21 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
   }
 
   Future<void> _submit() async {
-    if (_techController.isEmpty) {
+    // Checked together, and checked BEFORE anything is exported: a facility
+    // signature with no name used to pass here and be discarded on the way to
+    // the server, so a real signature from a real person was lost with only a
+    // log line to say so.
+    final problem = signatureStepError(
+      techSigned: _techController.isNotEmpty,
+      requiresCustomerSig: widget.requiresCustomerSig,
+      clientSigned: _clientController.isNotEmpty,
+      clientName: _clientNameController.text,
+    );
+    if (problem != null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Technician signature is required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
     // Both sides export on the same canvas. Without a size the package
@@ -77,15 +88,11 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     );
     if (techBytes == null) return;
 
+    // Exported whenever somebody signed, not only when the template asked.
+    // A signature taken from a real person is not discarded because the
+    // template did not require one.
     Uint8List? clientBytes;
-    if (widget.requiresCustomerSig) {
-      if (_clientController.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Facility signature is required')),
-        );
-        return;
-      }
+    if (_clientController.isNotEmpty) {
       clientBytes = await _clientController.toPngBytes(
         width: export?.width.toInt(),
         height: export?.height.toInt(),
@@ -132,7 +139,10 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           controller: _clientNameController,
           decoration: const InputDecoration(
             labelText: 'Facility Contact Name',
-            hintText: 'Optional',
+            // Not "Optional". It is optional only until somebody from the
+            // facility signs, and captioning it otherwise is what caused a
+            // real signature to be captured and then thrown away.
+            hintText: 'Required if the facility signs',
           ),
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.done,
