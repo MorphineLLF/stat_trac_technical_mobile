@@ -178,8 +178,8 @@ class CertificateRepositoryImpl implements CertificateRepository {
   @override
   Future<void> updateSignatures(
     int certId,
-    List<int> techSignature,
-    List<int>? clientSignature,
+    Uint8List techSignature,
+    Uint8List? clientSignature,
     String? clientName,
   ) => local.updateSignatures(
     certId,

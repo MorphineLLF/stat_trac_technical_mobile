@@ -91,7 +91,11 @@ class CertificateUpload {
   /// ops only, so this is the number that answer can be compared against. A
   /// server reporting fewer than this applied the certificate without all of
   /// its readings.
-  int get rowOpCount => 1 + lines.length;
+  int get rowOpCount => (certificate.isEmpty ? 0 : 1) + lines.length;
+
+  /// Nothing to write, only signatures to attach.
+  bool get isSignaturesOnly =>
+      certificate.isEmpty && lines.isEmpty && issue == null;
 
   /// Restores one from the queue.
   factory CertificateUpload.fromJson(Map<String, Object?> j) =>
@@ -142,12 +146,16 @@ class CertificateUpload {
   /// other row ops regardless, so this ordering is for the reader rather than
   /// for correctness.
   SyncUploadBatch toBatch() => SyncUploadBatch([
-    SyncUploadOp.row(
-      table: 'TestCertificate',
-      mobileId: mobileId,
-      data: certificate,
-      seenAt: seenAt,
-    ),
+    // Omitted when there is nothing to set. A row op naming no known column
+    // is refused outright — "sets nothing this server knows about" — which
+    // would take the signatures down with it, and a batch is all or nothing.
+    if (certificate.isNotEmpty)
+      SyncUploadOp.row(
+        table: 'TestCertificate',
+        mobileId: mobileId,
+        data: certificate,
+        seenAt: seenAt,
+      ),
     for (final line in lines)
       SyncUploadOp.certificateLine(
         lineMobileId: line.mobileId,

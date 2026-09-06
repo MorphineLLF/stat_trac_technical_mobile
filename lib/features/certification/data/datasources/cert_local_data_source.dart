@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../database/database_helper.dart';
@@ -50,8 +52,8 @@ abstract interface class CertLocalDataSource {
   Future<List<CertificateSummary>> getUnconfirmedCertificates();
   Future<void> updateSignatures(
     int certId,
-    List<int> techSignature,
-    List<int>? clientSignature,
+    Uint8List techSignature,
+    Uint8List? clientSignature,
     String? clientName,
   );
   Future<List<CertificateSummary>> getCertificates();
@@ -251,22 +253,35 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   @override
   Future<void> updateSignatures(
     int certId,
-    List<int> techSignature,
-    List<int>? clientSignature,
+    Uint8List techSignature,
+    Uint8List? clientSignature,
     String? clientName,
   ) async {
     final db = await _db.database;
+    // The signature columns are written either way; only sync_status is
+    // conditional.
     await db.update(
       'test_certificates',
       {
         'tech_signature': techSignature,
         'client_signature': clientSignature,
         'client_name': clientName,
-        // Advance from 'draft' to 'pending' so sync picks up the complete cert
-        // (with signatures and client name) rather than the partial save.
-        'sync_status': 'pending',
       },
       where: 'id = ?',
+      whereArgs: [certId],
+    );
+    // Advance from 'draft' to 'pending' so the certificate reads as complete
+    // rather than as the partial save.
+    //
+    // **Never downgrade one the server has already confirmed.** Signatures are
+    // captured after the readings are sent, so this runs after the upload —
+    // and without the `server_id IS NULL` guard it walked a synced certificate
+    // back to pending, which is the device forgetting an answer it already
+    // had.
+    await db.update(
+      'test_certificates',
+      {'sync_status': 'pending'},
+      where: 'id = ? AND server_id IS NULL',
       whereArgs: [certId],
     );
   }

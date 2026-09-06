@@ -58,3 +58,20 @@ String noGuaranteeNote({
       'it enforces $what. Readings may have been written attached to nothing. '
       'Check the server build before sending more.';
 }
+
+/// The signatures leaving the device.
+///
+/// A certificate is not evidence without them, and until there was a route
+/// they existed only on the handset — so their departure is worth a line.
+String signaturesQueuedNote({
+  required String mobileId,
+  required List<String> sides,
+  required bool clientNameMissing,
+}) {
+  final what = sides.isEmpty ? 'none' : sides.join(' + ');
+  final warn = clientNameMissing
+      ? ' — a client signature was captured but no name was given, so it '
+            'CANNOT be sent'
+      : '';
+  return '[$uploadLogTag] queued signatures for $mobileId: $what$warn';
+}

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +22,7 @@ import '../widgets/cert_type_selector.dart';
 import '../../../assets/presentation/providers/asset_providers.dart';
 import '../../../../sync/upload/upload_providers.dart';
 import '../../../../sync/upload/certificate_upload.dart';
+import '../../../../sync/upload/sync_upload_batch.dart';
 import '../../../../sync/upload/sync_upload_archive_note.dart';
 import 'package:uuid/uuid.dart';
 
@@ -38,6 +41,10 @@ class _CreateCertificateScreenState
   Asset? _selectedAsset;
   TestTemplateName? _selectedTemplate;
   List<TestOutput> _outputs = [];
+
+  /// The uuid this certificate was uploaded under. The signatures must name
+  /// the same one — the server matches a sign op to a certificate by it.
+  String? _uploadMobileId;
   int? _savedCertId;
   bool _saving = false;
   bool _allActualsValid = false;
@@ -149,8 +156,11 @@ class _CreateCertificateScreenState
   Future<void> _queueForUpload(TestCertificate cert, int certId) async {
     const uuid = Uuid();
 
+    final certMobileId = uuid.v4();
+    _uploadMobileId = certMobileId;
+
     final upload = CertificateUpload(
-      mobileId: uuid.v4(),
+      mobileId: certMobileId,
       certificate: {
         'TestAssetID': cert.assetId,
         'TestDate': cert.testDate?.toIso8601String().substring(0, 10),
@@ -223,18 +233,81 @@ class _CreateCertificateScreenState
     }
   }
 
-  // Updates the saved cert record with signatures.
+  /// Sends the signatures as their own batch.
+  ///
+  /// A signature is captured after the readings were already queued, so it
+  /// cannot ride in that batch — and it does not need to: signing a
+  /// certificate uploaded last week is explicitly allowed, and sign ops run
+  /// after issue ops. The batch carries its own queue key so it cannot replace
+  /// the readings still waiting in the outbox.
+  ///
+  /// A signature is not a column. The server runs `SaveSignature`, which is
+  /// what makes the signature mean something.
+  Future<void> _queueSignatures(SignatureResult sig) async {
+    final certMobileId = _uploadMobileId;
+    if (certMobileId == null) return;
+
+    final clientName = sig.clientName?.trim();
+    final upload = CertificateUpload(
+      mobileId: certMobileId,
+      queueKey: '$certMobileId:sign',
+      certificate: const {},
+      lines: const [],
+      signatures: [
+        CertificateSignature(
+          which: SignatureSide.tech,
+          // Standard, padded base64 — the server refuses URL-safe or
+          // unpadded rather than guessing.
+          png: base64Encode(sig.techSignatureBytes),
+        ),
+        if (sig.clientSignatureBytes case final bytes?)
+          if (clientName != null && clientName.isNotEmpty)
+            CertificateSignature(
+              which: SignatureSide.client,
+              png: base64Encode(bytes),
+              clientName: clientName,
+            ),
+      ],
+    );
+
+    debugPrint(
+      signaturesQueuedNote(
+        mobileId: certMobileId,
+        sides: [for (final g in upload.signatures) g.which.wire],
+        clientNameMissing:
+            sig.clientSignatureBytes != null &&
+            (clientName == null || clientName.isEmpty),
+      ),
+    );
+
+    final queue = await ref.read(uploadQueueProvider.future);
+    await queue.enqueue(upload);
+    try {
+      final worker = await ref.read(uploadWorkerProvider.future);
+      await worker.drain();
+    } on Exception {
+      // Queued is enough: it goes when there is signal.
+    }
+  }
+
+  // Updates the saved cert record with signatures, and sends them.
   Future<void> _completeWithSignature(SignatureResult sig) async {
     await ref
         .read(certificateRepositoryProvider)
         .updateSignatures(
           _savedCertId!,
-          sig.techSignatureBytes.toList(),
-          sig.clientSignatureBytes?.toList(),
+          // Passed as the Uint8List the pad produced. sqflite takes a BLOB
+          // only as that type; a plain List<int> is a warning today and an
+          // error on a later sqflite.
+          sig.techSignatureBytes,
+          sig.clientSignatureBytes,
           sig.clientName,
         );
 
+    await _queueSignatures(sig);
+
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(pendingUploadCountProvider);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

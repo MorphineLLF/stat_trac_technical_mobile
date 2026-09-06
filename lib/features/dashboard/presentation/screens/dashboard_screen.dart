@@ -63,7 +63,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     try {
       final worker = await ref.read(uploadWorkerProvider.future);
       final r = await worker.drain();
+      // Both, not just the badge. The "Certs to Sync" tile reads the same
+      // outbox and was left showing a count for work that had already gone —
+      // an indicator that cannot reach the state reality is in.
       ref.invalidate(pendingUploadCountProvider);
+      ref.invalidate(dashboardStatsProvider);
       if (!mounted) return;
 
       final String message;
@@ -81,6 +85,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       } else if (r.conflicted > 0) {
         message = '${r.conflicted} changed on the server and need you.';
         colour = const Color(0xFFFFB300);
+      } else if (r.unguaranteed > 0) {
+        // The upload succeeded and that is exactly the problem: this server
+        // will not promise a reading must name its certificate, and one that
+        // did not orphaned 46 of them while reporting success.
+        message = 'Sent, but this server does not guarantee readings are '
+            'attached — report before doing more certificates.';
+        colour = Theme.of(context).colorScheme.error;
       } else if (r.shortApplied > 0) {
         // The server said yes and applied less than it was sent. Reporting
         // this green is what let a certificate be filed with no test data

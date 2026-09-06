@@ -246,4 +246,70 @@ void main() {
 
     expect(confirmed, isEmpty);
   });
+
+  test('a server that will not promise a cert ref is reported, not trusted',
+      () async {
+    await queue.enqueue(_upload('cert-1'));
+    // A 200 with no enforces: the shape of the build that orphaned 46
+    // readings while reporting success.
+    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
+        issued: []));
+
+    final result = await worker.drain();
+
+    expect(result.applied, 1);
+    expect(result.unguaranteed, 1);
+  });
+
+  test('a server that does promise it is not flagged', () async {
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadApplied(
+      applied: 2,
+      assigned: {'cert-1': 5031},
+      issued: [],
+      enforces: ['cert_ref_required'],
+    ));
+
+    final result = await worker.drain();
+
+    expect(result.unguaranteed, 0);
+  });
+
+  test('already_signed clears the queue instead of holding it', () async {
+    // The certificate has the signature. Calling that a rejection teaches a
+    // technician to ignore the queue.
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadRejected([
+      UploadRejection(
+        table: 'TestCertificate',
+        mobileId: 'cert-1',
+        reason: 'already_signed',
+        message: 'that side has already signed',
+      ),
+    ]));
+
+    final result = await worker.drain();
+
+    expect(result.rejected, 0);
+    expect(result.applied, 1);
+    expect(await queue.count(), 0);
+  });
+
+  test('no_client_signature is held for the technician', () async {
+    await queue.enqueue(_upload('cert-1'));
+    answers(const UploadRejected([
+      UploadRejection(
+        table: 'TestCertificate',
+        mobileId: 'cert-1',
+        reason: 'no_client_signature',
+        message: 'this design does not ask for a client signature',
+      ),
+    ]));
+
+    await worker.drain();
+
+    final entry = (await queue.all()).single;
+    expect(entry.status, UploadStatus.rejected);
+    expect(entry.reason, 'no_client_signature');
+  });
 }

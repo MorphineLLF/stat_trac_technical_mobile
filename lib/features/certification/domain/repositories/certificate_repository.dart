@@ -17,8 +17,8 @@ abstract class CertificateRepository {
   Future<int> pushPendingCertificates();
   Future<void> updateSignatures(
     int certId,
-    List<int> techSignature,
-    List<int>? clientSignature,
+    Uint8List techSignature,
+    Uint8List? clientSignature,
     String? clientName,
   );
   Future<void> syncTemplatesFromRemote();
