@@ -465,6 +465,23 @@ class _CreateCertificateScreenState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (_savedCertId == null) ...[
+                        // FIRST, not last. It was at the bottom of a scrolling
+                        // column under the notes and the compliance buttons,
+                        // where it could barely be seen — and a required field
+                        // nobody notices is a 422 on site.
+                        //
+                        // Shown only where the design asks for it: where it
+                        // does not, the server ignores the date entirely, and
+                        // a field that looks live and lands nowhere is worse
+                        // than no field.
+                        if (_selectedTemplate?.nextService == true) ...[
+                          _NextServiceField(
+                            testDate: _testDate,
+                            value: _nextService,
+                            onChanged: (d) => setState(() => _nextService = d),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         TextField(
                           controller: _notesController,
                           decoration: const InputDecoration(
@@ -483,19 +500,6 @@ class _CreateCertificateScreenState
                           onChanged: (v) => setState(() => _patientSafe = v),
                         ),
                         const SizedBox(height: 8),
-                        // Asked only when the design asks. Where Next Service
-                        // Due is ticked the server refuses an issue without
-                        // it; where it is not, one sent is ignored — and the
-                        // two PM boxes do nothing at all, so showing them
-                        // there would be decorative.
-                        if (_selectedTemplate?.nextService == true) ...[
-                          _NextServiceField(
-                            testDate: _testDate,
-                            value: _nextService,
-                            onChanged: (d) => setState(() => _nextService = d),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
                         if (!_allActualsValid ||
                             _patientSafe == null ||
                             _issueProblem != null)
@@ -767,29 +771,70 @@ class _NextServiceField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = value == null
-        ? 'Tap to choose'
+        ? 'Tap to choose a date'
         : DateFormat('dd MMM yyyy').format(value!);
 
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value ?? testDate,
-          // Never before the test date: the server refuses that, and a picker
-          // that allows it hands somebody a rejection they cannot see coming.
-          firstDate: testDate,
-          lastDate: DateTime(testDate.year + 10),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Next Service Due',
-          prefixIcon: Icon(Icons.event_outlined),
+    // Given the weight of a decision rather than the look of another text
+    // field. It is required, it is easy to scroll past, and a required field
+    // nobody sees becomes a refusal after the technician has left site.
+    final missing = value == null;
+
+    return Material(
+      color: missing ? const Color(0xFFFFF8E1) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: missing ? const Color(0xFFFFB300) : const Color(0xFFDDE3EA),
+          width: missing ? 2 : 1,
         ),
-        child: Text(
-          label,
-          style: TextStyle(color: value == null ? brandGrey : null),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: value ?? testDate,
+            // Never before the test date: the server refuses that, and a
+            // picker that allows it hands somebody a rejection they cannot
+            // see coming.
+            firstDate: testDate,
+            lastDate: DateTime(testDate.year + 10),
+          );
+          if (picked != null) onChanged(picked);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_outlined,
+                color: missing ? const Color(0xFFFFB300) : brandTeal,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Next Service Due',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: brandGrey,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: missing ? const Color(0xFFE65100) : brandDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.edit_calendar_outlined, color: brandGrey),
+            ],
+          ),
         ),
       ),
     );
