@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../assets/domain/entities/asset.dart';
@@ -16,6 +17,7 @@ import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/cert_details_step.dart';
 import '../widgets/cert_signature_step.dart';
+import '../widgets/issue_inputs.dart';
 import '../widgets/cert_template_picker.dart';
 import '../widgets/cert_test_grid.dart';
 import '../widgets/cert_type_selector.dart';
@@ -56,6 +58,15 @@ class _CreateCertificateScreenState
   String? _serviceInterval;
   String? _serviceType;
   int? _serviceId;
+
+  /// The three issue decisions. Nothing here is defaulted on the technician's
+  /// behalf except the next service date, which is only ever a starting point
+  /// they can change — and the date sent is the date the register holds, so
+  /// offering one shows them what will actually happen.
+  DateTime? _nextService;
+  bool _completePmWorkOrder = false;
+  bool _completePmJobCard = false;
+
   final _notesController = TextEditingController();
 
   @override
@@ -72,6 +83,20 @@ class _CreateCertificateScreenState
   }
 
   void _goToStep(int step) => setState(() => _step = step);
+
+  /// What the server would refuse this certificate for, or null.
+  ///
+  /// Checked on the device so a technician hears it while they are still
+  /// standing at the machine, rather than as a 422 after they have driven
+  /// away.
+  String? get _issueProblem => issueInputsError(
+    verdict: _patientSafe == null
+        ? null
+        : IssueVerdict.values.firstWhere((v) => v.wire == _patientSafe),
+    needsNextService: _selectedTemplate?.nextService == true,
+    nextService: _nextService,
+    testDate: _testDate,
+  );
 
   bool get _shouldShowDetailsStep =>
       _selectedTemplate != null &&
@@ -146,13 +171,18 @@ class _CreateCertificateScreenState
     }
   }
 
-  /// Puts the finished certificate in the outbox.
+  /// Puts the finished certificate in the outbox, and issues it.
   ///
-  /// No issue op yet: closing a certificate needs the verdict, the next
-  /// service date and the two PM decisions, and the wizard does not ask for
-  /// them. So this uploads the record and its readings — the work stops
-  /// vanishing — and the certificate is not yet *issued* server-side. The
-  /// wizard must not imply otherwise.
+  /// The issue op runs the server's whole IssueCertificate transaction — the
+  /// completeness rules, TestNextService, the PM schedule move and the work
+  /// order. Without it a certificate uploaded as a record and was never
+  /// issued, which is what made a finished job look done while the register
+  /// held a document that was not evidence of anything.
+  ///
+  /// Unknown fields are REFUSED on this op rather than dropped, which is the
+  /// opposite of the row ops above and deliberate: a dropped column is
+  /// something the office fills in anyway, a dropped complete_pm_work_order
+  /// is a work order left open that everybody believes is closed.
   Future<void> _queueForUpload(TestCertificate cert, int certId) async {
     const uuid = Uuid();
 
@@ -191,6 +221,20 @@ class _CreateCertificateScreenState
             }..removeWhere((_, v) => v == null),
           ),
       ],
+      // The verdict is the technician's choice from three fixed values and is
+      // never defaulted — 0 is Non-Compliant, the most serious verdict there
+      // is, and the wizard already refuses to go on without one.
+      //
+      // next_service is sent whenever the design asks for it. Sent when
+      // unwanted it is ignored in full; missing when required it is a 422 on
+      // site, so an extra one is the safe way to be wrong.
+      issue: CertificateIssue(
+        verdict: cert.patientSafe!,
+        notes: cert.notes,
+        nextService: _nextService == null ? null : wireDate(_nextService!),
+        completePmWorkOrder: _completePmWorkOrder,
+        completePmJobCard: _completePmJobCard,
+      ),
     );
 
     // Stamped on the row before it leaves. The server's answer names this
@@ -382,6 +426,15 @@ class _CreateCertificateScreenState
                 _equipment = equip;
                 _pmTaskDescription = pmTask;
                 _serviceInterval = interval;
+                // Offered, not imposed — the technician can change it, and
+                // the date they see is the one the register will hold because
+                // the server writes it verbatim. Null for a meter task: it
+                // comes round on readings, so a guess would be a lie.
+                _nextService ??= defaultNextService(
+                  testDate: date,
+                  interval: int.tryParse(interval ?? ''),
+                  intervalType: serviceType,
+                );
                 _serviceType = serviceType;
                 _serviceId = serviceId;
               }),
@@ -427,7 +480,49 @@ class _CreateCertificateScreenState
                           onChanged: (v) => setState(() => _patientSafe = v),
                         ),
                         const SizedBox(height: 8),
-                        if (!_allActualsValid || _patientSafe == null)
+                        // Asked only when the design asks. Where Next Service
+                        // Due is ticked the server refuses an issue without
+                        // it; where it is not, one sent is ignored — and the
+                        // two PM boxes do nothing at all, so showing them
+                        // there would be decorative.
+                        if (_selectedTemplate?.nextService == true) ...[
+                          _NextServiceField(
+                            testDate: _testDate,
+                            value: _nextService,
+                            onChanged: (d) => setState(() => _nextService = d),
+                          ),
+                          if (_serviceId != null) ...[
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              value: _completePmWorkOrder,
+                              onChanged: (v) => setState(
+                                () => _completePmWorkOrder = v ?? false,
+                              ),
+                              title: const Text('Complete the PM work order'),
+                              subtitle: const Text(
+                                'Leave unticked and the schedule does not '
+                                'move either',
+                              ),
+                            ),
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              // Asked separately: the person issuing the
+                              // certificate may not be the person writing it
+                              // up.
+                              value: _completePmJobCard,
+                              onChanged: (v) => setState(
+                                () => _completePmJobCard = v ?? false,
+                              ),
+                              title: const Text('Complete its job card'),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                        ],
+                        if (!_allActualsValid ||
+                            _patientSafe == null ||
+                            _issueProblem != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
@@ -436,6 +531,10 @@ class _CreateCertificateScreenState
                                   'Fill in all test results and actual values.',
                                 if (_patientSafe == null)
                                   'Select a compliance status.',
+                                // What the server would refuse, said before
+                                // the technician leaves site rather than after.
+                                if (_patientSafe != null && _issueProblem != null)
+                                  _issueProblem!,
                               ].join(' '),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.error,
@@ -665,6 +764,57 @@ class _AssetPickStep extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Next service date ─────────────────────────────────────────────────────────
+
+/// The date the certificate's next service is due.
+///
+/// **The date shown is the date the register will hold.** The server computes
+/// nothing — `TestNextService` is written verbatim and the PM task's schedule
+/// date follows it — so a default here is a promise the server keeps, which is
+/// why offering one is worth doing rather than leaving an empty box.
+class _NextServiceField extends StatelessWidget {
+  const _NextServiceField({
+    required this.testDate,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final DateTime testDate;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = value == null
+        ? 'Tap to choose'
+        : DateFormat('dd MMM yyyy').format(value!);
+
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? testDate,
+          // Never before the test date: the server refuses that, and a picker
+          // that allows it hands somebody a rejection they cannot see coming.
+          firstDate: testDate,
+          lastDate: DateTime(testDate.year + 10),
+        );
+        if (picked != null) onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Next Service Due',
+          prefixIcon: Icon(Icons.event_outlined),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(color: value == null ? brandGrey : null),
+        ),
       ),
     );
   }
