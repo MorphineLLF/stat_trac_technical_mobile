@@ -138,25 +138,29 @@ class _AddFacilitySignatureSheetState
               ),
             ),
             const SizedBox(height: 8),
-            // spaceBetween, never a Spacer. A Spacer is an Expanded and needs a
-            // bounded width; this sheet gave it an unbounded one, so layout
-            // threw and then threw again every frame. That reaches a technician
-            // as an app that has hung, not as an error — the worst shape a
-            // failure can take.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: () => setState(_controller.clear),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Clear'),
-                ),
-                FilledButton.icon(
-                  onPressed: _save,
-                  icon: const Icon(Icons.check),
-                  label: const Text('Save signature'),
-                ),
-              ],
+            // **No Row here, and that is the fix rather than a preference.**
+            // filledButtonTheme sets minimumSize Size.fromHeight(48), which is
+            // Size(double.infinity, 48) — every FilledButton in this app is
+            // full width by design. A Row gives its children an unbounded
+            // width, so such a button demands infinity, layout throws, and it
+            // throws again every frame: the screen never finishes a frame and
+            // the technician sees an app that has hung rather than an error.
+            //
+            // So the buttons stack, full width, as they do everywhere else
+            // here. A Spacer was blamed first and was not the cause.
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => setState(_controller.clear),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Clear'),
+              ),
+            ),
+            const SizedBox(height: 4),
+            FilledButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.check),
+              label: const Text('Save signature'),
             ),
           ],
         ),
