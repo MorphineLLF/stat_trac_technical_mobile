@@ -9,7 +9,10 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../domain/entities/test_output.dart';
+import '../../../../sync/upload/upload_providers.dart';
 import '../providers/certificate_providers.dart';
+import '../widgets/add_facility_signature_sheet.dart';
+import 'facility_signature_upload.dart';
 
 class CertificateDetailScreen extends ConsumerStatefulWidget {
   const CertificateDetailScreen({super.key, required this.certId});
@@ -23,6 +26,56 @@ class CertificateDetailScreen extends ConsumerStatefulWidget {
 class _CertificateDetailScreenState
     extends ConsumerState<CertificateDetailScreen> {
   bool _loadingPdf = false;
+  bool _signing = false;
+
+  /// Captures a facility signature for a certificate already issued and
+  /// queues it on its own.
+  ///
+  /// Queued rather than sent directly: a signature taken in a basement must
+  /// survive having no signal, and the outbox already knows how to hold work
+  /// and drain it later. The batch carries its own key so it cannot replace
+  /// anything else waiting there.
+  Future<void> _addFacilitySignature(String certificateMobileId) async {
+    final signature = await showAddFacilitySignatureSheet(context);
+    if (signature == null || !mounted) return;
+
+    setState(() => _signing = true);
+    try {
+      final upload = facilitySignatureUpload(
+        certificateMobileId: certificateMobileId,
+        png: signature.png,
+        clientName: signature.name,
+      );
+
+      final queue = await ref.read(uploadQueueProvider.future);
+      await queue.enqueue(upload);
+
+      var sent = false;
+      try {
+        final worker = await ref.read(uploadWorkerProvider.future);
+        final result = await worker.drain();
+        sent = result.applied > 0;
+      } on Exception {
+        // Queued is enough: it goes when there is signal.
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            sent
+                ? 'Facility signature sent.'
+                : 'Facility signature saved — it will go when you have signal.',
+          ),
+          backgroundColor: sent
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFFFB300),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _signing = false);
+    }
+  }
 
   Future<void> _viewPdf(int serverId) async {
     setState(() => _loadingPdf = true);
@@ -108,6 +161,24 @@ class _CertificateDetailScreenState
                   ? () => _viewPdf(serverId)
                   : null,
             ),
+          ),
+          // ── Add facility signature ────────────────────────────
+          // Signing is the one write allowed after a certificate is issued.
+          // A certificate can sit issued and unsigned indefinitely, so this
+          // fills that gap rather than working around a rule.
+          summaryAsync.maybeWhen(
+            data: (s) => Tooltip(
+              message: s?.mobileId == null
+                  ? 'This certificate cannot be signed from the app'
+                  : 'Add facility signature',
+              child: IconButton(
+                icon: const Icon(Icons.draw_outlined),
+                onPressed: s?.mobileId == null || _signing
+                    ? null
+                    : () => _addFacilitySignature(s!.mobileId!),
+              ),
+            ),
+            orElse: () => const SizedBox.shrink(),
           ),
           // ── Email ─────────────────────────────────────────────
           Tooltip(

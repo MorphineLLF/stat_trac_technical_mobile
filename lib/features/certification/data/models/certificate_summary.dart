@@ -15,6 +15,7 @@ class CertificateSummary {
     this.templateName,
     this.pmTaskDescription,
     this.hospital,
+    this.mobileId,
     this.isLocal = false,
   });
 
@@ -38,6 +39,13 @@ class CertificateSummary {
   /// certificate knows which hospital they were standing in long before they
   /// remember what the template was called.
   final String? hospital;
+
+  /// The uuid this certificate travelled under, from TestMobileID.
+  ///
+  /// It is how a signature added later names the certificate — the server
+  /// resolves it from the table, so one uploaded last week signs today. A
+  /// certificate created in the office has none and cannot be signed here.
+  final String? mobileId;
 
   /// Finished on this device and not yet confirmed by the server.
   ///
