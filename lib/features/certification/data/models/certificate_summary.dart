@@ -14,6 +14,7 @@ class CertificateSummary {
     this.templateNameId,
     this.templateName,
     this.pmTaskDescription,
+    this.hospital,
     this.isLocal = false,
   });
 
@@ -30,6 +31,13 @@ class CertificateSummary {
   final int? patientSafe;
   final int? templateNameId;
   final String? pmTaskDescription;
+
+  /// The facility the equipment lives in, from the asset.
+  ///
+  /// Shown as the headline in the list: a technician looking for a
+  /// certificate knows which hospital they were standing in long before they
+  /// remember what the template was called.
+  final String? hospital;
 
   /// Finished on this device and not yet confirmed by the server.
   ///

@@ -18,9 +18,21 @@ class PowerSyncCertDataSource {
   /// The id breaks ties so the order is total: two certificates on the same
   /// date must not swap places between reads.
   Future<List<CertificateSummary>> getCertificates({int limit = 500}) async {
+    // Joined to the asset for the facility and the equipment. Neither lives
+    // on the certificate, and the hospital is the first thing a technician
+    // looks for — they remember where they were standing long before they
+    // remember what the template was called.
+    //
+    // LEFT, not INNER: a certificate whose asset has not reached this device
+    // must still appear. Dropping it would hide a record rather than show a
+    // problem.
     final rows = await _db.getAll(
-      'SELECT * FROM "TestCertificate" '
-      'ORDER BY "TestDate" DESC, "TestCertificateID" DESC LIMIT ?1',
+      'SELECT c.*, '
+      'a."AssetHospital" AS joined_hospital, '
+      'a."AssetEquipmentType" AS joined_equipment_type '
+      'FROM "TestCertificate" c '
+      'LEFT JOIN "Asset" a ON a."AssetID" = c."TestAssetID" '
+      'ORDER BY c."TestDate" DESC, c."TestCertificateID" DESC LIMIT ?1',
       [limit],
     );
     return rows.map(certificateSummaryFromPowerSync).toList();
@@ -28,7 +40,12 @@ class PowerSyncCertDataSource {
 
   Future<CertificateSummary?> getCertificateById(int certificateId) async {
     final rows = await _db.getAll(
-      'SELECT * FROM "TestCertificate" WHERE "TestCertificateID" = ?1 LIMIT 1',
+      'SELECT c.*, '
+      'a."AssetHospital" AS joined_hospital, '
+      'a."AssetEquipmentType" AS joined_equipment_type '
+      'FROM "TestCertificate" c '
+      'LEFT JOIN "Asset" a ON a."AssetID" = c."TestAssetID" '
+      'WHERE c."TestCertificateID" = ?1 LIMIT 1',
       [certificateId],
     );
     return rows.isEmpty ? null : certificateSummaryFromPowerSync(rows.first);

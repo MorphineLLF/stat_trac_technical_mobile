@@ -6,30 +6,117 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../data/models/certificate_summary.dart';
 import '../providers/certificate_providers.dart';
 import 'certificate_detail_screen.dart';
+import 'certificate_search.dart';
 
-class CertificateListScreen extends ConsumerWidget {
+class CertificateListScreen extends ConsumerStatefulWidget {
   const CertificateListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CertificateListScreen> createState() =>
+      _CertificateListScreenState();
+}
+
+class _CertificateListScreenState extends ConsumerState<CertificateListScreen> {
+  final _searchController = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final certsAsync = ref.watch(certificateListProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Certificates')),
-      body: certsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text(
-            'Error: $e',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-        data: (certs) => certs.isEmpty
-            ? const _EmptyView()
-            : ListView.builder(
-                itemCount: certs.length,
-                itemBuilder: (_, i) => _CertTile(cert: certs[i]),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _search = v),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search hospital, cert no., equipment',
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                suffixIcon: _search.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _search = '');
+                        },
+                      ),
               ),
+            ),
+          ),
+          Expanded(
+            child: certsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  'Error: $e',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              data: (certs) {
+                if (certs.isEmpty) return const _EmptyView();
+
+                final matches = [
+                  for (final c in certs)
+                    if (certificateMatchesSearch(c, _search)) c,
+                ];
+
+                // An empty result and an empty list are different states and
+                // must not look alike: one means there are no certificates,
+                // the other means this search found none of them.
+                if (matches.isEmpty) {
+                  return _NoMatchesView(search: _search);
+                }
+
+                return ListView.builder(
+                  itemCount: matches.length,
+                  itemBuilder: (_, i) => _CertTile(cert: matches[i]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Nothing matched ───────────────────────────────────────────────────────────
+
+class _NoMatchesView extends StatelessWidget {
+  const _NoMatchesView({required this.search});
+  final String search;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off, size: 56, color: brandGrey),
+            const SizedBox(height: 12),
+            Text(
+              'No certificate matches "$search"',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -103,13 +190,26 @@ class _CertTile extends StatelessWidget {
             ),
           ),
         ),
+        // The hospital leads. A technician looking for a certificate knows
+        // which facility they were standing in long before they remember what
+        // the template was called, so the facility is the headline and the
+        // certificate's own name sits under it, smaller.
         title: Text(
-          cert.displayTitle,
-          style: Theme.of(context).textTheme.titleMedium,
+          cert.hospital ?? 'No facility recorded',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: cert.hospital == null ? brandGrey : null,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              cert.displayTitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: brandDark,
+              ),
+            ),
             Text(cert.equipmentType ?? '—', style: TextStyle(color: brandGrey)),
             Wrap(
               spacing: 6,
