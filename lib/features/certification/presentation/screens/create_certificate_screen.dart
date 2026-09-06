@@ -14,6 +14,7 @@ import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../providers/certificate_providers.dart';
+import '../widgets/certificate_completeness.dart';
 import '../widgets/cert_details_step.dart';
 import '../widgets/cert_signature_step.dart';
 import '../widgets/issue_inputs.dart';
@@ -86,6 +87,16 @@ class _CreateCertificateScreenState
   /// Checked on the device so a technician hears it while they are still
   /// standing at the machine, rather than as a 422 after they have driven
   /// away.
+  /// The server's own completeness rules, run here first.
+  ///
+  /// A certificate that trips them is refused with a 422 that takes the whole
+  /// batch down, readings included. Better never to reach the wire than to
+  /// present the refusal well.
+  String? get _completenessProblem => certificateCompletenessError(
+    outputs: _outputs,
+    allItemsComplete: _allActualsValid,
+  );
+
   String? get _issueProblem => issueInputsError(
     verdict: _patientSafe == null
         ? null
@@ -510,15 +521,15 @@ class _CreateCertificateScreenState
                           onChanged: (v) => setState(() => _patientSafe = v),
                         ),
                         const SizedBox(height: 8),
-                        if (!_allActualsValid ||
+                        if (_completenessProblem != null ||
                             _patientSafe == null ||
                             _issueProblem != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
                               [
-                                if (!_allActualsValid)
-                                  'Fill in all test results and actual values.',
+                                if (_completenessProblem != null)
+                                  '$_completenessProblem.',
                                 if (_patientSafe == null)
                                   'Select a compliance status.',
                                 // What the server would refuse, said before
@@ -534,10 +545,14 @@ class _CreateCertificateScreenState
                             ),
                           ),
                         FilledButton(
+                          // Nothing is queued until the server would accept
+                          // it. A refusal takes the whole batch down, so the
+                          // readings are protected by not sending them at all.
                           onPressed:
                               _saving ||
-                                  !_allActualsValid ||
-                                  _patientSafe == null
+                                  _completenessProblem != null ||
+                                  _patientSafe == null ||
+                                  _issueProblem != null
                               ? null
                               : _saveCertificate,
                           child: _saving
