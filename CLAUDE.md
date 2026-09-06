@@ -20,66 +20,49 @@
 > `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
 > **This repository owns the Flutter app only.**
 >
-> **Start here next session:** `docs/STATE-2026-09-05.md` — what works, what is
-> next, and the decisions waiting on the user.
+> **Start here next session:** `docs/STATE-2026-09-06.md` — what works, what
+> is untested, and what is waiting on the user. It supersedes the 09-05 state.
 >
-> ✅ **The lineless-certificate bug is RESOLVED, and it was not this app.**
-> A stale server binary — nine hours older than its source — silently dropped
-> `TestOutputCertMobileID` from its column allowlist, so the readings uploaded
-> and landed attached to nothing. **46 orphaned readings on that host; this
-> device holds exactly 46 local outputs.** The client was correct throughout.
-> The server now refuses a `TestOutput` op that names no certificate (400) and
-> reports what it guarantees in an `enforces` key. Detail in
-> `docs/STATE-2026-09-05.md`.
+> ## ✅ A CERTIFICATE NOW UPLOADS, ISSUES, AND COMES BACK WITH A NUMBER
 >
-> ✅ **A missing `enforces` key means "no guarantees", not "old build" — and
-> the app now checks it.** `UploadWorker` refuses to treat a 200 as clean when
-> the server would not promise a reading must name its certificate: the run
-> counts it as `unguaranteed`, the archive note records what the server did
-> promise, and the dashboard tells the technician to report it before doing
-> more certificates. This is the check that would have caught the stale binary.
+> Proved end to end on 2026-09-06 from a clean install as a real technician:
+> **8483** and **8485** on `demo`, twelve readings each, 13 ops sent and 13
+> applied, issued through `IssueCertificate`, 8485 with both signatures. The
+> earlier warning that this build must not be used for real certificates is
+> **withdrawn** — the three issue inputs it named now exist.
 >
-> ✅ **A 413 and a 401 no longer jam the upload queue** (2026-09-06). Both
-> used to land in the retryable default, so the batch stayed pending, the run
-> stopped, and the next drain sent the identical batch for ever — reported to
-> the technician as *no signal*. A 413 is now permanent (`UploadTooLarge`,
-> parked, the run keeps draining) and body size is checked before sending
-> rather than only op count. A 401 is `UploadAuthExpired`: the batch stays
-> **pending** because the certificate is not at fault, and the run ends with
-> `stoppedForAuth` so the technician is told to sign in.
+> ⛔ **NOTHING THIS APP SENDS MAY ISSUE A CERTIFICATE BY WRITING A COLUMN.**
+> The server reads a certificate as issued when its technician name is
+> non-empty — `Issued()` is `TrimSpace(Tech) != ""`. This app sent `TestTech`,
+> `TestTechID` and `TestCertPatientSafe` on the certificate row op since the
+> upload path was written, so **every certificate it ever uploaded was marked
+> issued with `IssueCertificate` never running**: no completeness check, no
+> totals, no `TestNextService`, no PM schedule move, no work order. It
+> surfaced only when an issue op finally collided with it. All three are gone
+> from the row op and the Go side now refuses them with a 400 naming the
+> column. The technician's name is written by the server from the
+> authenticated token — there is no field for it and there will not be one,
+> because the name on evidence is the person the server authenticated.
 >
-> ⛔ **A 401 is NOT refreshable, whatever a contract says.** This route
-> authenticates with the ninety-day **device** token, and the only way to get
-> one is `POST /{company}/device/token` with a username and password — there is
-> no renewal route and this app stores no password. The hourly background
-> refresh is the PowerSync JWT, on a route the upload never touches. The Go
-> handover said otherwise and has been corrected (their commit `cdd71e2`).
-> **A test in this repo asserted the same wrong belief and kept it alive**:
-> coverage aimed at the wrong answer survives precisely because the suite is
-> green.
+> ⚠️ **A refusal that loses work is never benign.** `already_issued` and
+> `already_signed` are only harmless on a batch carrying **no certificate and
+> no readings**. On a batch carrying work they mean nothing landed, and
+> retiring the queue row destroys both the work and the reason. The reason
+> code describes the certificate; the batch describes what would be thrown
+> away by believing it.
 >
-> ⚠️ **Oversized batches are parked, not split.** The contract's remedy for a
-> 413 is to send fewer ops. That is not built — splitting one certificate
-> across batches has ordering constraints (lines before issue, issue before
-> sign) and is a behaviour change deserving its own decision. Until then an
-> oversized certificate stops with its size named.
+> ⚠️ **UNTESTED, and both are what this app is for:** no wifi / no cell data,
+> and multiple uploads in one drain. Everything proved so far was one
+> certificate at a time, with signal. See `docs/STATE-2026-09-06.md`.
 >
-> ⚠️ **Signatures upload but do not come back.** They now travel as
-> `action: "sign"` (base64 PNG, standard and padded, never URL-safe), so the
-> write half is solved. `bytea` still crosses neither the sync stream nor the
-> read path, so the device cannot display a signature it did not capture
-> itself. Separately, **no client signature and no `client_name` was captured
-> on either local certificate** — check the wizard's signature step reaches
-> the end at all.
+> ⚠️ **Athi (user 31) is the only login on `demo` that can sync.** The
+> technician-app grant is per login and migration 026 is per company database.
+> That is the user's to apply; neither repository can.
 >
-> ⚠️ **Do not use this build for real certificates — but not for the reason
-> previously recorded here.** The upload endpoint exists and has since
-> 2026-09-05; the claim that it "must be created server-side" was wrong and is
-> withdrawn. What is actually missing is **the three issue inputs** — verdict
-> as a forced choice, next service, and the two PM completion flags. Until
-> they exist no `action: "issue"` is sent, so a certificate uploads as a
-> record and never becomes an issued certificate: no completeness check, no
-> `TestNextService`, no PM schedule move, no job card.
+> ⚠️ **Signatures still do not come back down.** `bytea` crosses neither the
+> sync stream nor the read path, so the device cannot display a signature it
+> did not capture itself. Uploading them works — `action: "sign"`, base64
+> standard and padded.
 >
 > This app's migration design: `docs/superpowers/specs/2026-09-05-powersync-migration-design.md`
 > Contract with the Go side: `docs/sync-client-handover.md`
@@ -332,6 +315,38 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | GET | `/certificates/:id/pdf` | — | `{ pdf_b64: "..." }` base64-encoded PDF; Horse API proxies to Stat Trac `GET /cert/pdf/:id?db=<db>` which generates via FastReport |
 | GET | `/assets/pm-tasks` | — | `{ data: [{ pm_task_id, asset_id, description, schedule_date, active }] }` — full list of active PM tasks (full-pull, no cursor) |
 | POST | `/certificates/:id/email` | `{ to: "email@..." }` | 204 — server-side SMTP send (not yet implemented in Horse API) |
+
+## Traps that have already cost a day — do not re-learn them
+
+**Never join PowerSync tables.** A PowerSync table is a view over JSON with no
+index on an arbitrary column, so a join scans the whole store per row. Joining
+`TestCertificate` to `Asset` for the hospital made the certificate list spin
+for ever — no exception, no empty state, no way to tell from the code. Fetch
+separately and attach in Dart, with a timeout, degrading to the missing field
+rather than the missing list.
+
+**Every `FilledButton` here is full width.** `filledButtonTheme` sets
+`minimumSize: Size.fromHeight(48)` — that is `Size(double.infinity, 48)`. One
+inside a `Row` demands infinite width, layout throws, and throws again every
+frame: the screen never completes a frame and it reads as a hang, not an
+error. Bound it with `Expanded` or do not use a `Row`.
+
+**Widget tests must pump the real `appTheme`.** Under a default `ThemeData`
+the test above passes while the app freezes. A test that cannot see the bug is
+worse than no test.
+
+**A `SnackBar` from a bottom sheet renders behind the sheet.** Messages inside
+a sheet belong inside the sheet — the signature sheet refused to save and hid
+its own reason, so Save looked dead.
+
+**`applied` counts row ops only.** Issue ops and sign ops never touch it, so a
+signature-only batch has `applied == 0` on success. Never reason about "did
+this land" from `applied` alone.
+
+**The `'-'` in an actual value is a reading, not a missing one.** It is the
+register saying there is nothing to measure on that line and the server counts
+it complete. A device check stricter than the server stops a technician
+finishing a job that was fine.
 
 ## Testing
 
@@ -637,18 +652,31 @@ Rules:
 - Never log personal information in `error_message` or `stack_trace`
 - Operations tracked: `sync_assets`, `sync_templates`, `push_certificates`, `pull_certificates`
 
-## Immediate Next Steps (revised 2026-09-05)
+## Immediate Next Steps (revised 2026-09-06)
 
-**The PowerSync migration reorders this.** Do not build new features on the Horse
-API or extend the hand-rolled sync engine — both are being replaced.
+**Both of the first two are untested paths, not new features.** Everything
+proved on 2026-09-06 was proved with signal, one certificate at a time.
 
-1. Answer the open questions in `docs/superpowers/specs/2026-09-05-powersync-migration-design.md` §5 — chiefly client-generated identity for certificates and work orders created offline, and which tables this app syncs (an input the Go repository needs from here)
-2. Plan the Flutter PowerSync migration, certification module first (completed certs are immutable, so the conflict path is exercised least while the mechanics are proved)
-3. Build the "this record changed while you were away" conflict screen — required by the revised BR-10, no current equivalent
-4. Then resume feature work: Service Reports, signatures on WO completion
+1. **No wifi and no cell data.** Finish a certificate with data off — mid
+   wizard, not just before it. It should queue, stay queued, say "No
+   connection — N still queued" in amber, and drain by itself when signal
+   returns. The PDF is the one thing that genuinely cannot work until fetched
+   once; the server answers 409 for a certificate it does not have yet and the
+   app should say it needs a moment of signal.
+2. **Multiple uploads.** Several certificates queued before any sync. Confirm
+   oldest-first order holds, and that one refusal in the middle parks only its
+   own batch while the rest still go — that design has never been exercised
+   with real rows behind it. The 1 MB body cap has never been approached
+   either; a certificate with many readings and two signatures is the shape
+   that finds it.
+3. **Signatures coming back down.** `bytea` crosses neither the sync stream
+   nor the read path, so a device cannot display a signature it did not
+   capture. Owned by the Go repository.
+4. Then resume feature work: Service Reports, signatures on WO completion.
 
-Superseded by the above: implementing `syncFromRemote()` with since-cursor
-pagination — that endpoint's architecture no longer exists.
+**With the user, not with either repository:** migration 026 on `safeline` and
+the other company databases, and the technician-app grant per login. Athi
+(user 31) is currently the only login on `demo` that can sync at all.
 
 ## How to Prompt Me (Claude Code)
 
