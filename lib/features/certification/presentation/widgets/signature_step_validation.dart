@@ -25,26 +25,14 @@ String? signatureStepError({
     return 'Facility signature is required';
   }
 
-  return null;
-}
-
-/// Something the technician should know, which must NOT stop the certificate.
-///
-/// **A certificate is valid without a facility signature**, so nothing about
-/// one may block issuing. But a facility signature with no name cannot be
-/// sent — the server refuses it, because a signature with no record of who
-/// gave it is not evidence of anything — and it used to be discarded in
-/// silence, with a debug line as the only trace.
-///
-/// So it is said out loud and the certificate goes anyway. Telling somebody
-/// what happened is not the same as standing in their way.
-String? signatureStepWarning({
-  required bool clientSigned,
-  required String clientName,
-}) {
+  // Only when somebody actually signed. A certificate with no facility
+  // signature at all is valid and saves normally — this asks for a name to go
+  // with a signature that exists, because that signature cannot be sent
+  // without one and would otherwise be thrown away in silence.
   if (clientSigned && clientName.trim().isEmpty) {
-    return 'The facility signature needs a contact name to be sent — the '
-        'certificate will go without it';
+    return 'Add the facility contact name before saving — the signature '
+        'cannot be sent without it';
   }
+
   return null;
 }
