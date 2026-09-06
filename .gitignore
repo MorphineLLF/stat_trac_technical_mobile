@@ -49,3 +49,6 @@ app.*.map.json
 /docs/spec_temp.zip
 /docs/spec_text.txt
 .gitnexus
+
+# Superpowers brainstorm scratch — transient tool state, never source
+.superpowers/

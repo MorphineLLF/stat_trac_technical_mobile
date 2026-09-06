@@ -32,9 +32,37 @@
 > reports what it guarantees in an `enforces` key. Detail in
 > `docs/STATE-2026-09-05.md`.
 >
-> ⚠️ **A missing `enforces` key means "no guarantees", not "old build".**
-> Nothing in this app reads it yet. That check is what would have caught the
-> stale binary, and it is the first thing to add to the upload client.
+> ✅ **A missing `enforces` key means "no guarantees", not "old build" — and
+> the app now checks it.** `UploadWorker` refuses to treat a 200 as clean when
+> the server would not promise a reading must name its certificate: the run
+> counts it as `unguaranteed`, the archive note records what the server did
+> promise, and the dashboard tells the technician to report it before doing
+> more certificates. This is the check that would have caught the stale binary.
+>
+> ✅ **A 413 and a 401 no longer jam the upload queue** (2026-09-06). Both
+> used to land in the retryable default, so the batch stayed pending, the run
+> stopped, and the next drain sent the identical batch for ever — reported to
+> the technician as *no signal*. A 413 is now permanent (`UploadTooLarge`,
+> parked, the run keeps draining) and body size is checked before sending
+> rather than only op count. A 401 is `UploadAuthExpired`: the batch stays
+> **pending** because the certificate is not at fault, and the run ends with
+> `stoppedForAuth` so the technician is told to sign in.
+>
+> ⛔ **A 401 is NOT refreshable, whatever a contract says.** This route
+> authenticates with the ninety-day **device** token, and the only way to get
+> one is `POST /{company}/device/token` with a username and password — there is
+> no renewal route and this app stores no password. The hourly background
+> refresh is the PowerSync JWT, on a route the upload never touches. The Go
+> handover said otherwise and has been corrected (their commit `cdd71e2`).
+> **A test in this repo asserted the same wrong belief and kept it alive**:
+> coverage aimed at the wrong answer survives precisely because the suite is
+> green.
+>
+> ⚠️ **Oversized batches are parked, not split.** The contract's remedy for a
+> 413 is to send fewer ops. That is not built — splitting one certificate
+> across batches has ordering constraints (lines before issue, issue before
+> sign) and is a behaviour change deserving its own decision. Until then an
+> oversized certificate stops with its size named.
 >
 > ⚠️ **Signatures upload but do not come back.** They now travel as
 > `action: "sign"` (base64 PNG, standard and padded, never URL-safe), so the
@@ -250,7 +278,7 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 15** — tables below
+- **Current DB version: 18** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
 | Migration | DB version | Tables / changes |
@@ -269,6 +297,9 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 | 013 → v13 | 13 | `asset_pm_tasks` — adds `interval TEXT`, `interval_type TEXT` |
 | 014 → v14 | 14 | `test_certificates` — adds `service_id INTEGER` (FK to AssetPmTask.pm_task_id; maps `TestServiceID`) |
 | 015 → v15 | 15 | `test_certificates` — adds `test_type INTEGER` (1 = client signature required, NULL otherwise; maps `TestType`) |
+| 016 → v16 | 16 | NEW `upload_queue` — the outbox a finished certificate waits in. **The CREATE lives in `UploadQueue.createTable`, not in the migration**, so the code that reads the table and the code that creates it cannot drift, and the tests build the same table in memory |
+| 017 → v17 | 17 | NEW `upload_archive` — what was sent and what the server said it applied, written BEFORE the queue row is deleted. Deleting first is what left the lost certificate with no record of what went. Definition in `UploadArchive.createTable`, same reason as 016 |
+| 018 → v18 | 18 | `test_certificates` — adds `mobile_id TEXT` + index. The uuid a certificate travels under; the server names it by this and by nothing else, and writes its own key back against it |
 
 ## API — SUPERSEDED (Horse REST, retired 2026-09-05)
 
@@ -381,7 +412,7 @@ Work in this order. Each phase builds on the previous.
 - Badge on sync icon → count of unresolved errors; **tap opens `_SyncErrorSheet`** (human-readable operation labels, error message, time ago, Retry button); tapping sync icon with no errors triggers sync directly
 
 ### Database foundation
-- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 10**; `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
+- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 18** (the single source of truth is `_dbVersion` in that file — this line and the table above have both been stale before, so check the constant rather than the prose); `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
 - `lib/database/migrations/migration_001_work_orders.dart` — §5.1 tables + `change_log`
 - `lib/database/migrations/migration_002_assets.dart` — original `assets` table (superseded by migration_003)
 - `lib/database/migrations/migration_003_assets_v2.dart` — rebuilds `assets` with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue)
