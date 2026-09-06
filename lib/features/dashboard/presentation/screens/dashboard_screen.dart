@@ -17,6 +17,7 @@ import '../providers/dashboard_providers.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
 import '../../../../sync/upload/upload_providers.dart';
+import '../../../../sync/upload/upload_run_message.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -70,44 +71,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ref.invalidate(dashboardStatsProvider);
       if (!mounted) return;
 
-      final String message;
-      Color? colour;
-      if (r.attempted == 0) {
-        message = 'Nothing waiting to send.';
-      } else if (r.stoppedForSignal) {
-        message = 'No connection — ${r.attempted} still queued, '
-            'it will go when you are back online.';
-        colour = const Color(0xFFFFB300);
-      } else if (r.rejected > 0 || r.failed > 0) {
-        message = '${r.rejected + r.failed} could not be sent — '
-            'open the certificate to see why.';
-        colour = Theme.of(context).colorScheme.error;
-      } else if (r.conflicted > 0) {
-        message = '${r.conflicted} changed on the server and need you.';
-        colour = const Color(0xFFFFB300);
-      } else if (r.unguaranteed > 0) {
-        // The upload succeeded and that is exactly the problem: this server
-        // will not promise a reading must name its certificate, and one that
-        // did not orphaned 46 of them while reporting success.
-        message = 'Sent, but this server does not guarantee readings are '
-            'attached — report before doing more certificates.';
-        colour = Theme.of(context).colorScheme.error;
-      } else if (r.shortApplied > 0) {
-        // The server said yes and applied less than it was sent. Reporting
-        // this green is what let a certificate be filed with no test data
-        // against it and nobody know.
-        message = '${r.shortApplied} certificate'
-            '${r.shortApplied == 1 ? '' : 's'} reached the server without '
-            'all readings — do not leave site, report this.';
-        colour = Theme.of(context).colorScheme.error;
-      } else {
-        message = 'Sent ${r.applied} certificate'
-            '${r.applied == 1 ? '' : 's'}.';
-        colour = const Color(0xFF2E7D32);
-      }
+      // The choice of sentence lives in describeUploadRun so it can be tested
+      // without a widget tree; this end only paints it.
+      final outcome = describeUploadRun(r);
+      final colour = switch (outcome.tone) {
+        UploadMessageTone.quiet => null,
+        UploadMessageTone.success => const Color(0xFF2E7D32),
+        UploadMessageTone.warning => const Color(0xFFFFB300),
+        UploadMessageTone.alarm => Theme.of(context).colorScheme.error,
+      };
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: colour),
+        SnackBar(content: Text(outcome.text), backgroundColor: colour),
       );
     } on Exception catch (e) {
       if (mounted) {

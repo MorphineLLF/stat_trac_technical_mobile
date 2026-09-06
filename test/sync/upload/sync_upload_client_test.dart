@@ -88,6 +88,43 @@ void main() {
     expect(r.issued, ['cert-uuid']);
   });
 
+  // The op count was checked before sending and the body size was not, though
+  // the cap has been sitting in SyncUploadBatchLimits.bodyBytes the whole time.
+  // A certificate with many readings and two signature PNGs in one batch is
+  // exactly the shape that finds a megabyte, and the answer would be a 413 —
+  // which is permanent. Better to refuse it here than to spend a round trip
+  // from a device on one bar of signal to be told the same thing.
+  test('refuses a body over the 1 MB cap without spending a round trip',
+      () async {
+    final fat = CertificateUpload(
+      mobileId: 'cert-uuid',
+      certificate: const {'TestAssetID': 9304},
+      lines: [
+        for (var i = 0; i < 20; i++)
+          CertificateLineUpload(
+            mobileId: 'line-$i',
+            data: {'TestNote': 'x' * 60000},
+          ),
+      ],
+    );
+
+    final r = await client.upload(
+      company: 'demo',
+      deviceToken: 't',
+      upload: fat,
+    );
+
+    expect(r, isA<UploadTooLarge>());
+    expect(r.isRetryable, isFalse);
+    verifyNever(
+      () => dio.post<Map<String, Object?>>(
+        any(),
+        data: any(named: 'data'),
+        options: any(named: 'options'),
+      ),
+    );
+  });
+
   // Dio throws on a non-2xx by default. Each of these is a real answer from
   // the server, not a transport failure, so they must come back as results
   // rather than exceptions — a 422 in particular is a sentence for the
@@ -194,7 +231,9 @@ void main() {
       upload: tooBig,
     );
 
-    expect(r, isA<UploadClientError>());
+    // Too many ops and too many bytes are the same situation with the same
+    // remedy — fewer ops — so they answer with the same type.
+    expect(r, isA<UploadTooLarge>());
     verifyNever(
       () => dio.post<Map<String, Object?>>(
         any(),

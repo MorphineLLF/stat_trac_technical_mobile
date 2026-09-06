@@ -75,6 +75,18 @@ sealed class SyncUploadResult {
           (body['error'] as String?) ?? 'The server rejected the request.',
           enforces: enforces,
         );
+      case 413:
+        return UploadTooLarge(
+          (body['error'] as String?) ??
+              'This certificate is too big to send in one batch.',
+          enforces: enforces,
+        );
+      case 401:
+        return UploadAuthExpired(
+          (body['error'] as String?) ??
+              'This device needs to sign in again before it can upload.',
+          enforces: enforces,
+        );
       default:
         return UploadTransportError(
           status,
@@ -246,7 +258,45 @@ class UploadClientError extends SyncUploadResult {
   bool get isRetryable => false;
 }
 
-/// Anything else — an expired token, an outage, no signal. Worth retrying.
+/// The batch was over the server's 1 MB body cap or its 500 op cap.
+///
+/// **Permanent, and the fix is fewer ops rather than another attempt.** This
+/// exists as its own type because the alternative was the retryable default,
+/// where the same oversized batch is resent for ever — a device that has
+/// silently stopped uploading while telling the technician it has no signal.
+///
+/// Splitting is not yet automatic. The batch is parked with its size named so
+/// somebody can see what happened, which is the honest state until it is.
+class UploadTooLarge extends SyncUploadResult {
+  const UploadTooLarge(this.message, {super.enforces});
+  final String message;
+
+  @override
+  bool get isRetryable => false;
+}
+
+/// The device token is dead, revoked, or was never valid.
+///
+/// **Not refreshable in the background, whatever the batch's merits.** This
+/// route authenticates with the ninety-day *device* token, and the only way to
+/// obtain one is `POST /{company}/device/token` with a username and password —
+/// there is no renewal endpoint and this app stores no password. The hourly
+/// refresh described in the handover is the PowerSync JWT, which this route
+/// does not use.
+///
+/// So [isRetryable] is false: the same batch with the same token cannot
+/// succeed. The queued work is not condemned by it — the certificate is fine
+/// and goes up once somebody signs in — but nothing is achieved by sending it
+/// again first.
+class UploadAuthExpired extends SyncUploadResult {
+  const UploadAuthExpired(this.message, {super.enforces});
+  final String message;
+
+  @override
+  bool get isRetryable => false;
+}
+
+/// Anything else — an outage, no signal. Worth retrying.
 class UploadTransportError extends SyncUploadResult {
   const UploadTransportError(this.status, this.message, {super.enforces});
   final int status;

@@ -151,6 +151,43 @@ void main() {
     expect((await queue.pending()).first.attempts, 1);
   });
 
+  test('an oversized batch is parked and the rest of the queue drains',
+      () async {
+    await queue.enqueue(_upload('cert-1'));
+    await queue.enqueue(_upload('cert-2'));
+    answers(const UploadTooLarge('1300 KB and the server accepts 1024 KB'));
+
+    final result = await worker.drain();
+
+    // Unlike no signal, this says nothing about the certificates behind it —
+    // one fat certificate must not hold up a technician's whole day.
+    expect(result.attempted, 2);
+    expect(result.stoppedForSignal, isFalse);
+    expect(
+      (await queue.all()).map((e) => e.status),
+      everyElement(UploadStatus.failed),
+    );
+    expect((await queue.pending()), isEmpty);
+  });
+
+  test('a dead device token stays pending and stops the run for sign-in',
+      () async {
+    await queue.enqueue(_upload('cert-1'));
+    await queue.enqueue(_upload('cert-2'));
+    answers(const UploadAuthExpired('sign in first'));
+
+    final result = await worker.drain();
+
+    // The certificate is not at fault and must not be condemned — it goes up
+    // once somebody signs in. But every other batch carries the same dead
+    // token, so there is nothing to gain by trying them.
+    expect(result.attempted, 1);
+    expect(result.stoppedForAuth, isTrue);
+    expect(result.stoppedForSignal, isFalse);
+    expect((await queue.pending()), hasLength(2));
+    expect((await queue.pending()).first.lastError, contains('sign in'));
+  });
+
   test('a client error is held for a developer, not the technician', () async {
     await queue.enqueue(_upload('cert-1'));
     answers(const UploadClientError('unknown field "complete_pm_workorder"'));

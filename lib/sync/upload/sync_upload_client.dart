@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import 'certificate_upload.dart';
@@ -29,9 +31,27 @@ class SyncUploadClient {
     // refusal we can predict should not cost a round trip from a device that
     // may be on one bar of signal.
     if (batch.exceedsServerLimit) {
-      return UploadClientError(
+      return UploadTooLarge(
         'This certificate has ${batch.ops.length} operations and the server '
         'accepts ${SyncUploadBatchLimits.ops}. It has to be split.',
+      );
+    }
+
+    // The other half of the same cap, and the half that had never been
+    // checked. Signatures travel in this batch when they were captured with
+    // the readings, and a base64 PNG is the one op that can carry a megabyte
+    // on its own.
+    //
+    // Encoding the body twice — once here, once in Dio — is worth it: the
+    // answer would otherwise be a 413, which is permanent, so the round trip
+    // buys nothing but a flat battery.
+    final body = jsonEncode(batch.toJson());
+    final bytes = utf8.encode(body).length;
+    if (bytes > SyncUploadBatchLimits.bodyBytes) {
+      return UploadTooLarge(
+        'This certificate is ${(bytes / 1024).round()} KB and the server '
+        'accepts ${SyncUploadBatchLimits.bodyBytes ~/ 1024} KB. It has to be '
+        'split — signatures are usually what makes the difference.',
       );
     }
 

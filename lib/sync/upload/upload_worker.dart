@@ -16,6 +16,7 @@ class UploadRunResult {
     required this.rejected,
     required this.failed,
     required this.stoppedForSignal,
+    this.stoppedForAuth = false,
     this.shortApplied = 0,
     this.unguaranteed = 0,
   });
@@ -47,6 +48,15 @@ class UploadRunResult {
   /// The run ended early because the server could not be reached. Not a
   /// failure — the work is still queued and will go when there is signal.
   final bool stoppedForSignal;
+
+  /// The run ended early because the device token is dead.
+  ///
+  /// Kept apart from [stoppedForSignal] because the two need opposite things
+  /// from the technician: signal comes back on its own and asks for nothing,
+  /// while this waits for a sign-in that nobody will perform if the app says
+  /// it is out of signal. Reporting this as a network problem is how a device
+  /// stops uploading for a fortnight without anyone knowing.
+  final bool stoppedForAuth;
 }
 
 /// Drains the outbox.
@@ -180,6 +190,33 @@ class UploadWorker {
         case UploadClientError(:final message):
           await _queue.markFailed(entry.upload.queueKey, message);
           failed++;
+
+        // Parked, not retried: the same batch gets the same 413 for ever.
+        // The run continues — a batch that is too big says nothing about the
+        // certificates behind it, and one fat certificate must not hold up a
+        // technician's whole day. Splitting is not yet automatic, so this is
+        // where such a certificate stops until it is.
+        case UploadTooLarge(:final message):
+          await _queue.markFailed(entry.upload.queueKey, message);
+          failed++;
+
+        // Kept pending rather than failed: the certificate is not at fault
+        // and goes up once somebody signs in. But every batch behind it
+        // carries the same dead token, so the run ends here — and it ends
+        // saying so, rather than claiming there is no signal.
+        case UploadAuthExpired(:final message):
+          await _queue.markRetryable(entry.upload.queueKey, message);
+          return UploadRunResult(
+            attempted: attempted,
+            applied: applied,
+            conflicted: conflicted,
+            rejected: rejected,
+            failed: failed,
+            shortApplied: shortApplied,
+            unguaranteed: unguaranteed,
+            stoppedForSignal: false,
+            stoppedForAuth: true,
+          );
 
         case UploadTransportError(:final message):
           await _queue.markRetryable(entry.upload.queueKey, message);

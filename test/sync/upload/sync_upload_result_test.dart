@@ -145,13 +145,40 @@ void main() {
     });
   });
 
-  group('transport failures', () {
-    test('401 is retryable — the token can be refreshed', () {
-      final r = SyncUploadResult.fromResponse(401, const {'error': 'sign in first'});
-      expect(r, isA<UploadTransportError>());
-      expect(r.isRetryable, isTrue);
-    });
+  group('413 — too large', () {
+    // The batch exceeded the server's 1 MB body or its 500 op cap. Sending the
+    // identical batch again gets the identical answer for ever, so this must
+    // not land in the retryable default: that is a device that has silently
+    // stopped uploading, reporting itself as out of signal.
+    test('is permanent — the batch has to be split, not resent', () {
+      final r = SyncUploadResult.fromResponse(413, const {
+        'error': 'body exceeds 1048576 bytes',
+      });
 
+      expect(r, isA<UploadTooLarge>());
+      expect((r as UploadTooLarge).message, contains('1048576'));
+      expect(r.isRetryable, isFalse);
+    });
+  });
+
+  group('401 — the device token is dead', () {
+    // This test previously asserted the opposite, on the belief that the token
+    // could be refreshed in the background. It cannot: the upload endpoint
+    // authenticates with the ninety-day DEVICE token, and the only way to get
+    // one is POST /{company}/device/token with a username and password. The
+    // hourly background refresh is the PowerSync JWT, which this route does
+    // not use. So a 401 here needs a person, not a retry.
+    test('is not resent with the same dead token', () {
+      final r = SyncUploadResult.fromResponse(401, const {
+        'error': 'sign in first',
+      });
+
+      expect(r, isA<UploadAuthExpired>());
+      expect(r.isRetryable, isFalse);
+    });
+  });
+
+  group('transport failures', () {
     test('5xx is retryable', () {
       expect(SyncUploadResult.fromResponse(503, const {}).isRetryable, isTrue);
     });
