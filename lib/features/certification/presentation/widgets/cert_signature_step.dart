@@ -76,6 +76,22 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
       ).showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
+
+    // Said, not enforced. A certificate is valid without a facility
+    // signature, so this cannot stand in the way of issuing one — but a
+    // signature that cannot be sent must not disappear without a word either.
+    final warning = signatureStepWarning(
+      clientSigned: _clientController.isNotEmpty,
+      clientName: _clientNameController.text,
+    );
+    if (warning != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(warning),
+          backgroundColor: const Color(0xFFFFB300),
+        ),
+      );
+    }
     // Both sides export on the same canvas. Without a size the package
     // exports the bounding box of the strokes, so the two signatures on one
     // certificate came out 123x97 and 180x82 — a record of how somebody
