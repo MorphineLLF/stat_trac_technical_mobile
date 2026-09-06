@@ -64,8 +64,6 @@ class _CreateCertificateScreenState
   /// they can change — and the date sent is the date the register holds, so
   /// offering one shows them what will actually happen.
   DateTime? _nextService;
-  bool _completePmWorkOrder = false;
-  bool _completePmJobCard = false;
 
   final _notesController = TextEditingController();
 
@@ -232,8 +230,13 @@ class _CreateCertificateScreenState
         verdict: cert.patientSafe!,
         notes: cert.notes,
         nextService: _nextService == null ? null : wireDate(_nextService!),
-        completePmWorkOrder: _completePmWorkOrder,
-        completePmJobCard: _completePmJobCard,
+        // Both sent false and neither offered. Completing a PM work order and
+        // its job card is not this certificate's business — the office
+        // closes those. Sending false is always safe: where no work order is
+        // open the server raises one already completed regardless, and where
+        // one is open it stays open and the schedule does not move.
+        completePmWorkOrder: false,
+        completePmJobCard: false,
       ),
     );
 
@@ -491,33 +494,6 @@ class _CreateCertificateScreenState
                             value: _nextService,
                             onChanged: (d) => setState(() => _nextService = d),
                           ),
-                          if (_serviceId != null) ...[
-                            CheckboxListTile(
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                              value: _completePmWorkOrder,
-                              onChanged: (v) => setState(
-                                () => _completePmWorkOrder = v ?? false,
-                              ),
-                              title: const Text('Complete the PM work order'),
-                              subtitle: const Text(
-                                'Leave unticked and the schedule does not '
-                                'move either',
-                              ),
-                            ),
-                            CheckboxListTile(
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                              // Asked separately: the person issuing the
-                              // certificate may not be the person writing it
-                              // up.
-                              value: _completePmJobCard,
-                              onChanged: (v) => setState(
-                                () => _completePmJobCard = v ?? false,
-                              ),
-                              title: const Text('Complete its job card'),
-                            ),
-                          ],
                           const SizedBox(height: 8),
                         ],
                         if (!_allActualsValid ||
