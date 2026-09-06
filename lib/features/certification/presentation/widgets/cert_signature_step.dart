@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import 'signature_export_size.dart';
 
 class CertSignatureStep extends StatefulWidget {
   const CertSignatureStep({
@@ -30,15 +31,22 @@ class SignatureResult {
 
 class _CertSignatureStepState extends State<CertSignatureStep> {
   final _techController = SignatureController(
-    penStrokeWidth: 2,
+    penStrokeWidth: signaturePenStrokeWidth,
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
   final _clientController = SignatureController(
-    penStrokeWidth: 2,
+    penStrokeWidth: signaturePenStrokeWidth,
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
+
+  /// The pad's laid-out size, measured rather than assumed.
+  ///
+  /// Both pads sit in the same list under the same constraints, so one
+  /// measurement serves both — which is what makes the two exported files
+  /// identical by construction.
+  Size? _padSize;
   final _clientNameController = TextEditingController();
 
   @override
@@ -57,7 +65,16 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
       );
       return;
     }
-    final techBytes = await _techController.toPngBytes();
+    // Both sides export on the same canvas. Without a size the package
+    // exports the bounding box of the strokes, so the two signatures on one
+    // certificate came out 123x97 and 180x82 — a record of how somebody
+    // signed rather than of what they signed on.
+    final export = _padSize == null ? null : signatureExportSize(_padSize!);
+
+    final techBytes = await _techController.toPngBytes(
+      width: export?.width.toInt(),
+      height: export?.height.toInt(),
+    );
     if (techBytes == null) return;
 
     Uint8List? clientBytes;
@@ -69,7 +86,10 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
         );
         return;
       }
-      clientBytes = await _clientController.toPngBytes();
+      clientBytes = await _clientController.toPngBytes(
+        width: export?.width.toInt(),
+        height: export?.height.toInt(),
+      );
     }
 
     widget.onSigned(
@@ -93,7 +113,15 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        _SignaturePad(controller: _techController),
+        _SignaturePad(
+          controller: _techController,
+          // Measured once from the technician's pad. The facility pad is laid
+          // out under the same constraints, so one measurement covers both —
+          // which is what makes the two files identical rather than merely
+          // similar. Assigned without setState: nothing rebuilds on it, it is
+          // only read when the signatures are exported.
+          onMeasured: (size) => _padSize = size,
+        ),
         const SizedBox(height: 24),
         Text(
           'Facility Contact',
@@ -125,8 +153,13 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
 }
 
 class _SignaturePad extends StatelessWidget {
-  const _SignaturePad({required this.controller});
+  const _SignaturePad({required this.controller, this.onMeasured});
   final SignatureController controller;
+
+  /// Reports the pad's laid-out size, so the export can match it.
+  final ValueChanged<Size>? onMeasured;
+
+  static const double padHeight = 180;
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +168,20 @@ class _SignaturePad extends StatelessWidget {
         border: Border.all(color: brandGrey),
         borderRadius: BorderRadius.circular(8),
       ),
-      height: 180,
+      height: padHeight,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Signature(controller: controller, backgroundColor: Colors.white),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            onMeasured?.call(
+              Size(constraints.maxWidth, constraints.maxHeight),
+            );
+            return Signature(
+              controller: controller,
+              backgroundColor: Colors.white,
+            );
+          },
+        ),
       ),
     );
   }

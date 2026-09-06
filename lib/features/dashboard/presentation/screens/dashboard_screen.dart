@@ -919,10 +919,15 @@ class _PowerSyncStatus extends ConsumerWidget {
 
         switch (indicator) {
           case SyncIndicator.syncing:
+            // Orange, not white: white is the AppBar's own foreground, so a
+            // syncing chip read as ordinary furniture rather than as something
+            // happening. Amber says "in progress" and is already the app's
+            // warning-but-not-wrong colour — the same one the "no connection"
+            // and conflict messages use.
             return const _StatusChip(
               icon: Icons.cloud_sync,
               label: 'Syncing',
-              color: Colors.white,
+              color: Color(0xFFFFB300),
             );
           case SyncIndicator.connected:
             final at = s.lastSyncedAt;
