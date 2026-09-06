@@ -6,6 +6,7 @@ import '../domain/entities/test_template_item.dart';
 import '../domain/entities/test_template_name.dart';
 import '../domain/entities/test_output.dart';
 import 'models/certificate_summary.dart';
+import '../../../sync/powersync_types.dart';
 import 'powersync_cert_mapper.dart';
 
 /// Reads certificates from PowerSync's local database.
@@ -18,34 +19,74 @@ class PowerSyncCertDataSource {
   /// The id breaks ties so the order is total: two certificates on the same
   /// date must not swap places between reads.
   Future<List<CertificateSummary>> getCertificates({int limit = 500}) async {
-    // Joined to the asset for the facility and the equipment. Neither lives
-    // on the certificate, and the hospital is the first thing a technician
-    // looks for — they remember where they were standing long before they
-    // remember what the template was called.
+    // **Not joined to Asset, and that is deliberate.** A PowerSync table is a
+    // view over JSON with no index on AssetID, so a join scans the whole
+    // asset store for every certificate — the list stopped appearing at all,
+    // showing a spinner for ever rather than failing, which is the worst way
+    // for something to break.
     //
-    // LEFT, not INNER: a certificate whose asset has not reached this device
-    // must still appear. Dropping it would hide a record rather than show a
-    // problem.
+    // The certificates are fetched on their own and the facility is attached
+    // afterwards, in one pass, by a lookup that cannot hold the list up.
     final rows = await _db.getAll(
-      'SELECT c.*, '
-      'a."AssetHospital" AS joined_hospital, '
-      'a."AssetEquipmentType" AS joined_equipment_type '
-      'FROM "TestCertificate" c '
-      'LEFT JOIN "Asset" a ON a."AssetID" = c."TestAssetID" '
-      'ORDER BY c."TestDate" DESC, c."TestCertificateID" DESC LIMIT ?1',
+      'SELECT * FROM "TestCertificate" '
+      'ORDER BY "TestDate" DESC, "TestCertificateID" DESC LIMIT ?1',
       [limit],
     );
-    return rows.map(certificateSummaryFromPowerSync).toList();
+    final certs = rows.map(certificateSummaryFromPowerSync).toList();
+    return _withFacilities(certs, rows);
+  }
+
+  /// Attaches each certificate's facility and equipment from its asset.
+  ///
+  /// One query for the assets actually referenced, not a join and not a scan
+  /// per row. **If it is slow or fails, the certificates are returned without
+  /// it**: a list missing the hospital is worth far more than a list that
+  /// never arrives.
+  Future<List<CertificateSummary>> _withFacilities(
+    List<CertificateSummary> certs,
+    List<Map<String, Object?>> rows,
+  ) async {
+    final assetIds = <int>{for (final row in rows) ?psInt(row['TestAssetID'])};
+    if (assetIds.isEmpty) return certs;
+
+    try {
+      final placeholders = List.filled(assetIds.length, '?').join(',');
+      final assets = await _db
+          .getAll(
+            'SELECT "AssetID", "AssetHospital", "AssetEquipmentType" '
+            'FROM "Asset" WHERE "AssetID" IN ($placeholders)',
+            assetIds.toList(),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      final byId = {
+        for (final a in assets)
+          psInt(a['AssetID']): (
+            hospital: a['AssetHospital'] as String?,
+            equipment: a['AssetEquipmentType'] as String?,
+          ),
+      };
+
+      return [
+        for (var i = 0; i < certs.length; i++)
+          if (byId[psInt(rows[i]['TestAssetID'])] case final asset?)
+            certs[i].copyWith(
+              hospital: asset.hospital,
+              equipmentType: asset.equipment,
+            )
+          else
+            certs[i],
+      ];
+    } on Object {
+      // The facility is a nicety; the certificates are the point.
+      return certs;
+    }
   }
 
   Future<CertificateSummary?> getCertificateById(int certificateId) async {
+    // Unjoined, for the same reason as the list above.
     final rows = await _db.getAll(
-      'SELECT c.*, '
-      'a."AssetHospital" AS joined_hospital, '
-      'a."AssetEquipmentType" AS joined_equipment_type '
-      'FROM "TestCertificate" c '
-      'LEFT JOIN "Asset" a ON a."AssetID" = c."TestAssetID" '
-      'WHERE c."TestCertificateID" = ?1 LIMIT 1',
+      'SELECT * FROM "TestCertificate" WHERE "TestCertificateID" = ?1 LIMIT 1',
       [certificateId],
     );
     return rows.isEmpty ? null : certificateSummaryFromPowerSync(rows.first);

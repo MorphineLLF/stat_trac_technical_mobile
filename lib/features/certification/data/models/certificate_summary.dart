@@ -137,4 +137,23 @@ class CertificateSummary {
         templateNameId: m['template_name_id'] as int?,
         pmTaskDescription: m['pm_task_description'] as String?,
       );
+
+  /// A copy with the facility attached, once the asset lookup has run.
+  CertificateSummary copyWith({String? hospital, String? equipmentType}) =>
+      CertificateSummary(
+        id: id,
+        certificateNo: certificateNo,
+        certType: certType,
+        syncStatus: syncStatus,
+        createdAt: createdAt,
+        certName: certName,
+        templateName: templateName,
+        equipmentType: equipmentType ?? this.equipmentType,
+        patientSafe: patientSafe,
+        templateNameId: templateNameId,
+        pmTaskDescription: pmTaskDescription,
+        hospital: hospital ?? this.hospital,
+        mobileId: mobileId,
+        isLocal: isLocal,
+      );
 }

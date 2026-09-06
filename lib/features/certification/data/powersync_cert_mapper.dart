@@ -27,12 +27,10 @@ CertificateSummary certificateSummaryFromPowerSync(Map<String, Object?> row) {
     certName: row['TestCertificateDescription'] as String?,
     patientSafe: psInt(row['TestCertPatientSafe']),
     pmTaskDescription: row['TestServiceDescription'] as String?,
-    // Aliased in the list query's join rather than taken from the
-    // certificate: neither of these lives on TestCertificate. Absent on a
-    // single-row read, which is why they are read defensively.
+    // The facility and the equipment are attached after this, from the
+    // asset — they do not live on TestCertificate and joining for them
+    // stopped the list appearing at all.
     mobileId: row['TestMobileID'] as String?,
-    hospital: row['joined_hospital'] as String?,
-    equipmentType: row['joined_equipment_type'] as String?,
   );
 }
 
