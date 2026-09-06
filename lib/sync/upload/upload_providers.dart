@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/config/app_config.dart';
@@ -41,8 +42,23 @@ SyncUploadClient syncUploadClient(Ref ref) {
 @riverpod
 Future<UploadWorker> uploadWorker(Ref ref) async {
   final local = ref.watch(authLocalDataSourceProvider);
+  final queue = await ref.watch(uploadQueueProvider.future);
+
+  // Certificates parked because their row op carried the verdict are freed
+  // here rather than retyped: the work is on the device and the payload was
+  // one key away from being sendable. Idempotent, so it costs nothing once
+  // there is nothing left to free.
+  final freed = await queue.repairVerdictInRowOp();
+  if (freed > 0) {
+    debugPrint(
+      '[upload] freed $freed certificate${freed == 1 ? '' : 's'} parked '
+      'for carrying the verdict in the row op — they will go on the next '
+      'drain',
+    );
+  }
+
   return UploadWorker(
-    queue: await ref.watch(uploadQueueProvider.future),
+    queue: queue,
     archive: await ref.watch(uploadArchiveProvider.future),
     client: ref.watch(syncUploadClientProvider),
     confirm: ref.watch(certLocalDataSourceProvider).markSyncedByMobileId,

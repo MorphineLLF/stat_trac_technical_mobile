@@ -134,6 +134,57 @@ class UploadQueue {
   Future<void> markFailed(String mobileId, String message) =>
       _mark(mobileId, UploadStatus.failed, error: message);
 
+  /// Frees certificates parked because their row op carried the verdict.
+  ///
+  /// `TestCertPatientSafe` is the verdict **and the issued state**, so a row
+  /// op carrying it marked the certificate issued and the issue op behind it
+  /// in the same batch was refused as `already_issued`. A rejection refuses
+  /// the whole batch, so the readings rolled back with it.
+  ///
+  /// The work is still on the device and the payload is one key away from
+  /// being sendable, so it is repaired and re-queued rather than retyped. The
+  /// key is removed; nothing else about the batch changes.
+  ///
+  /// **Only rows parked with that reason are touched.** A repair that
+  /// re-queued refusals it could not explain would send them back into the
+  /// same wall and teach a technician the queue is noise.
+  ///
+  /// Returns how many were freed. Running it again does nothing.
+  Future<int> repairVerdictInRowOp() async {
+    const column = 'TestCertPatientSafe';
+
+    final rows = await _db.query(
+      table,
+      where: 'status = ? AND reason = ?',
+      whereArgs: [UploadStatus.rejected.name, 'already_issued'],
+    );
+
+    var freed = 0;
+    for (final row in rows) {
+      final payload =
+          jsonDecode(row['payload']! as String) as Map<String, Object?>;
+      final certificate = payload['certificate'];
+      if (certificate is! Map || !certificate.containsKey(column)) continue;
+
+      certificate.remove(column);
+
+      await _db.update(
+        table,
+        {
+          'payload': jsonEncode(payload),
+          'status': UploadStatus.pending.name,
+          'last_error': null,
+          'reason': null,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        where: 'mobile_id = ?',
+        whereArgs: [row['mobile_id']],
+      );
+      freed++;
+    }
+    return freed;
+  }
+
   /// Stays pending and counts the attempt. No signal is not a failure here.
   Future<void> markRetryable(String mobileId, String message) async {
     await _db.rawUpdate(
