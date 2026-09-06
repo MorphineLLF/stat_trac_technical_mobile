@@ -201,8 +201,16 @@ class _CreateCertificateScreenState
         'TestAssetID': cert.assetId,
         'TestDate': cert.testDate?.toIso8601String().substring(0, 10),
         'TestCertType': cert.certType,
-        'TestTech': cert.technician,
-        'TestTechID': cert.technicianId,
+        // TestTech and TestTechID are NOT sent either, and TestTech is the
+        // one that actually did the damage: the server reads a certificate as
+        // ISSUED when its technician name is non-empty. A row op writing it
+        // issued the certificate with none of the rules that make it evidence
+        // ever running — no completeness check, no totals, no TestNextService,
+        // no PM schedule, no work order — and then refused the issue op behind
+        // it as already_issued.
+        //
+        // This app had been doing that since the upload path was written. It
+        // only surfaced when an issue op finally collided with it.
         'TestCertificateDescription': cert.certName,
         'TestCertificateNotes': cert.notes,
         // TestCertPatientSafe is NOT sent here. It is the verdict, and the
