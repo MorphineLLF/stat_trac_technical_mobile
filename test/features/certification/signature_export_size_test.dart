@@ -36,9 +36,31 @@ void main() {
     expect(size.height, size.height.roundToDouble());
   });
 
+  _unboundedPads();
+
   test('a narrower pad still contains its own drawing', () {
     final size = signatureExportSize(const Size(320, 180));
 
     expect(size.width, greaterThanOrEqualTo(320 + 2 * signaturePenStrokeWidth));
+  });
+}
+
+// A pad laid out with an unbounded width measures Infinity, and the export
+// size is handed to toPngBytes as an int — Infinity.toInt() throws, which in
+// a signature sheet means a layout that never completes. Better to export at
+// the natural size than to take the screen down.
+void _unboundedPads() {
+  test('refuses a pad that was never really laid out', () {
+    expect(signatureExportSizeFor(const Size(double.infinity, 180)), isNull);
+    expect(signatureExportSizeFor(const Size(1000, double.infinity)), isNull);
+    expect(signatureExportSizeFor(const Size(double.nan, 180)), isNull);
+    expect(signatureExportSizeFor(null), isNull);
+  });
+
+  test('passes a real pad through unchanged', () {
+    expect(
+      signatureExportSizeFor(const Size(1000, 180)),
+      signatureExportSize(const Size(1000, 180)),
+    );
   });
 }

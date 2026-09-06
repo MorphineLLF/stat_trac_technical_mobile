@@ -80,7 +80,7 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     // exports the bounding box of the strokes, so the two signatures on one
     // certificate came out 123x97 and 180x82 — a record of how somebody
     // signed rather than of what they signed on.
-    final export = _padSize == null ? null : signatureExportSize(_padSize!);
+    final export = signatureExportSizeFor(_padSize);
 
     final techBytes = await _techController.toPngBytes(
       width: export?.width.toInt(),

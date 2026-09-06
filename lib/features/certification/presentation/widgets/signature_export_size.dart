@@ -26,6 +26,21 @@ const double signaturePenStrokeWidth = 2;
 /// touching the edge of the pad measures wider than the pad, trips that
 /// assert in debug, and in release is silently cropped, which on a document
 /// that is evidence is the worst of the three outcomes.
+/// [signatureExportSize] for a pad that may not have been laid out.
+///
+/// **A pad in an unbounded box measures `Infinity`**, and the export size is
+/// handed to `toPngBytes` as an `int` — `Infinity.toInt()` throws. In a
+/// signature sheet that means a frame that never completes, which reaches the
+/// technician as an app that has hung rather than as an error.
+///
+/// Null means "export at the natural size": one signature the wrong shape is
+/// a far smaller problem than a screen that has stopped.
+Size? signatureExportSizeFor(Size? padSize) {
+  if (padSize == null) return null;
+  if (!padSize.width.isFinite || !padSize.height.isFinite) return null;
+  return signatureExportSize(padSize);
+}
+
 Size signatureExportSize(Size padSize) {
   const allowance = 2 * signaturePenStrokeWidth;
   return Size(
