@@ -205,7 +205,11 @@ class _CreateCertificateScreenState
         'TestTechID': cert.technicianId,
         'TestCertificateDescription': cert.certName,
         'TestCertificateNotes': cert.notes,
-        'TestCertPatientSafe': cert.patientSafe,
+        // TestCertPatientSafe is NOT sent here. It is the verdict, and the
+        // issue op writes it — sending it as a column marks the certificate
+        // issued before the issue op runs, which then refuses it as
+        // already_issued and rolls the WHOLE batch back, readings included.
+        // That is what refused two certificates today.
         'TestType': cert.testType,
         'TestJobcardNo': cert.jobcardNo,
       }..removeWhere((_, v) => v == null),
