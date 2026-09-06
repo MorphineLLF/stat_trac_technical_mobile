@@ -64,4 +64,40 @@ void main() {
     expect(find.text('Sign in the box first'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  // The message must be INSIDE the sheet. A SnackBar renders at the bottom of
+  // the screen, underneath the bottom sheet covering it, so the sheet was
+  // refusing to save and hiding its own reason — which reaches a technician
+  // as a Save button that does nothing at all.
+  testWidgets('says why it will not save inside the sheet, not behind it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showAddFacilitySignatureSheet(context),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save signature'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBar), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Sign in the box first'),
+      ),
+      findsOneWidget,
+    );
+  });
 }

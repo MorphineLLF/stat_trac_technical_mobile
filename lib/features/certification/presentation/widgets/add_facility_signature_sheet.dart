@@ -49,6 +49,14 @@ class _AddFacilitySignatureSheetState
   final _nameController = TextEditingController();
   Size? _padSize;
 
+  /// Why the last Save did not happen, shown in the sheet.
+  ///
+  /// **Not a SnackBar.** One renders at the bottom of the screen, underneath
+  /// the bottom sheet covering it, so the sheet refused to save and hid its
+  /// own reason — which reaches a technician as a Save button that does
+  /// nothing at all.
+  String? _problem;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -69,6 +77,8 @@ class _AddFacilitySignatureSheetState
       return;
     }
 
+    setState(() => _problem = null);
+
     final export = signatureExportSizeFor(_padSize);
     final png = await _controller.toPngBytes(
       width: export?.width.toInt(),
@@ -81,11 +91,7 @@ class _AddFacilitySignatureSheetState
     ).pop(FacilitySignature(png: png, name: _nameController.text.trim()));
   }
 
-  void _say(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _say(String message) => setState(() => _problem = message);
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +143,16 @@ class _AddFacilitySignatureSheetState
                 ),
               ),
             ),
+            if (_problem != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _problem!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             // **No Row here, and that is the fix rather than a preference.**
             // filledButtonTheme sets minimumSize Size.fromHeight(48), which is
