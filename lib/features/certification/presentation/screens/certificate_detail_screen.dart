@@ -10,6 +10,8 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../domain/entities/test_output.dart';
 import '../../../../sync/upload/upload_providers.dart';
+import '../../data/cert_document_result.dart';
+import '../providers/cert_document_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/add_facility_signature_sheet.dart';
 import 'facility_signature_upload.dart';
@@ -77,6 +79,12 @@ class _CertificateDetailScreenState
     }
   }
 
+  /// Opens the certificate PDF, from the cache when there is one.
+  ///
+  /// The server is the only renderer — paper and screen are built from one
+  /// view there, and a second renderer on the device would drift from it
+  /// invisibly. So the device fetches once and keeps it: a cached certificate
+  /// opens in a basement with no signal at all.
   Future<void> _viewPdf(int serverId) async {
     setState(() => _loadingPdf = true);
     try {
@@ -86,42 +94,107 @@ class _CertificateDetailScreenState
       final filePath = '${certDir.path}/cert_$serverId.pdf';
 
       if (!File(filePath).existsSync()) {
-        final bytes = await ref
-            .read(certificateRepositoryProvider)
-            .fetchCertificatePdf(serverId);
-        await File(filePath).writeAsBytes(bytes);
+        final credentials = await ref.read(
+          certDocumentCredentialsProvider.future,
+        );
+        if (credentials == null) {
+          _sayPdf('Sign in again to open this certificate.', isError: true);
+          return;
+        }
+
+        final result = await ref
+            .read(certDocumentClientProvider)
+            .fetchPdf(
+              company: credentials.company,
+              deviceToken: credentials.token,
+              certificateId: serverId,
+            );
+
+        switch (result) {
+          case CertPdfBytes(:final bytes):
+            await File(filePath).writeAsBytes(bytes);
+          // Not a failure: the certificate has not reached the server yet, so
+          // there is nothing to render. Saying so is the difference between
+          // "wait for signal" and "something is broken".
+          case CertPdfNotReady():
+            _sayPdf(
+              'This certificate has not reached the server yet — it needs a '
+              'moment of signal first.',
+            );
+            return;
+          case CertPdfRefused(:final message):
+            _sayPdf(message, isError: true);
+            return;
+          case CertPdfUnavailable(:final message):
+            _sayPdf(message);
+            return;
+        }
       }
 
-      final result = await OpenFile.open(filePath);
-      if (result.type != ResultType.done && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open PDF: ${result.message}')),
-        );
-      }
-    } catch (e, st) {
-      debugPrint('PDF error: $e\n$st');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+      final opened = await OpenFile.open(filePath);
+      if (opened.type != ResultType.done && mounted) {
+        _sayPdf('Could not open PDF: ${opened.message}', isError: true);
       }
     } finally {
       if (mounted) setState(() => _loadingPdf = false);
     }
   }
 
+  void _sayPdf(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : const Color(0xFFFFB300),
+      ),
+    );
+  }
+
+  /// Emails the certificate to an address the technician types.
+  ///
+  /// The recipient is typed because there is nowhere to read it from: no
+  /// contact table and no email column reach this device, and the office
+  /// types it too.
+  ///
+  /// A 200 means the mail left. It does not promise the server's audit row
+  /// exists — that write can fail afterwards and is still answered 200,
+  /// because answering "failed" would have the technician send the same
+  /// certificate twice.
   Future<void> _showEmailDialog(int serverId) async {
     await showDialog<void>(
       context: context,
       builder: (_) => _EmailDialog(
         serverId: serverId,
         onSend: (email) async {
-          await ref
-              .read(certificateRepositoryProvider)
-              .emailCertificate(serverId, email);
+          final credentials = await ref.read(
+            certDocumentCredentialsProvider.future,
+          );
+          if (credentials == null) {
+            throw StateError('Sign in again to email this certificate.');
+          }
+
+          final result = await ref
+              .read(certDocumentClientProvider)
+              .email(
+                company: credentials.company,
+                deviceToken: credentials.token,
+                certificateId: serverId,
+                to: email,
+              );
+
+          switch (result) {
+            case CertEmailSent():
+              return;
+            // Both are shown to the technician as the server's own sentence.
+            // A refusal will never succeed and a fault might, but neither is
+            // retried behind their back from a dialog they are looking at.
+            case CertEmailRefused(:final message):
+              throw StateError(message);
+            case CertEmailUnavailable(:final message):
+              throw StateError(message);
+          }
         },
       ),
     );
