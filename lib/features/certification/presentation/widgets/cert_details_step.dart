@@ -9,6 +9,8 @@ import '../../domain/entities/test_equipment_selection.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../providers/certificate_providers.dart';
 import 'next_service_field.dart';
+import 'cert_step_bar.dart';
+import 'pm_task_dropdown.dart';
 
 class CertDetailsStep extends ConsumerStatefulWidget {
   const CertDetailsStep({
@@ -166,160 +168,160 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
       });
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Certificate Details',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
-
-          // Test Date
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Test Date',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: brandGrey),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: widget.template.editDate ? _pickDate : null,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.template.editDate
-                            ? null
-                            : const Color(0xFFF0F2F5),
-                        border: Border.all(
-                          color: widget.template.editDate
-                              ? brandTeal
-                              : const Color(0xFFDDE3EA),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DetailsStepBar(
+          assetId: widget.selectedAsset?.assetId,
+          equipValid: _isValid,
+          pmTaskDescription: _pmTaskDescription,
+          onNext: widget.onNext,
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Test Date
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Test Date',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(color: brandGrey),
                         ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 18,
-                            color: widget.template.editDate
-                                ? brandTeal
-                                : brandGrey,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              dateStr,
-                              style: TextStyle(
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: widget.template.editDate ? _pickDate : null,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: widget.template.editDate
+                                  ? null
+                                  : const Color(0xFFF0F2F5),
+                              border: Border.all(
                                 color: widget.template.editDate
-                                    ? null
-                                    : brandGrey,
+                                    ? brandTeal
+                                    : const Color(0xFFDDE3EA),
                               ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 18,
+                                  color: widget.template.editDate
+                                      ? brandTeal
+                                      : brandGrey,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    dateStr,
+                                    style: TextStyle(
+                                      color: widget.template.editDate
+                                          ? null
+                                          : brandGrey,
+                                    ),
+                                  ),
+                                ),
+                                if (widget.template.editDate)
+                                  Text(
+                                    'Tap to change',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: brandTeal,
+                                    ),
+                                  ),
+                                if (!widget.template.editDate)
+                                  Text(
+                                    'Auto — today',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: brandGrey,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (widget.template.editDate)
-                            Text(
-                              'Tap to change',
-                              style: TextStyle(fontSize: 11, color: brandTeal),
-                            ),
-                          if (!widget.template.editDate)
-                            Text(
-                              'Auto — today',
-                              style: TextStyle(fontSize: 11, color: brandGrey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Test Equipment
+                if (widget.template.testEquipQty > 0) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Test Equipment',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(color: brandGrey),
+                          ),
+                          const SizedBox(height: 8),
+                          for (var i = 0; i < widget.template.testEquipQty; i++)
+                            _EquipmentSlot(
+                              slotNo: i + 1,
+                              selection: i < _equipment.length
+                                  ? _equipment[i]
+                                  : null,
+                              onPick: () => _pickEquipment(i),
                             ),
                         ],
                       ),
                     ),
                   ),
                 ],
-              ),
+
+                const SizedBox(height: 12),
+                if (widget.selectedAsset?.assetId != null)
+                  _PmTaskCard(
+                    assetId: widget.selectedAsset!.assetId!,
+                    selectedId: _serviceId,
+                    onSelected: (task) {
+                      setState(() {
+                        _pmTaskDescription = task.description;
+                        _serviceInterval = task.interval;
+                        _serviceType = task.intervalType;
+                        _serviceId = task.pmTaskId;
+                      });
+                      _notify();
+                    },
+                  ),
+                // Only where the design asks for one. A template that does not tick
+                // Next Service Due does not want a date, and the server ignores one
+                // sent against it.
+                if (widget.template.nextService) ...[
+                  const SizedBox(height: 16),
+                  NextServiceField(
+                    testDate: _testDate,
+                    value: widget.nextService,
+                    onChanged: widget.onNextServiceChanged,
+                  ),
+                ],
+              ],
             ),
           ),
-
-          // Test Equipment
-          if (widget.template.testEquipQty > 0) ...[
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Test Equipment',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelLarge?.copyWith(color: brandGrey),
-                    ),
-                    const SizedBox(height: 8),
-                    for (var i = 0; i < widget.template.testEquipQty; i++)
-                      _EquipmentSlot(
-                        slotNo: i + 1,
-                        selection: i < _equipment.length ? _equipment[i] : null,
-                        onPick: () => _pickEquipment(i),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 12),
-          if (widget.selectedAsset?.assetId != null)
-            _PmTaskCard(
-              assetId: widget.selectedAsset!.assetId!,
-              selected: _pmTaskDescription,
-              onSelected: (task) {
-                setState(() {
-                  _pmTaskDescription = task.description;
-                  _serviceInterval = task.interval;
-                  _serviceType = task.intervalType;
-                  _serviceId = task.pmTaskId;
-                });
-                _notify();
-              },
-            ),
-          // Only where the design asks for one. A template that does not tick
-          // Next Service Due does not want a date, and the server ignores one
-          // sent against it.
-          if (widget.template.nextService) ...[
-            const SizedBox(height: 16),
-            NextServiceField(
-              testDate: _testDate,
-              value: widget.nextService,
-              onChanged: widget.onNextServiceChanged,
-            ),
-          ],
-          const SizedBox(height: 24),
-          if (widget.selectedAsset?.assetId != null)
-            _PmTaskNextButton(
-              assetId: widget.selectedAsset!.assetId!,
-              equipValid: _isValid,
-              pmTaskDescription: _pmTaskDescription,
-              onNext: widget.onNext,
-            )
-          else
-            FilledButton(
-              onPressed: _isValid ? widget.onNext : null,
-              child: Text(
-                _isValid ? 'Next' : 'Select all test equipment to continue',
-              ),
-            ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -414,12 +416,12 @@ class _EquipmentSlot extends StatelessWidget {
 class _PmTaskCard extends ConsumerWidget {
   const _PmTaskCard({
     required this.assetId,
-    required this.selected,
+    required this.selectedId,
     required this.onSelected,
   });
 
   final int assetId;
-  final String? selected;
+  final int? selectedId;
   final ValueChanged<AssetPmTask> onSelected;
 
   @override
@@ -445,14 +447,11 @@ class _PmTaskCard extends ConsumerWidget {
                   ).textTheme.labelLarge?.copyWith(color: brandGrey),
                 ),
                 const SizedBox(height: 8),
-                if (tasks.length == 1)
-                  _LockedPmTask(description: tasks.first.description)
-                else
-                  _PmTaskChips(
-                    tasks: tasks,
-                    selected: selected,
-                    onSelected: onSelected,
-                  ),
+                PmTaskDropdown(
+                  tasks: tasks,
+                  selectedId: selectedId,
+                  onSelected: onSelected,
+                ),
               ],
             ),
           ),
@@ -462,108 +461,51 @@ class _PmTaskCard extends ConsumerWidget {
   }
 }
 
-class _LockedPmTask extends StatelessWidget {
-  const _LockedPmTask({required this.description});
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F2F5),
-        border: Border.all(color: const Color(0xFFDDE3EA)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_outline, size: 16, color: brandGrey),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(description, style: const TextStyle(color: brandGrey)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PmTaskChips extends StatelessWidget {
-  const _PmTaskChips({
-    required this.tasks,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final List<AssetPmTask> tasks;
-  final String? selected;
-  final ValueChanged<AssetPmTask> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: tasks.map((t) {
-        final isSelected = selected == t.description;
-        return ChoiceChip(
-          label: Text(t.description),
-          selected: isSelected,
-          selectedColor: brandTeal.withAlpha(30),
-          side: BorderSide(
-            color: isSelected ? brandTeal : const Color(0xFFDDE3EA),
-          ),
-          labelStyle: TextStyle(
-            color: isSelected ? brandTeal : null,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-          onSelected: (_) => onSelected(t),
-        );
-      }).toList(),
-    );
-  }
-}
-
 // ── PM Task Next Button ───────────────────────────────────────────────────────
 
-class _PmTaskNextButton extends ConsumerWidget {
-  const _PmTaskNextButton({
+/// The step's bar: Next, blocked until the equipment is chosen and — when the
+/// asset has PM tasks — one of them is.
+class _DetailsStepBar extends ConsumerWidget {
+  const _DetailsStepBar({
     required this.assetId,
     required this.equipValid,
     required this.pmTaskDescription,
     required this.onNext,
   });
 
-  final int assetId;
+  final int? assetId;
   final bool equipValid;
   final String? pmTaskDescription;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsync = ref.watch(assetPmTasksProvider(assetId));
     // Block proceed while tasks are still loading — prevents bypassing PM
     // task selection during the async load window (hasTasks would be false
     // while loading, making pmValid true prematurely).
-    final loading = !tasksAsync.hasValue;
-    final hasTasks = tasksAsync.asData?.value.isNotEmpty ?? false;
+    final tasksAsync = assetId == null
+        ? null
+        : ref.watch(assetPmTasksProvider(assetId!));
+    final loading = tasksAsync != null && !tasksAsync.hasValue;
+    final hasTasks = tasksAsync?.asData?.value.isNotEmpty ?? false;
     final pmValid = !hasTasks || pmTaskDescription != null;
     final canProceed = !loading && equipValid && pmValid;
 
-    String label;
+    final String? reason;
     if (loading) {
-      label = 'Loading…';
+      reason = 'Loading…';
     } else if (!equipValid) {
-      label = 'Select all test equipment to continue';
+      reason = 'Select all test equipment to continue';
     } else if (!pmValid) {
-      label = 'Select a PM task to continue';
+      reason = 'Select a PM task to continue';
     } else {
-      label = 'Next';
+      reason = null;
     }
 
-    return FilledButton(
-      onPressed: canProceed ? onNext : null,
-      child: Text(label),
+    return CertStepBar(
+      title: 'Certificate Details',
+      onNext: canProceed ? onNext : null,
+      blockedReason: reason,
     );
   }
 }

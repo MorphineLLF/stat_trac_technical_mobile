@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-enum CertType { test, qa, commission }
+// TestTemplateType: 1 Test, 2 QA, 3 Commission, 4 Decontamination. The
+// column's pg_description lists only three; the data and the Go side have four.
+enum CertType { test, qa, commission, decontamination }
 
 @immutable
 class TestTemplateName {
@@ -38,6 +40,8 @@ class TestTemplateName {
         return CertType.qa;
       case 3:
         return CertType.commission;
+      case 4:
+        return CertType.decontamination;
       default:
         return CertType.test;
     }
@@ -49,6 +53,8 @@ class TestTemplateName {
         return 2;
       case CertType.commission:
         return 3;
+      case CertType.decontamination:
+        return 4;
       case CertType.test:
         return 1;
     }

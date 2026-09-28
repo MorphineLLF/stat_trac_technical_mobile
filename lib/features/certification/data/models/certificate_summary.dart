@@ -128,6 +128,8 @@ class CertificateSummary {
         return 'QA';
       case 3:
         return 'CS';
+      case 4:
+        return 'DECON';
       default:
         return 'TEST';
     }

@@ -162,6 +162,8 @@ class _CertTile extends StatelessWidget {
         return Colors.amber[700]!;
       case 3:
         return Colors.green[700]!;
+      case 4:
+        return Colors.purple[700]!;
       default:
         return brandTeal;
     }
@@ -206,9 +208,9 @@ class _CertTile extends StatelessWidget {
           children: [
             Text(
               cert.displayTitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: brandDark,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: brandDark),
             ),
             Text(cert.equipmentType ?? '—', style: TextStyle(color: brandGrey)),
             Wrap(

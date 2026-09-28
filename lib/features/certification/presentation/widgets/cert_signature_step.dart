@@ -115,12 +115,8 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Technician Signature',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
         _SignaturePad(
+          title: 'Technician Signature',
           controller: _techController,
           // Measured once from the technician's pad. The facility pad is laid
           // out under the same constraints, so one measurement covers both —
@@ -138,6 +134,9 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
         TextFormField(
           controller: _clientNameController,
           decoration: const InputDecoration(
+            // White like the pads — unfilled, it showed the grey page through.
+            filled: true,
+            fillColor: Colors.white,
             labelText: 'Facility Contact Name',
             // Not "Optional". It is optional only until somebody from the
             // facility signs, and captioning it otherwise is what caused a
@@ -148,8 +147,11 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           textInputAction: TextInputAction.done,
         ),
         if (widget.requiresCustomerSig) ...[
-          const SizedBox(height: 8),
-          _SignaturePad(controller: _clientController),
+          const SizedBox(height: 16),
+          _SignaturePad(
+            title: 'Facility Signature',
+            controller: _clientController,
+          ),
         ],
         const SizedBox(height: 24),
         FilledButton.icon(
@@ -163,7 +165,12 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
 }
 
 class _SignaturePad extends StatelessWidget {
-  const _SignaturePad({required this.controller, this.onMeasured});
+  const _SignaturePad({
+    required this.title,
+    required this.controller,
+    this.onMeasured,
+  });
+  final String title;
   final SignatureController controller;
 
   /// Reports the pad's laid-out size, so the export can match it.
@@ -173,6 +180,33 @@ class _SignaturePad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            // A slip of the pen used to mean leaving the certificate: there
+            // was no way to take a signature back.
+            TextButton.icon(
+              onPressed: controller.clear,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Clear'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        _pad(),
+      ],
+    );
+  }
+
+  Widget _pad() {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: brandGrey),
@@ -183,9 +217,7 @@ class _SignaturePad extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            onMeasured?.call(
-              Size(constraints.maxWidth, constraints.maxHeight),
-            );
+            onMeasured?.call(Size(constraints.maxWidth, constraints.maxHeight));
             return Signature(
               controller: controller,
               backgroundColor: Colors.white,

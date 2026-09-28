@@ -14,6 +14,7 @@ import '../../domain/entities/test_output.dart';
 import '../../domain/entities/test_template_name.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../providers/certificate_providers.dart';
+import '../widgets/cert_step_bar.dart';
 import '../widgets/certificate_completeness.dart';
 import '../widgets/cert_details_step.dart';
 import '../widgets/cert_signature_step.dart';
@@ -167,13 +168,10 @@ class _CreateCertificateScreenState
 
       ref.invalidate(dashboardStatsProvider);
       ref.invalidate(pendingUploadCountProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Saved and queued — it will be sent when online'),
-          ),
-        );
-      }
+      // Straight on to signing. A "Saved" popup used to sit over the Sign
+      // Certificate button it was announcing, and signing is the only thing
+      // left to do; the back arrow still returns to "Saved to device".
+      if (mounted) _goToStep(5);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -283,10 +281,9 @@ class _CreateCertificateScreenState
     // record of what was sent had already been deleted, so the count is stated
     // here against the count that was actually saved locally — the two read
     // the same field and must agree.
-    final savedLocally = (await ref
-            .read(certLocalDataSourceProvider)
-            .getOutputsByCertId(certId))
-        .length;
+    final savedLocally =
+        (await ref.read(certLocalDataSourceProvider).getOutputsByCertId(certId))
+            .length;
     debugPrint(
       queuedNote(
         mobileId: upload.mobileId,
@@ -306,8 +303,10 @@ class _CreateCertificateScreenState
     try {
       final worker = await ref.read(uploadWorkerProvider.future);
       await worker.drain();
-    } on Exception {
+    } catch (e, st) {
       // Queued is a good enough outcome to report.
+      debugPrint('[upload] send after save failed: $e');
+      debugPrint('$st');
     }
   }
 
@@ -363,8 +362,10 @@ class _CreateCertificateScreenState
     try {
       final worker = await ref.read(uploadWorkerProvider.future);
       await worker.drain();
-    } on Exception {
+    } catch (e, st) {
       // Queued is enough: it goes when there is signal.
+      debugPrint('[upload] send after signing failed: $e');
+      debugPrint('$st');
     }
   }
 
@@ -415,185 +416,197 @@ class _CreateCertificateScreenState
                 },
         ),
       ),
-      body: IndexedStack(
-        index: _step,
-        children: [
-          // Step 0: type selector
-          CertTypeSelector(
-            onSelected: (type) {
-              setState(() => _selectedType = type);
-              _goToStep(1);
-            },
-          ),
-
-          // Step 1: asset picker
-          _AssetPickStep(
-            selectedAsset: _selectedAsset,
-            onPickTap: _pickAsset,
-            onNext: _selectedAsset != null ? () => _goToStep(2) : null,
-          ),
-
-          // Step 2: template picker
-          if (_selectedType != null)
-            CertTemplatePicker(
-              certType: _selectedType!,
-              onSelected: (t) {
-                setState(() {
-                  _selectedTemplate = t;
-                  _equipment = List.filled(t.testEquipQty, null);
-                });
-                _goToStep(_shouldShowDetailsStep ? 3 : 4);
+      // Keeps Save and Issue Certificate clear of the system navigation bar —
+      // apps draw edge to edge from Android 15, so without it the last button
+      // on a step sat underneath it on smaller phones.
+      body: SafeArea(
+        top: false,
+        child: IndexedStack(
+          index: _step,
+          children: [
+            // Step 0: type selector
+            CertTypeSelector(
+              onSelected: (type) {
+                setState(() => _selectedType = type);
+                _goToStep(1);
               },
-            )
-          else
-            const SizedBox.shrink(),
+            ),
 
-          // Step 3: certificate details (NEW)
-          if (_selectedTemplate != null)
-            CertDetailsStep(
-              template: _selectedTemplate!,
+            // Step 1: asset picker
+            _AssetPickStep(
               selectedAsset: _selectedAsset,
-              initialDate: _testDate,
-              initialEquipment: _equipment,
-              nextService: _nextService,
-              onNextServiceChanged: (d) => setState(() => _nextService = d),
-              onChanged: (date, equip, pmTask, interval, serviceType, serviceId) => setState(() {
-                _testDate = date;
-                _equipment = equip;
-                _pmTaskDescription = pmTask;
-                _serviceInterval = interval;
-                // Offered, not imposed — the technician can change it, and
-                // the date they see is the one the register will hold because
-                // the server writes it verbatim. Null for a meter task: it
-                // comes round on readings, so a guess would be a lie.
-                _nextService ??= defaultNextService(
-                  testDate: date,
-                  interval: int.tryParse(interval ?? ''),
-                  intervalType: serviceType,
-                );
-                _serviceType = serviceType;
-                _serviceId = serviceId;
-              }),
-              onNext: () => _goToStep(4),
-            )
-          else
-            const SizedBox.shrink(),
+              onPickTap: _pickAsset,
+              onNext: _selectedAsset != null ? () => _goToStep(2) : null,
+            ),
 
-          // Step 4: test items grid (was step 3)
-          if (_selectedTemplate != null && _selectedAsset != null)
-            Column(
-              children: [
-                Expanded(
-                  child: CertTestGrid(
-                    templateNameId: _selectedTemplate!.id,
-                    assetId: _selectedAsset!.assetId ?? 0,
-                    onOutputsChanged: (outputs) => _outputs = outputs,
-                    onValidityChanged: (valid) =>
-                        setState(() => _allActualsValid = valid),
+            // Step 2: template picker
+            if (_selectedType != null)
+              CertTemplatePicker(
+                certType: _selectedType!,
+                onSelected: (t) {
+                  setState(() {
+                    _selectedTemplate = t;
+                    _equipment = List.filled(t.testEquipQty, null);
+                  });
+                  _goToStep(_shouldShowDetailsStep ? 3 : 4);
+                },
+              )
+            else
+              const SizedBox.shrink(),
+
+            // Step 3: certificate details (NEW)
+            if (_selectedTemplate != null)
+              CertDetailsStep(
+                template: _selectedTemplate!,
+                selectedAsset: _selectedAsset,
+                initialDate: _testDate,
+                initialEquipment: _equipment,
+                nextService: _nextService,
+                onNextServiceChanged: (d) => setState(() => _nextService = d),
+                onChanged:
+                    (
+                      date,
+                      equip,
+                      pmTask,
+                      interval,
+                      serviceType,
+                      serviceId,
+                    ) => setState(() {
+                      _testDate = date;
+                      _equipment = equip;
+                      _pmTaskDescription = pmTask;
+                      _serviceInterval = interval;
+                      // Offered, not imposed — the technician can change it, and
+                      // the date they see is the one the register will hold because
+                      // the server writes it verbatim. Null for a meter task: it
+                      // comes round on readings, so a guess would be a lie.
+                      _nextService ??= defaultNextService(
+                        testDate: date,
+                        interval: int.tryParse(interval ?? ''),
+                        intervalType: serviceType,
+                      );
+                      _serviceType = serviceType;
+                      _serviceId = serviceId;
+                    }),
+                onNext: () => _goToStep(4),
+              )
+            else
+              const SizedBox.shrink(),
+
+            // Step 4: test items grid (was step 3)
+            if (_selectedTemplate != null && _selectedAsset != null)
+              Column(
+                children: [
+                  Expanded(
+                    child: CertTestGrid(
+                      templateNameId: _selectedTemplate!.id,
+                      assetId: _selectedAsset!.assetId ?? 0,
+                      onOutputsChanged: (outputs) => _outputs = outputs,
+                      onValidityChanged: (valid) =>
+                          setState(() => _allActualsValid = valid),
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_savedCertId == null) ...[
-                        // FIRST, not last. It was at the bottom of a scrolling
-                        // column under the notes and the compliance buttons,
-                        // where it could barely be seen — and a required field
-                        // nobody notices is a 422 on site.
-                        //
-                        TextField(
-                          controller: _notesController,
-                          decoration: const InputDecoration(
-                            labelText: 'Notes',
-                            hintText: 'Optional certificate notes…',
-                            prefixIcon: Icon(Icons.notes_outlined),
-                          ),
-                          maxLength: 200,
-                          maxLines: 2,
-                          minLines: 1,
-                          textInputAction: TextInputAction.done,
-                        ),
-                        const SizedBox(height: 8),
-                        _ComplianceSelector(
-                          value: _patientSafe,
-                          onChanged: (v) => setState(() => _patientSafe = v),
-                        ),
-                        const SizedBox(height: 8),
-                        if (_completenessProblem != null ||
-                            _patientSafe == null ||
-                            _issueProblem != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              [
-                                if (_completenessProblem != null)
-                                  '$_completenessProblem.',
-                                if (_patientSafe == null)
-                                  'Select a compliance status.',
-                                // What the server would refuse, said before
-                                // the technician leaves site rather than after.
-                                if (_patientSafe != null && _issueProblem != null)
-                                  _issueProblem!,
-                              ].join(' '),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontSize: 13,
-                              ),
-                              textAlign: TextAlign.center,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_savedCertId == null) ...[
+                          // FIRST, not last. It was at the bottom of a scrolling
+                          // column under the notes and the compliance buttons,
+                          // where it could barely be seen — and a required field
+                          // nobody notices is a 422 on site.
+                          //
+                          TextField(
+                            controller: _notesController,
+                            decoration: const InputDecoration(
+                              // White — unfilled, it showed the grey page
+                              // through and read as disabled.
+                              filled: true,
+                              fillColor: Colors.white,
+                              labelText: 'Notes',
+                              hintText: 'Optional certificate notes…',
+                              prefixIcon: Icon(Icons.notes_outlined),
                             ),
+                            maxLength: 200,
+                            maxLines: 2,
+                            minLines: 1,
+                            textInputAction: TextInputAction.done,
                           ),
-                        FilledButton(
-                          // Nothing is queued until the server would accept
-                          // it. A refusal takes the whole batch down, so the
-                          // readings are protected by not sending them at all.
-                          onPressed:
-                              _saving ||
-                                  _completenessProblem != null ||
-                                  _patientSafe == null ||
-                                  _issueProblem != null
-                              ? null
-                              : _saveCertificate,
-                          child: _saving
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Save'),
-                        ),
-                      ] else ...[
-                        Text(
-                          'Saved to device ✓',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.green[700]),
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton(
-                          onPressed: () => _goToStep(5),
-                          child: const Text('Sign Certificate'),
-                        ),
+                          const SizedBox(height: 8),
+                          _ComplianceSelector(
+                            value: _patientSafe,
+                            onChanged: (v) => setState(() => _patientSafe = v),
+                          ),
+                          const SizedBox(height: 8),
+                          // Only what the server would refuse the ISSUE for.
+                          // "Not every test has been marked" and "Select a
+                          // compliance status" were removed at the user's
+                          // request: Save is disabled until both are done,
+                          // and the lines and buttons above already show it.
+                          if (_patientSafe != null && _issueProblem != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                _issueProblem!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          FilledButton(
+                            // Nothing is queued until the server would accept
+                            // it. A refusal takes the whole batch down, so the
+                            // readings are protected by not sending them at all.
+                            onPressed:
+                                _saving ||
+                                    _completenessProblem != null ||
+                                    _patientSafe == null ||
+                                    _issueProblem != null
+                                ? null
+                                : _saveCertificate,
+                            child: _saving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Save'),
+                          ),
+                        ] else ...[
+                          Text(
+                            'Saved to device ✓',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.green[700]),
+                          ),
+                          const SizedBox(height: 8),
+                          FilledButton(
+                            onPressed: () => _goToStep(5),
+                            child: const Text('Sign Certificate'),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
-            )
-          else
-            const SizedBox.shrink(),
+                ],
+              )
+            else
+              const SizedBox.shrink(),
 
-          // Step 5: signatures (was step 4)
-          if (_selectedTemplate != null)
-            CertSignatureStep(
-              requiresCustomerSig: _selectedTemplate!.customerSigRequired,
-              onSigned: _completeWithSignature,
-            )
-          else
-            const SizedBox.shrink(),
-        ],
+            // Step 5: signatures (was step 4)
+            if (_selectedTemplate != null)
+              CertSignatureStep(
+                requiresCustomerSig: _selectedTemplate!.customerSigRequired,
+                onSigned: _completeWithSignature,
+              )
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
       ),
     );
   }
@@ -681,95 +694,101 @@ class _AssetPickStep extends ConsumerWidget {
         : null;
     final loading = pmTasksAsync != null && !pmTasksAsync.hasValue;
     final hasPmTasks =
-        pmTasksAsync == null || (pmTasksAsync.asData?.value.isNotEmpty ?? false);
+        pmTasksAsync == null ||
+        (pmTasksAsync.asData?.value.isNotEmpty ?? false);
     final showWarning = !loading && selectedAsset != null && !hasPmTasks;
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Select Asset', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
-          if (selectedAsset != null)
-            Card(
-              shape: showWarning
-                  ? RoundedRectangleBorder(
-                      side: const BorderSide(color: _red, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    )
-                  : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    leading: Icon(
-                      Icons.medical_services_outlined,
-                      color: showWarning ? _red : brandTeal,
-                    ),
-                    title: Text(
-                      selectedAsset!.equipmentType,
-                      style: TextStyle(
-                        color: showWarning ? _red : null,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Text(
-                      [
-                        if (selectedAsset!.hospital != null)
-                          selectedAsset!.hospital!,
-                        if (selectedAsset!.serialNumber != null)
-                          'S/N: ${selectedAsset!.serialNumber!}',
-                      ].join(' · '),
-                    ),
-                    trailing: TextButton(
-                      onPressed: onPickTap,
-                      child: const Text('Change'),
-                    ),
-                  ),
-                  if (showWarning)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Row(
-                        children: const [
-                          Icon(
-                            Icons.warning_amber_outlined,
-                            size: 15,
-                            color: _red,
+    final canProceed =
+        onNext != null && selectedAsset != null && !loading && hasPmTasks;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CertStepBar(
+          title: 'Select Asset',
+          onNext: canProceed ? onNext : null,
+          blockedReason: loading
+              ? 'Checking PM tasks…'
+              : showWarning
+              ? 'No PM tasks — cannot certify'
+              : null,
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (selectedAsset != null)
+                  Card(
+                    shape: showWarning
+                        ? RoundedRectangleBorder(
+                            side: const BorderSide(color: _red, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.medical_services_outlined,
+                            color: showWarning ? _red : brandTeal,
                           ),
-                          SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'No PM tasks configured — this asset cannot be certified',
-                              style: TextStyle(fontSize: 12, color: _red),
+                          title: Text(
+                            selectedAsset!.equipmentType,
+                            style: TextStyle(
+                              color: showWarning ? _red : null,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
+                          subtitle: Text(
+                            [
+                              if (selectedAsset!.hospital != null)
+                                selectedAsset!.hospital!,
+                              if (selectedAsset!.serialNumber != null)
+                                'S/N: ${selectedAsset!.serialNumber!}',
+                            ].join(' · '),
+                          ),
+                          trailing: TextButton(
+                            onPressed: onPickTap,
+                            child: const Text('Change'),
+                          ),
+                        ),
+                        if (showWarning)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.warning_amber_outlined,
+                                  size: 15,
+                                  color: _red,
+                                ),
+                                SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'No PM tasks configured — this asset cannot be certified',
+                                    style: TextStyle(fontSize: 12, color: _red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
-                ],
-              ),
-            )
-          else
-            OutlinedButton.icon(
-              onPressed: onPickTap,
-              icon: const Icon(Icons.search),
-              label: const Text('Pick Asset'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: onPickTap,
+                    icon: const Icon(Icons.search),
+                    label: const Text('Pick Asset'),
+                  ),
+              ],
             ),
-          const Spacer(),
-          if (selectedAsset != null)
-            FilledButton(
-              onPressed: (onNext != null && !loading && hasPmTasks) ? onNext : null,
-              child: Text(
-                loading
-                    ? 'Checking PM tasks…'
-                    : showWarning
-                        ? 'No PM tasks — cannot certify'
-                        : 'Next',
-              ),
-            ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -403,6 +403,8 @@ class _DetailBody extends StatelessWidget {
         return Colors.amber[700]!;
       case 3:
         return Colors.green[700]!;
+      case 4:
+        return Colors.purple[700]!;
       default:
         return brandTeal;
     }

@@ -40,6 +40,13 @@ class CertTypeSelector extends StatelessWidget {
           type: CertType.commission,
           onSelected: onSelected,
         ),
+        _TypeTile(
+          icon: Icons.sanitizer_outlined,
+          label: 'Decontamination Certificate',
+          subtitle: 'Equipment decontamination',
+          type: CertType.decontamination,
+          onSelected: onSelected,
+        ),
       ],
     );
   }

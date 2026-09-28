@@ -21,14 +21,26 @@ void main() {
       expect(t.docNo, 'DOC-001');
     });
 
-    test('maps the three certificate types', () {
-      CertType typeOf(int v) =>
-          templateNameFromPowerSync({'TestTemplateNameID': 1,
-              'TestTemplateType': v}).certType;
+    // Four, not three. The pg_description comment on TestTemplateType lists
+    // three; the data and the Go side have four — 4 is Decontamination.
+    // Reading 4 as Test put a decontamination design under the wrong type.
+    test('maps the four certificate types', () {
+      CertType typeOf(int v) => templateNameFromPowerSync({
+        'TestTemplateNameID': 1,
+        'TestTemplateType': v,
+      }).certType;
 
       expect(typeOf(1), CertType.test);
       expect(typeOf(2), CertType.qa);
       expect(typeOf(3), CertType.commission);
+      expect(typeOf(4), CertType.decontamination);
+    });
+
+    test('every type goes back to the value it came from', () {
+      for (final t in CertType.values) {
+        expect(TestTemplateName.typeFromInt(TestTemplateName.typeToInt(t)), t);
+      }
+      expect(TestTemplateName.typeToInt(CertType.decontamination), 4);
     });
 
     // THE trap. TestTemplateTestEquipQty is a Postgres numeric, so it crosses

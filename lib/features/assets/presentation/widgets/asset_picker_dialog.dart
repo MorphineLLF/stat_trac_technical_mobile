@@ -7,6 +7,16 @@ import '../../../../sync/sync_state.dart';
 import '../../data/powersync_asset_data_source.dart';
 import '../../domain/entities/asset.dart';
 
+/// Hospitals whose name STARTS with [query], ignoring case — typing "a" lists
+/// the hospitals beginning with A. Matching anywhere in the name buried the
+/// one wanted under every hospital that merely contains the letter.
+@visibleForTesting
+List<String> filterHospitals(List<String> hospitals, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return hospitals;
+  return hospitals.where((h) => h.toLowerCase().startsWith(q)).toList();
+}
+
 // ── Scoped providers ──────────────────────────────────────────────────────────
 
 final _assetDataSourceProvider = Provider<PowerSyncAssetDataSource>(
@@ -178,11 +188,7 @@ class _HospitalPageState extends ConsumerState<_HospitalPage> {
           );
         }
 
-        final filtered = _query.isEmpty
-            ? hospitals
-            : hospitals
-                  .where((h) => h.toLowerCase().contains(_query.toLowerCase()))
-                  .toList();
+        final filtered = filterHospitals(hospitals, _query);
 
         return Column(
           children: [
