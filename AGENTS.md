@@ -1,43 +1,31 @@
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# GitNexus — Code Intelligence (optional)
 
-This project is indexed by GitNexus as **Stat_Trac-Technical-app** (841 symbols, 1588 relationships, 4 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **stat_trac_technical_mobile** (3351
+symbols, 5817 relationships, 62 execution flows at 2026-09-28).
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+**Optional, not a gate — decided by the user 2026-09-28.** Nothing requires a
+GitNexus check before an edit or a commit. The gates are `flutter test`,
+`flutter analyze`, and a check on a real phone. It was broken for a whole
+session and nothing suffered; its index is a snapshot that goes stale, and it
+cannot see Riverpod providers or callbacks, which is how most of this app is
+wired — so a "low risk" from it is weakest exactly where the app is most
+connected.
 
-## Always Do
+**Use it when it helps:** before changing a class or function that many files
+use, `impact({target: "Name", direction: "upstream", repo:
+"stat_trac_technical_mobile"})` for the blast radius; `context({name})` for a
+symbol's callers and callees; `detect_changes()` as an extra look before a big
+commit. A text search is an equally valid way to find usages. `UNKNOWN` risk or
+an empty caller list means "could not tell", never "safe".
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+**Re-index after larger changes, and always with both flags**, or it rewrites
+this section back to mandatory rules and adds duplicate skill folders:
 
-## Never Do
+```
+node .gitnexus/run.cjs analyze --skip-agents-md --skip-skills
+```
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/Stat_Trac-Technical-app/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Stat_Trac-Technical-app/clusters` | All functional areas |
-| `gitnexus://repo/Stat_Trac-Technical-app/processes` | All execution flows |
-| `gitnexus://repo/Stat_Trac-Technical-app/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
+Skill notes: `.claude/skills/gitnexus/` (exploring, impact-analysis,
+debugging, refactoring, guide, cli).
 <!-- gitnexus:end -->
