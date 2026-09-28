@@ -35,17 +35,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-      // Horse-era sync is DISABLED. Its endpoints (/assets, /sync/log) were
-      // the retired Horse API's and do not exist on the Go host, so every
-      // cycle 404s forever against a server that cannot answer -- confirmed
-      // in the server's nginx log. Nothing is lost by stopping it: the 404s
-      // meant it was already populating nothing.
-      //
-      // PowerSync now owns reads. The screens still read the OLD local
-      // tables, so they stay empty until each feature is repointed at the
-      // PowerSync schema -- that is the remaining migration work, tracked in
-      // docs/superpowers/specs/2026-09-05-powersync-migration-design.md.
-      // ref.read(syncProvider.notifier).triggerSync();
+    // Horse-era sync is DISABLED. Its endpoints (/assets, /sync/log) were
+    // the retired Horse API's and do not exist on the Go host, so every
+    // cycle 404s forever against a server that cannot answer -- confirmed
+    // in the server's nginx log. Nothing is lost by stopping it: the 404s
+    // meant it was already populating nothing.
+    //
+    // PowerSync now owns reads. The screens still read the OLD local
+    // tables, so they stay empty until each feature is repointed at the
+    // PowerSync schema -- that is the remaining migration work, tracked in
+    // docs/superpowers/specs/2026-09-05-powersync-migration-design.md.
+    // ref.read(syncProvider.notifier).triggerSync();
 
     // Uploads ARE driven from here. PowerSync only pulls; a certificate the
     // technician finished goes out through our own outbox, and something has
@@ -84,7 +84,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(outcome.text), backgroundColor: colour),
       );
-    } on Exception catch (e) {
+    } catch (e, st) {
+      // Logged, not only shown: the snackbar was the only place this ever
+      // appeared, and it is gone before anyone can read it out. Catches every
+      // throwable, not just Exception — an Error here left the button spinning
+      // with nothing said at all.
+      debugPrint('[upload] send now failed: $e');
+      debugPrint('$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -110,11 +116,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       if (result.attempted > 0 && mounted) {
         ref.invalidate(pendingUploadCountProvider);
       }
-    } on Exception {
+    } catch (e, st) {
       // Never surfaced here. A failed drain leaves the work queued, which is
       // the whole point of the queue -- and an error banner on the dashboard
       // for something that will retry on its own trains people to ignore
-      // banners.
+      // banners. But logged: silent AND unlogged is how a drain that had never
+      // once reached the server went unnoticed.
+      debugPrint('[upload] automatic send failed: $e');
+      debugPrint('$st');
     }
   }
 
@@ -307,9 +316,15 @@ class _HomeBody extends ConsumerWidget {
         children: [
           // Pending task counts — WO and PM side by side
           stats.when(
-            data: (s) => _PendingTasksRow(woCount: s.overdue + s.pending, pmCount: 0, certsCount: s.pendingCerts),
-            loading: () => const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
-            error: (e, _) => const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
+            data: (s) => _PendingTasksRow(
+              woCount: s.overdue + s.pending,
+              pmCount: 0,
+              certsCount: s.pendingCerts,
+            ),
+            loading: () =>
+                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
+            error: (e, _) =>
+                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
           ),
           const SizedBox(height: 16),
           // Donut chart + KPI row
@@ -336,7 +351,7 @@ class _HomeBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const _ModuleGrid(),
+          const DashboardModuleGrid(),
         ],
       ),
     );
@@ -659,8 +674,9 @@ class _TileAction {
   final WidgetBuilder? destination;
 }
 
-class _ModuleGrid extends StatelessWidget {
-  const _ModuleGrid();
+@visibleForTesting
+class DashboardModuleGrid extends StatelessWidget {
+  const DashboardModuleGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -674,6 +690,8 @@ class _ModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.list_alt_outlined,
                   label: 'Worklist',
+                  // Off until work orders read the synced Repair data.
+                  enabled: false,
                   color: brandTeal,
                   actions: [
                     _TileAction(
@@ -689,6 +707,8 @@ class _ModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.build_outlined,
                   label: 'Work Order',
+                  // Off until work orders read the synced Repair data.
+                  enabled: false,
                   color: const Color(0xFF1565C0),
                   actions: [
                     _TileAction(
@@ -716,6 +736,8 @@ class _ModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.assignment_outlined,
                   label: 'PM Work Order',
+                  // Off until work orders read the synced Repair data.
+                  enabled: false,
                   color: const Color(0xFF2E7D32),
                   actions: [
                     _TileAction(
@@ -760,15 +782,20 @@ class _ModuleTile extends StatelessWidget {
     required this.label,
     required this.color,
     required this.actions,
+    this.enabled = true,
   });
   final IconData icon;
   final String label;
   final Color color;
   final List<_TileAction> actions;
 
+  /// False while a module's screens are not yet wired to the synced data —
+  /// the tile stays visible but faded, and nothing on it can be pressed.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final tile = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withAlpha(20),
@@ -793,49 +820,78 @@ class _ModuleTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              for (int i = 0; i < actions.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: _ActionButton(action: actions[i], color: color),
-                ),
-              ],
-            ],
-          ),
+          if (!enabled) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Coming soon',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: brandGrey),
+            ),
+          ],
+          // Phone only: a tile is half a phone's width, too narrow to put two
+          // buttons side by side — "Create" broke into "Crea / te". Stack
+          // them, each full width. The Spacer keeps one-action tiles' button
+          // level with the last button of the tile beside it.
+          const Spacer(),
+          for (int i = 0; i < actions.length; i++) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: _ActionButton(
+                action: actions[i],
+                color: color,
+                enabled: enabled,
+              ),
+            ),
+          ],
         ],
       ),
     );
+    return enabled ? tile : Opacity(opacity: 0.45, child: tile);
   }
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.action, required this.color});
+  const _ActionButton({
+    required this.action,
+    required this.color,
+    required this.enabled,
+  });
   final _TileAction action;
   final Color color;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      onPressed: () {
-        if (action.destination != null) {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: action.destination!));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${action.label} — coming soon')),
-          );
-        }
-      },
+      onPressed: !enabled
+          ? null
+          : () {
+              if (action.destination != null) {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: action.destination!));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${action.label} — coming soon')),
+                );
+              }
+            },
       icon: Icon(action.icon, size: 14),
-      label: Text(action.label),
+      label: Text(
+        action.label,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+      ),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
         side: BorderSide(color: color.withAlpha(120)),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        minimumSize: const Size(0, 32),
+        // Phone: the button is the finger target. At 32 it sat inside an
+        // invisible 48 dp tap area whose padding opened a gap between buttons.
+        minimumSize: const Size(0, 44),
         textStyle: const TextStyle(fontSize: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
