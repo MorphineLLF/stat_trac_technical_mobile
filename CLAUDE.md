@@ -630,7 +630,6 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 - `database_helper.dart` — swap `openDatabase` for `sqflite_sqlcipher` once Android Keystore key derivation is wired
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
-- `android/build.gradle.kts` — remove `isar_flutter_libs` AGP 8.x namespace patch once `offline_sync_kit` upgrades past `isar_flutter_libs 3.1.0+1`
 
 ## Sync Error Logging ✅ — TO BE RETIRED
 

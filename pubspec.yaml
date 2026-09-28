@@ -66,9 +66,6 @@ dependencies:
   # Sync timestamp persistence
   shared_preferences: ^2.3.2
 
-  # Offline sync kit
-  offline_sync_kit: ^1.5.3
-
   # Connectivity detection (skip sync when offline)
   connectivity_plus: ^6.1.4
 
