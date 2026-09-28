@@ -30,6 +30,24 @@ void main() {
 
   tearDown(() async => db.close());
 
+  // One certificate queues twice — its readings on Save, its signatures on
+  // Sign — and the dashboard said "2" for one job. It counts certificates.
+  test('a certificate waiting with its signatures counts once', () async {
+    await queue.enqueue(_upload('cert-1'));
+    await queue.enqueue(
+      CertificateUpload(
+        mobileId: 'cert-1',
+        certificate: const {},
+        lines: const [],
+        queueKey: 'cert-1:sign',
+      ),
+    );
+    await queue.enqueue(_upload('cert-2'));
+
+    expect(await queue.count(), 3);
+    expect(await queue.certificateCount(), 2);
+  });
+
   group('queueing', () {
     test('a queued certificate survives being read back', () async {
       await queue.enqueue(_upload('cert-1'));

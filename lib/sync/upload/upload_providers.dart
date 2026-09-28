@@ -41,8 +41,19 @@ SyncUploadClient syncUploadClient(Ref ref) {
 
 @riverpod
 Future<UploadWorker> uploadWorker(Ref ref) async {
+  // EVERY ref.watch before the first await. Callers take this worker with
+  // ref.read(...future), which does not keep it alive, so it can be disposed
+  // while it waits on the database — and a ref.watch after that await throws
+  // "Cannot use the Ref ... after it has been disposed". That threw on every
+  // drain on a real phone: nothing was sent, and the button said only
+  // "Could not send".
   final local = ref.watch(authLocalDataSourceProvider);
-  final queue = await ref.watch(uploadQueueProvider.future);
+  final client = ref.watch(syncUploadClientProvider);
+  final certLocal = ref.watch(certLocalDataSourceProvider);
+  final queueFuture = ref.watch(uploadQueueProvider.future);
+  final archiveFuture = ref.watch(uploadArchiveProvider.future);
+
+  final queue = await queueFuture;
 
   // Certificates parked because their row op carried the verdict are freed
   // here rather than retyped: the work is on the device and the payload was
@@ -59,9 +70,9 @@ Future<UploadWorker> uploadWorker(Ref ref) async {
 
   return UploadWorker(
     queue: queue,
-    archive: await ref.watch(uploadArchiveProvider.future),
-    client: ref.watch(syncUploadClientProvider),
-    confirm: ref.watch(certLocalDataSourceProvider).markSyncedByMobileId,
+    archive: await archiveFuture,
+    client: client,
+    confirm: certLocal.markSyncedByMobileId,
     company: local.readDbName,
     deviceToken: () async => (await local.readDeviceToken())?.token,
   );
@@ -74,5 +85,5 @@ Future<UploadWorker> uploadWorker(Ref ref) async {
 /// a rejection, because those are exactly the ones somebody has to act on.
 @riverpod
 Future<int> pendingUploadCount(Ref ref) async {
-  return (await ref.watch(uploadQueueProvider.future)).count();
+  return (await ref.watch(uploadQueueProvider.future)).certificateCount();
 }

@@ -111,6 +111,14 @@ class UploadQueue {
 
   Future<List<UploadQueueEntry>> all() => _read();
 
+  /// How many CERTIFICATES are waiting — not rows. One certificate queues
+  /// twice (readings on Save, signatures on Sign), and counting rows showed
+  /// "2" for a single job.
+  Future<int> certificateCount() async {
+    final entries = await all();
+    return {for (final e in entries) e.upload.mobileId}.length;
+  }
+
   Future<int> count() async {
     final rows = await _db.rawQuery('SELECT COUNT(*) AS n FROM $table');
     return (rows.first['n'] as num?)?.toInt() ?? 0;

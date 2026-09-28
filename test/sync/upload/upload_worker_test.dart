@@ -61,6 +61,43 @@ void main() {
     ).thenAnswer((_) async => r);
   }
 
+  // On a phone the automatic send and the Sync button overlapped, and a
+  // certificate's signatures went up twice. Two drains at once — even from
+  // two worker instances, which the provider can hand out — send once.
+  test('two drains at once send each certificate once', () async {
+    await queue.enqueue(_upload('cert-1'));
+    when(
+      () => client.upload(
+        company: any(named: 'company'),
+        deviceToken: any(named: 'deviceToken'),
+        upload: any(named: 'upload'),
+      ),
+    ).thenAnswer((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      return const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
+          issued: []);
+    });
+    final second = UploadWorker(
+      queue: queue,
+      archive: archive,
+      client: client,
+      confirm: (mobileId, serverId) async => true,
+      company: () async => 'demo',
+      deviceToken: () async => 'token',
+    );
+
+    await Future.wait([worker.drain(), second.drain()]);
+
+    verify(
+      () => client.upload(
+        company: any(named: 'company'),
+        deviceToken: any(named: 'deviceToken'),
+        upload: any(named: 'upload'),
+      ),
+    ).called(1);
+    expect(await queue.count(), 0);
+  });
+
   test('sends nothing when the queue is empty', () async {
     final sent = await worker.drain();
 

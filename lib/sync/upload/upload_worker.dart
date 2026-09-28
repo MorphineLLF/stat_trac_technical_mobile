@@ -93,7 +93,23 @@ class UploadWorker {
   final Future<String?> Function() _company;
   final Future<String?> Function() _deviceToken;
 
-  Future<UploadRunResult> drain() async {
+  /// The run in progress, shared by every worker in the app.
+  ///
+  /// Static because the provider can hand out more than one worker, and the
+  /// queue they drain is the same table. Two runs at once each read the same
+  /// pending rows and each sent them: on a phone the automatic send and the
+  /// Sync button overlapped and a certificate's signatures went up twice. For
+  /// readings that is worse — the second batch is refused already_issued and
+  /// parks work that had in fact landed.
+  static Future<UploadRunResult>? _running;
+
+  /// Sends what is waiting. A call while a run is already going joins that
+  /// run and gets its result, rather than sending the same rows again.
+  Future<UploadRunResult> drain() {
+    return _running ??= _drain().whenComplete(() => _running = null);
+  }
+
+  Future<UploadRunResult> _drain() async {
     final pending = await _queue.pending();
     if (pending.isEmpty) return _empty;
 
