@@ -49,7 +49,22 @@ abstract interface class CertLocalDataSource {
   /// readings all read the server's copy, so a technician's own finished work
   /// does not appear until it round-trips. Until it does, this is the only
   /// place it exists.
-  Future<List<CertificateSummary>> getUnconfirmedCertificates();
+  /// This phone's certificates the server has not confirmed yet — only
+  /// [technicianId]'s when given, every one when not.
+  Future<List<CertificateSummary>> getUnconfirmedCertificates({
+    int? technicianId,
+  });
+
+  /// This phone's copy of the certificate that travelled as [mobileId]: who
+  /// made it and whether the technician has signed. Null when the phone has
+  /// no such certificate.
+  Future<({int? technicianId, bool techSigned})?> techSignatureByMobileId(
+    String mobileId,
+  );
+
+  /// Records a technician signature captured after the certificate was
+  /// saved. Never overwrites one — the first signature stands.
+  Future<void> recordTechSignature(String mobileId, Uint8List png);
   Future<void> updateSignatures(
     int certId,
     Uint8List techSignature,
@@ -239,15 +254,48 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
   }
 
   @override
-  Future<List<CertificateSummary>> getUnconfirmedCertificates() async {
+  Future<List<CertificateSummary>> getUnconfirmedCertificates({
+    int? technicianId,
+  }) async {
     final db = await _db.database;
     final rows = await db.rawQuery(
       '$_certSummarySelect WHERE tc.server_id IS NULL '
+      '${technicianId == null ? '' : 'AND tc.technician_id = ? '}'
       'ORDER BY tc.created_at DESC',
+      [?technicianId],
     );
-    return rows.map(CertificateSummary.fromMap).map(
-      (c) => c.asLocal(),
-    ).toList();
+    return rows
+        .map(CertificateSummary.fromMap)
+        .map((c) => c.asLocal())
+        .toList();
+  }
+
+  @override
+  Future<({int? technicianId, bool techSigned})?> techSignatureByMobileId(
+    String mobileId,
+  ) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      'SELECT technician_id, tech_signature IS NOT NULL AS signed '
+      'FROM test_certificates WHERE mobile_id = ? LIMIT 1',
+      [mobileId],
+    );
+    if (rows.isEmpty) return null;
+    return (
+      technicianId: rows.first['technician_id'] as int?,
+      techSigned: rows.first['signed'] == 1,
+    );
+  }
+
+  @override
+  Future<void> recordTechSignature(String mobileId, Uint8List png) async {
+    final db = await _db.database;
+    await db.update(
+      'test_certificates',
+      {'tech_signature': png},
+      where: 'mobile_id = ? AND tech_signature IS NULL',
+      whereArgs: [mobileId],
+    );
   }
 
   @override
@@ -296,6 +344,9 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       tc.patient_safe,
       tc.template_name_id,
       tc.pm_task_description,
+      tc.mobile_id,
+      tc.test_type,
+      tc.client_name AS client_name_signature,
       COALESCE(
         tn1.test_template_cert_name,
         tn2.test_template_cert_name,

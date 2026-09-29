@@ -42,3 +42,25 @@ CertificateUpload facilitySignatureUpload({
     ],
   );
 }
+
+/// The technician's signature for a certificate that is already issued —
+/// the one left unsigned when the wizard was closed at the signing step.
+///
+/// No name travels with it. The server writes the technician's name from the
+/// authenticated token, and refuses a client name on this side.
+CertificateUpload techSignatureUpload({
+  required String certificateMobileId,
+  required Uint8List png,
+}) {
+  return CertificateUpload(
+    mobileId: certificateMobileId,
+    // Its own key, for the same reason as the facility one above: a shared
+    // key would replace work still waiting to go.
+    queueKey: '$certificateMobileId:sign-tech-later',
+    certificate: const {},
+    lines: const [],
+    signatures: [
+      CertificateSignature(which: SignatureSide.tech, png: base64Encode(png)),
+    ],
+  );
+}

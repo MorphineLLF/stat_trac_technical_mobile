@@ -25,23 +25,15 @@ class NextServiceField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = value == null
-        ? 'Tap to choose a date'
-        : DateFormat('dd MMM yyyy').format(value!);
-
-    // Given the weight of a decision rather than the look of another text
-    // field. It is required, it is easy to scroll past, and a required field
-    // nobody sees becomes a refusal after the technician has left site.
-    final missing = value == null;
+    // No warning when nothing is chosen: the test date is shown, and the
+    // wizard sends that same date, so what is on screen is what lands.
+    final label = DateFormat('dd MMM yyyy').format(value ?? testDate);
 
     return Material(
-      color: missing ? const Color(0xFFFFF8E1) : Colors.white,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: missing ? const Color(0xFFFFB300) : const Color(0xFFDDE3EA),
-          width: missing ? 2 : 1,
-        ),
+        side: const BorderSide(color: Color(0xFFDDE3EA)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -61,10 +53,7 @@ class NextServiceField extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              Icon(
-                Icons.event_outlined,
-                color: missing ? const Color(0xFFFFB300) : brandTeal,
-              ),
+              Icon(Icons.event_outlined, color: brandTeal),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -81,7 +70,7 @@ class NextServiceField extends StatelessWidget {
                       label,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: missing ? const Color(0xFFE65100) : brandDark,
+                        color: brandDark,
                       ),
                     ),
                   ],

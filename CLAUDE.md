@@ -20,8 +20,10 @@
 > `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
 > **This repository owns the Flutter app only.**
 >
-> **Start here next session:** `docs/STATE-2026-09-06.md` — what works, what
-> is untested, and what is waiting on the user. It supersedes the 09-05 state.
+> **Start here next session:** `docs/STATE-2026-09-29.md` — the app is on
+> Google Play (build 3 in production review), today's certificate changes, and
+> what is waiting on the user. Then `docs/STATE-2026-09-06.md` for the
+> untested paths, which are still untested.
 >
 > ## ✅ A CERTIFICATE NOW UPLOADS, ISSUES, AND COMES BACK WITH A NUMBER
 >
@@ -480,7 +482,9 @@ Work in this order. Each phase builds on the previous.
 
 **Presentation:**
 - `create_certificate_screen.dart` — multi-step wizard: type → asset → template → test items → signature
-- `certificate_list_screen.dart` — all certs newest first, type chip, pending badge; reads from local SQLite
+- `certificate_list_screen.dart` — **the signed-in technician's certificates only** (`TestTechID`), newest first; type, compliance and SIGNED (facility signed) chips
+- Signing step has **Close** (with a confirm) beside Issue Certificate; the certificate is already saved and issued by then. A certificate left unsigned gets a **"Not signed by the technician"** card on its detail screen — only for this phone's own certificates, for the technician signed in (`tech_signature_gate.dart`)
+- Next Service Due pre-fills the test date when no PM interval gives one (user's call, 2026-09-29)
 - `certificate_detail_screen.dart` — read-only cert header + grouped test results by `description_id`; AppBar has **View PDF** and **Email** action buttons (enabled only when `cert.serverId != null`). View PDF downloads via `GET /certificates/:id/pdf`, caches to `{cacheDir}/certs/cert_{id}.pdf`, opens with `open_file`. Email opens a dialog for recipient address then calls `POST /certificates/:id/email`.
 - `certificate_providers.dart` — `certificateListProvider`, `certificateSummaryProvider`, `certOutputsProvider`, `templatesByTypeProvider`, `templateItemsProvider`
 
@@ -501,8 +505,13 @@ Work in this order. Each phase builds on the previous.
 - `lib/core/theme/app_theme.dart` — brand colour constants + full Material3 `ThemeData`
 - `lib/main.dart` — `WidgetsFlutterBinding.ensureInitialized()`, `ProviderScope`, `_AuthGate`, references `appTheme`
 - `assets/images/logo.png` — company logo (registered in `pubspec.yaml`)
-- `android/app/src/main/AndroidManifest.xml` — `USE_BIOMETRIC` + `USE_FINGERPRINT` permissions
-- `android/app/build.gradle.kts` — `minSdk = 28`
+- `android/app/src/main/AndroidManifest.xml` — label "Stat Trac Technical"; camera permission only (`local_auth` and the biometric permissions removed 2026-09-29 — never used)
+- `android/app/build.gradle.kts` — `minSdk = 28`; release builds sign with the Play upload key from `android/key.properties` (gitignored; keystore outside the repo at `C:\Users\HomePC\keys\stat_trac_technical\`), falling back to the debug key when the file is absent
+
+### Google Play (from 2026-09-29)
+- Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) sent to production review 2026-09-29.
+- **Bump `version:` in `pubspec.yaml` before every upload**, then `flutter build appbundle --release`.
+- Adaptive launcher icon in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
 
 ### Theme
 Brand colour constants in `lib/core/theme/app_theme.dart`:
@@ -671,7 +680,19 @@ proved on 2026-09-06 was proved with signal, one certificate at a time.
 3. **Signatures coming back down.** `bytea` crosses neither the sync stream
    nor the read path, so a device cannot display a signature it did not
    capture. Owned by the Go repository.
-4. Then resume feature work: Service Reports, signatures on WO completion.
+4. **"Signed" flags in the sync stream (added 2026-09-29).** Older
+   certificates show no Signed chip because the chip reads
+   `TestClientNameSignature`, and the facility signed 4 of 3,994 historical
+   certificates — what they carry is the *technician's* signature (3,786), which
+   the phone cannot see. Fix in the Go repo: add two booleans to the
+   `TestCertificate` query in `deploy/powersync/sync-rules.yaml` — tech
+   signature present, client signature present — first confirming PowerSync
+   sync rules accept `IS NOT NULL` in a select. Redeploy PowerSync on the VPS
+   (user's). Then regenerate `powersync_schema.dart`, drive the list chip from
+   them, and let `techSignatureState` use the server's answer rather than only
+   the phone's copy. Still to decide with the user: whether the chip shows
+   technician, facility, or both.
+5. Then resume feature work: Service Reports, signatures on WO completion.
 
 **With the user, not with either repository:** migration 026 on `safeline` and
 the other company databases, and the technician-app grant per login. Athi

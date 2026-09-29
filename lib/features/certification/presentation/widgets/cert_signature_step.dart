@@ -11,9 +11,13 @@ class CertSignatureStep extends StatefulWidget {
     super.key,
     required this.requiresCustomerSig,
     required this.onSigned,
+    this.onClose,
   });
   final bool requiresCustomerSig;
   final ValueChanged<SignatureResult> onSigned;
+
+  /// Leaves without signing, after asking. Null shows no Close button.
+  final VoidCallback? onClose;
 
   @override
   State<CertSignatureStep> createState() => _CertSignatureStepState();
@@ -110,8 +114,42 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     );
   }
 
+  /// The certificate is saved and issued before this step, so closing loses
+  /// nothing but the signatures — which can still be added from the
+  /// certificate afterwards. Asked anyway, because leaving unsigned should be
+  /// a choice rather than a slip.
+  Future<void> _confirmClose() async {
+    final close = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Close without signing?'),
+        content: const Text(
+          'The certificate is saved. You can sign it later from the '
+          'certificate.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep signing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Close without signing'),
+          ),
+        ],
+      ),
+    );
+    if (close == true) widget.onClose?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final issue = FilledButton.icon(
+      onPressed: _submit,
+      icon: const Icon(Icons.check),
+      label: const Text('Issue Certificate'),
+    );
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -154,11 +192,24 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           ),
         ],
         const SizedBox(height: 24),
-        FilledButton.icon(
-          onPressed: _submit,
-          icon: const Icon(Icons.check),
-          label: const Text('Issue Certificate'),
-        ),
+        // Both buttons are full width by theme (minimumSize fromHeight), so
+        // each is bounded by Expanded — unbounded in a Row, layout throws
+        // every frame and the screen reads as a hang.
+        if (widget.onClose == null)
+          issue
+        else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _confirmClose,
+                  child: const Text('Close'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: issue),
+            ],
+          ),
       ],
     );
   }

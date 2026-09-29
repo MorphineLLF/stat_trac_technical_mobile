@@ -257,6 +257,33 @@ class _CertTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (cert.isFacilitySigned)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: brandTeal.withAlpha(25),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: brandTeal.withAlpha(120)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.how_to_reg, size: 12, color: brandTeal),
+                        const SizedBox(width: 3),
+                        Text(
+                          'SIGNED',
+                          style: TextStyle(
+                            color: brandTeal,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (cert.complianceLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(

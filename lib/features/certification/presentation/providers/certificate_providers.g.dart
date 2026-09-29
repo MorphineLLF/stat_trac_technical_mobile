@@ -451,6 +451,9 @@ final class TemplateItemsFamily extends $Family
 /// what the server sent back, so work that failed to round-trip looked
 /// identical to work that was never done. Local rows drop out of this list the
 /// moment the server confirms them, so nothing is ever listed twice.
+///
+/// Only the signed-in technician's own. Nobody signed in lists nothing,
+/// rather than everybody's.
 
 @ProviderFor(certificateList)
 final certificateListProvider = CertificateListProvider._();
@@ -463,6 +466,9 @@ final certificateListProvider = CertificateListProvider._();
 /// what the server sent back, so work that failed to round-trip looked
 /// identical to work that was never done. Local rows drop out of this list the
 /// moment the server confirms them, so nothing is ever listed twice.
+///
+/// Only the signed-in technician's own. Nobody signed in lists nothing,
+/// rather than everybody's.
 
 final class CertificateListProvider
     extends
@@ -482,6 +488,9 @@ final class CertificateListProvider
   /// what the server sent back, so work that failed to round-trip looked
   /// identical to work that was never done. Local rows drop out of this list the
   /// moment the server confirms them, so nothing is ever listed twice.
+  ///
+  /// Only the signed-in technician's own. Nobody signed in lists nothing,
+  /// rather than everybody's.
   CertificateListProvider._()
     : super(
         from: null,
@@ -508,7 +517,7 @@ final class CertificateListProvider
   }
 }
 
-String _$certificateListHash() => r'e5495b8c23fde46f64a3c72c377ca9d7eb8ad048';
+String _$certificateListHash() => r'3def3ff8498cb6262023787c5e89489a5423b7ac';
 
 /// One certificate, from whichever side holds it.
 ///
@@ -615,6 +624,101 @@ final class CertificateSummaryFamily extends $Family
 
   @override
   String toString() => r'certificateSummaryProvider';
+}
+
+/// Whether the technician can still sign [mobileId] here — see
+/// `techSignatureState`. Null when this phone did not make the certificate.
+
+@ProviderFor(localTechSignature)
+final localTechSignatureProvider = LocalTechSignatureFamily._();
+
+/// Whether the technician can still sign [mobileId] here — see
+/// `techSignatureState`. Null when this phone did not make the certificate.
+
+final class LocalTechSignatureProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<({bool techSigned, int? technicianId})?>,
+          ({bool techSigned, int? technicianId})?,
+          FutureOr<({bool techSigned, int? technicianId})?>
+        >
+    with
+        $FutureModifier<({bool techSigned, int? technicianId})?>,
+        $FutureProvider<({bool techSigned, int? technicianId})?> {
+  /// Whether the technician can still sign [mobileId] here — see
+  /// `techSignatureState`. Null when this phone did not make the certificate.
+  LocalTechSignatureProvider._({
+    required LocalTechSignatureFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'localTechSignatureProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$localTechSignatureHash();
+
+  @override
+  String toString() {
+    return r'localTechSignatureProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<({bool techSigned, int? technicianId})?>
+  $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<({bool techSigned, int? technicianId})?> create(Ref ref) {
+    final argument = this.argument as String;
+    return localTechSignature(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LocalTechSignatureProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$localTechSignatureHash() =>
+    r'30c71add426c7422b304e7a08114897074dcc384';
+
+/// Whether the technician can still sign [mobileId] here — see
+/// `techSignatureState`. Null when this phone did not make the certificate.
+
+final class LocalTechSignatureFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<({bool techSigned, int? technicianId})?>,
+          String
+        > {
+  LocalTechSignatureFamily._()
+    : super(
+        retry: null,
+        name: r'localTechSignatureProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Whether the technician can still sign [mobileId] here — see
+  /// `techSignatureState`. Null when this phone did not make the certificate.
+
+  LocalTechSignatureProvider call(String mobileId) =>
+      LocalTechSignatureProvider._(argument: mobileId, from: this);
+
+  @override
+  String toString() => r'localTechSignatureProvider';
 }
 
 /// A certificate's readings, read from wherever that certificate lives.

@@ -479,12 +479,17 @@ class _CreateCertificateScreenState
                       // Offered, not imposed — the technician can change it, and
                       // the date they see is the one the register will hold because
                       // the server writes it verbatim. Null for a meter task: it
-                      // comes round on readings, so a guess would be a lie.
-                      _nextService ??= defaultNextService(
-                        testDate: date,
-                        interval: int.tryParse(interval ?? ''),
-                        intervalType: serviceType,
-                      );
+                      // comes round on readings, so a guess would be a lie —
+                      // and then the test date stands in, for the technician
+                      // to change if it is wrong. Decided by the user
+                      // 2026-09-29: no warning, just a date.
+                      _nextService ??=
+                          defaultNextService(
+                            testDate: date,
+                            interval: int.tryParse(interval ?? ''),
+                            intervalType: serviceType,
+                          ) ??
+                          date;
                       _serviceType = serviceType;
                       _serviceId = serviceId;
                     }),
@@ -602,6 +607,9 @@ class _CreateCertificateScreenState
               CertSignatureStep(
                 requiresCustomerSig: _selectedTemplate!.customerSigRequired,
                 onSigned: _completeWithSignature,
+                // Saved and issued already; this only leaves it unsigned,
+                // to be signed later from the certificate.
+                onClose: () => Navigator.of(context).pop(),
               )
             else
               const SizedBox.shrink(),

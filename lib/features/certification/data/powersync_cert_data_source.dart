@@ -18,7 +18,15 @@ class PowerSyncCertDataSource {
   /// Newest first — a technician looking for a certificate wants a recent one.
   /// The id breaks ties so the order is total: two certificates on the same
   /// date must not swap places between reads.
-  Future<List<CertificateSummary>> getCertificates({int limit = 500}) async {
+  ///
+  /// **Only [technicianId]'s own.** Certificates sync by hospital, so the
+  /// phone holds every technician's work at the facilities it covers; the
+  /// list is the signed-in technician's. `TestTechID` is written by the
+  /// server from the login when a certificate is issued, never by the device.
+  Future<List<CertificateSummary>> getCertificates({
+    required int technicianId,
+    int limit = 500,
+  }) async {
     // **Not joined to Asset, and that is deliberate.** A PowerSync table is a
     // view over JSON with no index on AssetID, so a join scans the whole
     // asset store for every certificate — the list stopped appearing at all,
@@ -28,9 +36,9 @@ class PowerSyncCertDataSource {
     // The certificates are fetched on their own and the facility is attached
     // afterwards, in one pass, by a lookup that cannot hold the list up.
     final rows = await _db.getAll(
-      'SELECT * FROM "TestCertificate" '
-      'ORDER BY "TestDate" DESC, "TestCertificateID" DESC LIMIT ?1',
-      [limit],
+      'SELECT * FROM "TestCertificate" WHERE "TestTechID" = ?1 '
+      'ORDER BY "TestDate" DESC, "TestCertificateID" DESC LIMIT ?2',
+      [technicianId, limit],
     );
     final certs = rows.map(certificateSummaryFromPowerSync).toList();
     return _withFacilities(certs, rows);

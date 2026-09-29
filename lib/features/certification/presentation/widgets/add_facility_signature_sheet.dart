@@ -27,20 +27,40 @@ Future<FacilitySignature?> showAddFacilitySignatureSheet(BuildContext context) {
   return showModalBottomSheet<FacilitySignature>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => const _AddFacilitySignatureSheet(),
+    builder: (_) =>
+        const _AddSignatureSheet(title: 'Facility signature', askName: true),
   );
 }
 
-class _AddFacilitySignatureSheet extends StatefulWidget {
-  const _AddFacilitySignatureSheet();
-
-  @override
-  State<_AddFacilitySignatureSheet> createState() =>
-      _AddFacilitySignatureSheetState();
+/// Captures the technician's signature for a certificate already issued.
+///
+/// The same sheet without the name: the technician's name is written by the
+/// server from the login, never typed.
+Future<Uint8List?> showAddTechSignatureSheet(BuildContext context) async {
+  final signature = await showModalBottomSheet<FacilitySignature>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) =>
+        const _AddSignatureSheet(title: 'Technician signature', askName: false),
+  );
+  return signature?.png;
 }
 
-class _AddFacilitySignatureSheetState
-    extends State<_AddFacilitySignatureSheet> {
+class _AddSignatureSheet extends StatefulWidget {
+  const _AddSignatureSheet({required this.title, required this.askName});
+
+  final String title;
+
+  /// Whether the signer is named here. True for the facility, whose name the
+  /// server requires; false for the technician, whose name it takes from the
+  /// token.
+  final bool askName;
+
+  @override
+  State<_AddSignatureSheet> createState() => _AddSignatureSheetState();
+}
+
+class _AddSignatureSheetState extends State<_AddSignatureSheet> {
   final _controller = SignatureController(
     penStrokeWidth: signaturePenStrokeWidth,
     penColor: Colors.black,
@@ -69,7 +89,7 @@ class _AddFacilitySignatureSheetState
       _say('Sign in the box first');
       return;
     }
-    if (_nameController.text.trim().isEmpty) {
+    if (widget.askName && _nameController.text.trim().isEmpty) {
       _say(
         'Add the facility contact name — the signature cannot be sent '
         'without it',
@@ -110,20 +130,19 @@ class _AddFacilitySignatureSheetState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Facility signature',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Facility Contact Name',
-                hintText: 'Who is signing',
+            if (widget.askName) ...[
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Facility Contact Name',
+                  hintText: 'Who is signing',
+                ),
+                textCapitalization: TextCapitalization.words,
               ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: brandGrey),

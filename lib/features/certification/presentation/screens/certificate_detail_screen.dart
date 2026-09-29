@@ -7,6 +7,8 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../domain/entities/test_output.dart';
 import '../../../../sync/upload/upload_providers.dart';
@@ -16,6 +18,7 @@ import '../providers/certificate_providers.dart';
 import '../widgets/add_facility_signature_sheet.dart';
 import 'facility_signature_gate.dart';
 import 'facility_signature_upload.dart';
+import 'tech_signature_gate.dart';
 
 class CertificateDetailScreen extends ConsumerStatefulWidget {
   const CertificateDetailScreen({super.key, required this.certId});
@@ -78,6 +81,100 @@ class _CertificateDetailScreenState
     } finally {
       if (mounted) setState(() => _signing = false);
     }
+  }
+
+  /// Captures the technician's signature for a certificate saved without it —
+  /// the wizard closed at the signing step — and queues it on its own.
+  ///
+  /// Queued before it is recorded on the phone, so a signature the phone
+  /// says it has is always one that is on its way.
+  Future<void> _addTechSignature(String certificateMobileId) async {
+    final png = await showAddTechSignatureSheet(context);
+    if (png == null || !mounted) return;
+
+    setState(() => _signing = true);
+    try {
+      final queue = await ref.read(uploadQueueProvider.future);
+      await queue.enqueue(
+        techSignatureUpload(certificateMobileId: certificateMobileId, png: png),
+      );
+      await ref
+          .read(certLocalDataSourceProvider)
+          .recordTechSignature(certificateMobileId, png);
+      ref.invalidate(localTechSignatureProvider(certificateMobileId));
+      ref.invalidate(pendingUploadCountProvider);
+
+      var sent = false;
+      try {
+        final worker = await ref.read(uploadWorkerProvider.future);
+        final result = await worker.drain();
+        sent = result.applied > 0;
+      } on Exception {
+        // Queued is enough: it goes when there is signal.
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            sent
+                ? 'Technician signature sent.'
+                : 'Technician signature saved — it will go when you have '
+                      'signal.',
+          ),
+          backgroundColor: sent
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFFFB300),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _signing = false);
+    }
+  }
+
+  /// The prompt to sign, or null when there is nothing to offer.
+  ///
+  /// Shown in the page rather than as another AppBar icon: an unsigned
+  /// certificate is something the technician has to notice, and on a phone
+  /// the AppBar is already full.
+  Widget? _techSignPrompt(CertificateSummary summary) {
+    final mobileId = summary.mobileId;
+    if (mobileId == null || mobileId.isEmpty) return null;
+
+    final local = ref.watch(localTechSignatureProvider(mobileId));
+    if (!local.hasValue) return null;
+
+    final auth = ref.watch(authProvider);
+    final state = techSignatureState(
+      mobileId: mobileId,
+      local: local.value,
+      currentUserId: auth is AuthAuthenticated ? auth.user.id : null,
+    );
+    if (state != TechSignatureState.available) return null;
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Not signed by the technician',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            const Text('This certificate was saved without your signature.'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _signing ? null : () => _addTechSignature(mobileId),
+              icon: const Icon(Icons.draw_outlined),
+              label: const Text('Sign as technician'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Opens the certificate PDF, from the cache when there is one.
@@ -286,7 +383,11 @@ class _CertificateDetailScreenState
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (summary) => summary == null
             ? const Center(child: Text('Certificate not found'))
-            : _DetailBody(summary: summary, outputsAsync: outputsAsync),
+            : _DetailBody(
+                summary: summary,
+                outputsAsync: outputsAsync,
+                signPrompt: _techSignPrompt(summary),
+              ),
       ),
     );
   }
@@ -393,9 +494,14 @@ class _EmailDialogState extends State<_EmailDialog> {
 // ── Body ──────────────────────────────────────────────────────────────────────
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.summary, required this.outputsAsync});
+  const _DetailBody({
+    required this.summary,
+    required this.outputsAsync,
+    this.signPrompt,
+  });
   final CertificateSummary summary;
   final AsyncValue<List<TestOutput>> outputsAsync;
+  final Widget? signPrompt;
 
   Color get _typeColor {
     switch (summary.certType) {
@@ -414,6 +520,7 @@ class _DetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        ?signPrompt,
         _HeaderCard(summary: summary, typeColor: _typeColor),
         const SizedBox(height: 8),
         outputsAsync.when(

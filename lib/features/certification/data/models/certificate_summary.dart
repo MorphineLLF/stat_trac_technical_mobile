@@ -59,6 +59,11 @@ class CertificateSummary {
   /// and does not cross the sync stream, so this is what the device can know.
   final String? clientNameSignature;
 
+  /// The facility has signed. A name is recorded only with a signature, and
+  /// unlike the signature itself it syncs down — so this holds on every
+  /// certificate, not only this phone's.
+  bool get isFacilitySigned => (clientNameSignature ?? '').trim().isNotEmpty;
+
   /// Finished on this device and not yet confirmed by the server.
   ///
   /// A local certificate's readings live in local storage only, so every
@@ -80,6 +85,12 @@ class CertificateSummary {
     patientSafe: patientSafe,
     templateNameId: templateNameId,
     pmTaskDescription: pmTaskDescription,
+    // Kept: a signature added later names the certificate by its mobile id,
+    // and the phone's own unsigned certificate is the one most likely to need
+    // one.
+    mobileId: mobileId,
+    testType: testType,
+    clientNameSignature: clientNameSignature,
     isLocal: true,
   );
 
@@ -150,6 +161,9 @@ class CertificateSummary {
         patientSafe: m['patient_safe'] as int?,
         templateNameId: m['template_name_id'] as int?,
         pmTaskDescription: m['pm_task_description'] as String?,
+        mobileId: m['mobile_id'] as String?,
+        testType: m['test_type'] as int?,
+        clientNameSignature: m['client_name_signature'] as String?,
       );
 
   /// A copy with the facility attached, once the asset lookup has run.

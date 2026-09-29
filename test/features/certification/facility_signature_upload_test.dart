@@ -75,4 +75,51 @@ void main() {
     expect(upload.certificate, isEmpty);
     expect(upload.lines, isEmpty);
   });
+
+  group('technician signature added later', () {
+    test('signs the technician side and names nobody', () {
+      final upload = techSignatureUpload(
+        certificateMobileId: 'cert-uuid',
+        png: _png,
+      );
+      final op = upload.toBatch().ops.single.toJson();
+
+      expect(op['action'], 'sign');
+      expect(op['mobile_id'], 'cert-uuid');
+      final data = op['data']! as Map<String, Object?>;
+      expect(data['which'], 'tech');
+      expect(data['png'], base64Encode(_png));
+      // The server writes the technician's name from the token.
+      expect(data['client_name'], isNull);
+    });
+
+    test('carries no certificate fields and no readings', () {
+      final upload = techSignatureUpload(
+        certificateMobileId: 'cert-uuid',
+        png: _png,
+      );
+
+      expect(upload.certificate, isEmpty);
+      expect(upload.lines, isEmpty);
+    });
+
+    // Its own key: neither the wizard's batch nor a facility signature added
+    // later may be replaced by it while still waiting to go.
+    test('queues under a key of its own', () {
+      final tech = techSignatureUpload(
+        certificateMobileId: 'cert-uuid',
+        png: _png,
+      );
+      final facility = facilitySignatureUpload(
+        certificateMobileId: 'cert-uuid',
+        png: _png,
+        clientName: 'A Nurse',
+      );
+
+      expect(tech.mobileId, 'cert-uuid');
+      expect(tech.queueKey, isNot('cert-uuid'));
+      expect(tech.queueKey, isNot('cert-uuid:sign'));
+      expect(tech.queueKey, isNot(facility.queueKey));
+    });
+  });
 }

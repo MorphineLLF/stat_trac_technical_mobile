@@ -5,6 +5,7 @@ import '../../../../api/dio_client.dart';
 import '../../../../database/database_helper.dart';
 import '../../../assets/data/datasources/asset_local_data_source.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
 import '../../data/datasources/cert_local_data_source.dart';
 import '../../data/datasources/cert_remote_data_source.dart';
 import '../../data/models/certificate_summary.dart';
@@ -53,16 +54,14 @@ CertificateRepository certificateRepository(Ref ref) =>
     );
 
 @riverpod
-Future<List<TestTemplateName>> templatesByType(Ref ref, CertType type) =>
-    ref.watch(powerSyncCertsProvider.future).then(
-      (ds) => ds.getTemplatesByType(type),
-    );
+Future<List<TestTemplateName>> templatesByType(Ref ref, CertType type) => ref
+    .watch(powerSyncCertsProvider.future)
+    .then((ds) => ds.getTemplatesByType(type));
 
 @riverpod
-Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
-    ref.watch(powerSyncCertsProvider.future).then(
-      (ds) => ds.getTemplateItems(templateNameId),
-    );
+Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) => ref
+    .watch(powerSyncCertsProvider.future)
+    .then((ds) => ds.getTemplateItems(templateNameId));
 
 /// Every certificate the technician can see: the server's, plus this device's
 /// own work that the server has not confirmed yet.
@@ -72,13 +71,20 @@ Future<List<TestTemplateItem>> templateItems(Ref ref, int templateNameId) =>
 /// what the server sent back, so work that failed to round-trip looked
 /// identical to work that was never done. Local rows drop out of this list the
 /// moment the server confirms them, so nothing is ever listed twice.
+///
+/// Only the signed-in technician's own. Nobody signed in lists nothing,
+/// rather than everybody's.
 @riverpod
 Future<List<CertificateSummary>> certificateList(Ref ref) async {
+  final auth = ref.watch(authProvider);
+  if (auth is! AuthAuthenticated) return const [];
+  final technicianId = auth.user.id;
+
   final ds = await ref.watch(powerSyncCertsProvider.future);
   final local = await ref
       .watch(certLocalDataSourceProvider)
-      .getUnconfirmedCertificates();
-  return [...local, ...await ds.getCertificates()];
+      .getUnconfirmedCertificates(technicianId: technicianId);
+  return [...local, ...await ds.getCertificates(technicianId: technicianId)];
 }
 
 /// One certificate, from whichever side holds it.
@@ -98,6 +104,14 @@ Future<CertificateSummary?> certificateSummary(Ref ref, int id) async {
   return ds.getCertificateById(id);
 }
 
+/// Whether the technician can still sign [mobileId] here — see
+/// `techSignatureState`. Null when this phone did not make the certificate.
+@riverpod
+Future<({int? technicianId, bool techSigned})?> localTechSignature(
+  Ref ref,
+  String mobileId,
+) => ref.watch(certLocalDataSourceProvider).techSignatureByMobileId(mobileId);
+
 /// A certificate's readings, read from wherever that certificate lives.
 ///
 /// For the device's own unconfirmed work this is local storage — the server
@@ -114,13 +128,11 @@ Future<List<TestOutput>> certOutputs(Ref ref, int certId) async {
 }
 
 @riverpod
-Future<List<TestEquipmentAsset>> testEquipmentAssets(Ref ref) =>
-    ref.watch(powerSyncCertsProvider.future).then(
-      (ds) => ds.getTestEquipmentAssets(),
-    );
+Future<List<TestEquipmentAsset>> testEquipmentAssets(Ref ref) => ref
+    .watch(powerSyncCertsProvider.future)
+    .then((ds) => ds.getTestEquipmentAssets());
 
 @riverpod
-Future<List<AssetPmTask>> assetPmTasks(Ref ref, int assetId) =>
-    ref.watch(powerSyncCertsProvider.future).then(
-      (ds) => ds.getAssetPmTasks(assetId),
-    );
+Future<List<AssetPmTask>> assetPmTasks(Ref ref, int assetId) => ref
+    .watch(powerSyncCertsProvider.future)
+    .then((ds) => ds.getAssetPmTasks(assetId));
