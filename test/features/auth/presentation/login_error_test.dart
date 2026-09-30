@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stat_trac_technical/features/auth/domain/phone_registered_elsewhere.dart';
 import 'package:stat_trac_technical/features/auth/presentation/providers/login_error.dart';
 
 DioException _http(int status, {Object? body}) => DioException(
@@ -14,6 +15,13 @@ DioException _http(int status, {Object? body}) => DioException(
 
 void main() {
   group('loginErrorMessage', () {
+    test('names the technician the phone is registered to', () {
+      expect(
+        loginErrorMessage(const PhoneRegisteredElsewhere('Athi')),
+        'This phone is registered to Athi. Only they can sign in on it.',
+      );
+    });
+
     // A wrong company is a 404 because the company is a path segment. This
     // is the failure that looked identical to a wrong password before, and
     // it is the one a technician is most likely to hit on first setup.
@@ -33,10 +41,7 @@ void main() {
     });
 
     test('falls back to a readable message when 401 carries no body', () {
-      expect(
-        loginErrorMessage(_http(401)),
-        'Invalid username or password.',
-      );
+      expect(loginErrorMessage(_http(401)), 'Invalid username or password.');
     });
 
     test('distinguishes an unreachable server from a rejected sign-in', () {

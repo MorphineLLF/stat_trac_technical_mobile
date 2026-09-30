@@ -1,8 +1,10 @@
 import '../../domain/entities/auth_token.dart';
 import '../../domain/entities/user.dart';
+import '../../domain/phone_registered_elsewhere.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/sync_token_remote_data_source.dart';
+import '../models/phone_owner.dart';
 import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -36,6 +38,14 @@ class AuthRepositoryImpl implements AuthRepository {
       deviceToken: deviceToken.token,
     );
 
+    // One technician per phone: the first to sign in. Checked against the
+    // user id the server authenticated, before anything is stored, so a
+    // refused sign-in leaves no token and no user behind.
+    final owner = await _local.readPhoneOwner();
+    if (owner != null && owner.userId != credentials.userId) {
+      throw PhoneRegisteredElsewhere(owner.name);
+    }
+
     final user = UserModel(
       id: credentials.userId,
       name: deviceToken.name ?? '',
@@ -47,6 +57,9 @@ class AuthRepositoryImpl implements AuthRepository {
     await _local.saveDeviceToken(deviceToken);
     await _local.saveUser(user);
     await _local.saveDbName(company);
+    if (owner == null) {
+      await _local.savePhoneOwner(PhoneOwner(userId: user.id, name: user.name));
+    }
     return user;
   }
 
@@ -81,6 +94,12 @@ class AuthRepositoryImpl implements AuthRepository {
     if (token == null || !DateTime.now().toUtc().isBefore(token.expiresAt)) {
       return null;
     }
-    return _local.readUser();
+    final user = await _local.readUser();
+    // A phone updated while signed in has no owner yet: the technician
+    // signed in on it becomes it, rather than whoever tries next.
+    if (user != null && await _local.readPhoneOwner() == null) {
+      await _local.savePhoneOwner(PhoneOwner(userId: user.id, name: user.name));
+    }
+    return user;
   }
 }

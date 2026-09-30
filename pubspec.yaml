@@ -54,9 +54,13 @@ dependencies:
   # Charts (donut/pie for dashboard stats)
   fl_chart: ^1.2.0
 
-  # Local database — plain sqflite now; swap openDatabase call for
-  # sqflite_sqlcipher once Android Keystore key derivation is wired up.
+  # Local database. Opened through sqflite_common_ffi on the bundled
+  # `sqlite3` library, which is SQLite3MultipleCiphers (see `hooks:` below),
+  # so it is encrypted with the same engine and key as the PowerSync
+  # database. `sqflite` stays for the Database types and getDatabasesPath.
   sqflite: ^2.4.1
+  sqflite_common_ffi: ^2.4.2+1
+  sqlite3: ^3.5.2
   path: ^1.9.1
 
   # Barcode scanning
@@ -91,7 +95,15 @@ dev_dependencies:
 
   # Unit test mocking
   mocktail: ^1.0.4
-  sqflite_common_ffi: ^2.4.2+1
+
+# Both on-device databases are encrypted at rest, so the bundled SQLite is
+# SQLite3MultipleCiphers rather than plain SQLite. PowerSync's
+# EncryptionOptions and the local database's PRAGMA key both need it; with
+# plain SQLite the key pragma is silently ignored and the files stay readable.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

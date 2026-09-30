@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../domain/phone_registered_elsewhere.dart';
 
 /// Turns a sign-in failure into something a technician can act on.
 ///
@@ -15,6 +16,10 @@ import 'package:dio/dio.dart';
 /// password when the company was the problem. Where the server explains
 /// itself, prefer its words over ours.
 String loginErrorMessage(Object error) {
+  if (error is PhoneRegisteredElsewhere) {
+    return 'This phone is registered to ${error.ownerName}. '
+        'Only they can sign in on it.';
+  }
   if (error is! DioException) {
     return 'Login failed. Please try again.';
   }

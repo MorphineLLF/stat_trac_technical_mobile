@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/auth_token_model.dart';
 import '../models/device_token_model.dart';
+import '../models/phone_owner.dart';
 import '../models/user_model.dart';
 
 abstract interface class AuthLocalDataSource {
@@ -21,6 +22,10 @@ abstract interface class AuthLocalDataSource {
   Future<void> saveDeviceToken(DeviceTokenModel token);
   Future<DeviceTokenModel?> readDeviceToken();
   Future<void> clearDeviceToken();
+
+  /// The technician this phone is registered to. Never cleared by log out.
+  Future<void> savePhoneOwner(PhoneOwner owner);
+  Future<PhoneOwner?> readPhoneOwner();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -32,6 +37,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   static const _userKey = 'auth_user';
   static const _dbNameKey = 'db_name';
   static const _deviceTokenKey = 'device_token';
+  static const _phoneOwnerKey = 'phone_owner';
 
   @override
   Future<void> saveToken(AuthTokenModel token) async {
@@ -100,5 +106,20 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> clearDeviceToken() async {
     await _storage.delete(key: _deviceTokenKey);
+  }
+
+  @override
+  Future<void> savePhoneOwner(PhoneOwner owner) async {
+    await _storage.write(
+      key: _phoneOwnerKey,
+      value: jsonEncode(owner.toJson()),
+    );
+  }
+
+  @override
+  Future<PhoneOwner?> readPhoneOwner() async {
+    final raw = await _storage.read(key: _phoneOwnerKey);
+    if (raw == null) return null;
+    return PhoneOwner.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 }

@@ -20,9 +20,10 @@
 > `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
 > **This repository owns the Flutter app only.**
 >
-> **Start here next session:** `docs/STATE-2026-09-29.md` — the app is on
-> Google Play (build 3 in production review), today's certificate changes, and
-> what is waiting on the user. Then `docs/STATE-2026-09-06.md` for the
+> **Start here next session:** `docs/STATE-2026-09-30.md` — build 3 is live
+> on Google Play, build 4 (encryption, one technician per phone, login fixes,
+> radio results) is built and waiting to upload, and what is waiting on the
+> user. Then `docs/STATE-2026-09-29.md` and `docs/STATE-2026-09-06.md` for the
 > untested paths, which are still untested.
 >
 > ## ✅ A CERTIFICATE NOW UPLOADS, ISSUES, AND COMES BACK WITH A NUMBER
@@ -155,7 +156,7 @@ Key sections:
 - **Frontend:** Flutter/Dart, Android-first (min API 28), tablet-optimised
 - **State management:** Riverpod 3 with code-generated providers (`riverpod_annotation ^4`, `riverpod_generator ^4`)
 - **Connectivity:** `connectivity_plus ^6` — used in sync notifier to skip sync when offline
-- **Local database:** SQLite via sqflite (offline-first); SQLCipher encryption to be wired once Android Keystore key derivation is implemented — swap `openDatabase` for `sqflite_sqlcipher` in `database_helper.dart`
+- **Local database:** SQLite via sqflite (offline-first), **encrypted at rest** (from 2026-09-30) — see "Encryption at rest" below
 - **Backend API:** Go application (repo: `C:\Delphi\GitHub_Stat_Trac_Go`), device-token auth + JWKS
 - **Offline sync:** PowerSync (`journeyapps/powersync-service:1.24.0`), self-hosted against plain Postgres
 - **Server database:** PostgreSQL 17.11, plain (no Supabase), `wal_level=logical`, database-per-company
@@ -258,7 +259,30 @@ For technician-created ad-hoc CMs: Created → In progress (skips Assigned/Accep
 
 ## Database
 
-- Local: SQLite (sqflite); SQLCipher encryption pending key-derivation implementation
+- Local: SQLite (sqflite API, opened through `sqflite_common_ffi`), encrypted — see below
+
+### Encryption at rest (2026-09-30)
+
+Both on-device databases are encrypted with **SQLite3MultipleCiphers**, selected
+in `pubspec.yaml` under `hooks: user_defines: sqlite3: source: sqlite3mc`. Take
+that out and every `PRAGMA key` is silently ignored — the files go back to
+plain. `test/database/database_encryption_test.dart` fails first if it does.
+
+- **One key per phone**: 64 hex chars, made on first use, in the Android
+  Keystore via `flutter_secure_storage` (`DatabaseKeyStore`,
+  `lib/database/database_encryption.dart`). Simultaneous first requests share
+  one read-or-make — without that, start-up made two keys and set the local
+  database aside as unreadable (found on the emulator the same day).
+- **Local database** (`stat_trac_technical.db`, outbox + archive): opened with
+  `databaseFactoryFfi` and `PRAGMA key` in `onConfigure`, at the platform
+  plugin's path. A plain file from before is **encrypted in place**
+  (`PRAGMA rekey`) — it holds unsent work. A file this key cannot open is
+  renamed `*.unreadable-<ms>`, never deleted.
+- **PowerSync database** (`stattrac_sync.sqlite`): `EncryptionOptions`,
+  `sqlcipherCompatibility: false`. A plain or unopenable file is **deleted and
+  downloaded again** — it holds nothing the phone wrote.
+- **Android backup is off** (`allowBackup="false"`): a restored file would
+  arrive without its Keystore key.
 - All table definitions are in §5 of the spec
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
@@ -393,6 +417,7 @@ Work in this order. Each phase builds on the previous.
 - `lib/features/auth/data/repositories/auth_repository_impl.dart` — saves `db_name` on login; **keeps it on logout** — Company is asked only on the first sign-in on a phone (user rule, 2026-09-30)
 - `lib/features/auth/presentation/providers/auth_providers.dart` + `.g.dart` — `@riverpod` infra + `AuthNotifier`; `login()` accepts `dbName`
 - `lib/features/auth/presentation/providers/auth_state.dart` — sealed `AuthInitial / AuthAuthenticated / AuthUnauthenticated`
+- **One technician per phone (user rule, 2026-09-30):** the first to sign in registers the phone (`PhoneOwner`, secure storage, kept through log out). Anyone else is refused after the server accepts their password — compared by the server's user id — with "This phone is registered to <name>. Only they can sign in on it." Nothing of theirs is stored. Reinstalling the app releases the phone. A phone already signed in when it updates registers that technician.
 - `lib/features/auth/presentation/screens/login_screen.dart` — DB Name field shown on first login only (hidden once `db_name` stored); username/password form; error banner; loading state
 
 ### Dashboard — complete ✅
@@ -509,8 +534,8 @@ Work in this order. Each phase builds on the previous.
 - `android/app/build.gradle.kts` — `minSdk = 28`; release builds sign with the Play upload key from `android/key.properties` (gitignored; keystore outside the repo at `C:\Users\HomePC\keys\stat_trac_technical\`), falling back to the debug key when the file is absent
 
 ### Google Play (from 2026-09-29)
-- Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) sent to production review 2026-09-29.
-- Build 4 (`1.0.0+4`) — **built locally, not yet uploaded to Play**: icon redrawn with a gear in place of the tick; tick/badge icons in the app replaced by document icons; v2 store artwork. No behaviour change.
+- Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) **approved and live** 2026-09-30.
+- Build 4 (`1.0.0+4`) — **built 2026-09-30, not yet uploaded**: encryption at rest, one technician per phone, logout fixes, radio results and certificate layout, signed chips, gear icon and v2 store artwork. See `docs/STATE-2026-09-30.md`.
 - **Bump `version:` in `pubspec.yaml` before every upload**, then `flutter build appbundle --release`.
 - Adaptive launcher icon ("ST" + gear) in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork (current set is the `-v2` files) and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
 
@@ -637,7 +662,6 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 - `work_order_repository_impl.dart` — implement `syncFromRemote()` with since-cursor
 
 ### Infrastructure
-- `database_helper.dart` — swap `openDatabase` for `sqflite_sqlcipher` once Android Keystore key derivation is wired
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
 - `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
 

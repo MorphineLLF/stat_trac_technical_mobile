@@ -1,5 +1,12 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' show databaseFactorySqflitePlugin;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import 'database_encryption.dart';
 
 import 'migrations/migration_001_work_orders.dart';
 import 'migrations/migration_003_assets_v2.dart';
@@ -25,20 +32,53 @@ class DatabaseHelper {
   static const _dbName = 'stat_trac_technical.db';
   static const _dbVersion = 18;
 
-  Database? _db;
+  /// One open, shared by every caller. `_db ??= await _open()` let callers
+  /// arriving together each start their own open — harmless on a plain file,
+  /// but with encryption the first one converts the file while the next is
+  /// already deciding what the file is.
+  Future<Database>? _db;
 
-  Future<Database> get database async {
-    _db ??= await _open();
-    return _db!;
-  }
+  Future<Database> get database => _db ??= _open();
 
+  /// Opens the local database, encrypted.
+  ///
+  /// Through sqflite_common_ffi on the bundled SQLite3MultipleCiphers, so the
+  /// key pragma is honoured — the platform sqflite plugin uses Android's own
+  /// SQLite, which cannot encrypt. Same file, same place, same migrations.
+  ///
+  /// An installed phone's file is still plain the first time: it holds the
+  /// certificates waiting to upload, so it is encrypted where it lies rather
+  /// than replaced.
   Future<Database> _open() async {
-    final dbPath = p.join(await getDatabasesPath(), _dbName);
-    return openDatabase(
+    // The platform plugin's path — where every installed phone's file
+    // already is. The ffi factory's own default path is somewhere else.
+    final dbPath = p.join(
+      await databaseFactorySqflitePlugin.getDatabasesPath(),
+      _dbName,
+    );
+    final key = await DatabaseKeyStore(const FlutterSecureStorage()).key();
+
+    if (isPlaintextSqlite(dbPath)) {
+      encryptInPlace(dbPath, key);
+    } else if (File(dbPath).existsSync() && !opensWithKey(dbPath, key)) {
+      // Encrypted under a key this phone no longer has — the key store was
+      // wiped. The file is unreadable to anyone now; it is set aside, not
+      // deleted, and the app starts with a fresh one rather than not at all.
+      final aside =
+          '$dbPath.unreadable-${DateTime.now().millisecondsSinceEpoch}';
+      debugPrint('Local database unreadable with this key; moved to $aside');
+      File(dbPath).renameSync(aside);
+    }
+
+    return databaseFactoryFfi.openDatabase(
       dbPath,
-      version: _dbVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
+      options: OpenDatabaseOptions(
+        version: _dbVersion,
+        // First, before anything reads the file.
+        onConfigure: (db) => db.execute(keyPragma(key)),
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      ),
     );
   }
 
@@ -81,7 +121,8 @@ class DatabaseHelper {
   }
 
   Future<void> close() async {
-    await _db?.close();
+    final opening = _db;
     _db = null;
+    await (await opening)?.close();
   }
 }

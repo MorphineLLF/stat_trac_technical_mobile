@@ -6,7 +6,13 @@
         android:label="Stat Trac Technical"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
+        <!-- No Android backup: the databases are encrypted with a key held in
+             the Keystore, which a backup never carries. A restored file
+             would be unreadable — and data from the register should not
+             leave the phone for a personal cloud account anyway. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
