@@ -27,7 +27,7 @@ class CertTypeSelector extends StatelessWidget {
           onSelected: onSelected,
         ),
         _TypeTile(
-          icon: Icons.verified_outlined,
+          icon: Icons.fact_check_outlined,
           label: 'QA Certificate',
           subtitle: 'Quality assurance verification',
           type: CertType.qa,

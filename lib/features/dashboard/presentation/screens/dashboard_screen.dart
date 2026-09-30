@@ -751,7 +751,7 @@ class DashboardModuleGrid extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _ModuleTile(
-                  icon: Icons.verified_outlined,
+                  icon: Icons.description_outlined,
                   label: 'Certificate',
                   color: const Color(0xFF00838F),
                   actions: [

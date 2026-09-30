@@ -510,8 +510,9 @@ Work in this order. Each phase builds on the previous.
 
 ### Google Play (from 2026-09-29)
 - Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) sent to production review 2026-09-29.
+- Build 4 (`1.0.0+4`, 2026-09-29): icon redrawn with a gear in place of the tick; tick/badge icons in the app replaced by document icons; v2 store artwork. No behaviour change.
 - **Bump `version:` in `pubspec.yaml` before every upload**, then `flutter build appbundle --release`.
-- Adaptive launcher icon in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
+- Adaptive launcher icon ("ST" + gear) in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork (current set is the `-v2` files) and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
 
 ### Theme
 Brand colour constants in `lib/core/theme/app_theme.dart`:

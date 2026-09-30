@@ -133,7 +133,7 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.workspace_premium_outlined, size: 64, color: brandGrey),
+          Icon(Icons.description_outlined, size: 64, color: brandGrey),
           const SizedBox(height: 16),
           Text(
             'No certificates yet',
