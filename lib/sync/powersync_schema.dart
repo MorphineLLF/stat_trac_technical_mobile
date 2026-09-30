@@ -232,7 +232,7 @@ const schema = Schema([
   ]),
 
   // TestCertificate — the technician's work (bucket: by_hospital)
-  // key TestCertificateID, 44 columns; 2 bytea omitted: TestTechSignature, TestClientSignature
+  // key TestCertificateID, 44 columns + 2 computed signed flags; 2 bytea omitted: TestTechSignature, TestClientSignature
   Table('TestCertificate', [
     Column.integer('TestCertificateID'),        // integer
     Column.integer('TestAssetID'),              // integer
@@ -272,6 +272,8 @@ const schema = Schema([
     Column.text('TestAnalyserModel3'),          // character varying
     Column.text('TestAnalyserManufacturer3'),   // character varying
     Column.text('TestClientNameSignature'),     // character varying
+    Column.integer('TestTechSigned'),           // computed in sync-rules: "TestTechSignature" IS NOT NULL
+    Column.integer('TestClientSigned'),         // computed in sync-rules: "TestClientSignature" IS NOT NULL
     Column.text('TestNoteTerms'),               // character varying
     Column.text('TestDocNo'),                   // character varying
     Column.integer('TestCertChart'),            // integer

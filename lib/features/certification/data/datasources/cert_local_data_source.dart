@@ -347,6 +347,8 @@ class CertLocalDataSourceImpl implements CertLocalDataSource {
       tc.mobile_id,
       tc.test_type,
       tc.client_name AS client_name_signature,
+      tc.tech_signature IS NOT NULL AS tech_signed,
+      tc.client_signature IS NOT NULL AS client_signed,
       COALESCE(
         tn1.test_template_cert_name,
         tn2.test_template_cert_name,

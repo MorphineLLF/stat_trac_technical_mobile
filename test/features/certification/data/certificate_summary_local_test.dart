@@ -48,4 +48,20 @@ void main() {
 
     expect(summary.isFacilitySigned, isTrue);
   });
+
+  // This phone's own certificates carry the signatures themselves, so the
+  // local query answers "signed or not" from them.
+  test('a local certificate reads its own signatures', () {
+    final summary = CertificateSummary.fromMap({
+      'id': 7,
+      'cert_type': 1,
+      'sync_status': 'pending',
+      'created_at': '2026-09-30T10:00:00',
+      'tech_signed': 1,
+      'client_signed': 0,
+    }).asLocal();
+
+    expect(summary.isTechSigned, isTrue);
+    expect(summary.isFacilitySigned, isFalse);
+  });
 }

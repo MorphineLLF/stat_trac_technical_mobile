@@ -54,11 +54,14 @@ class AuthRepositoryImpl implements AuthRepository {
   ///
   /// There is no server-side revoke call for device tokens, so this is a local
   /// clear only. The token remains valid until it expires.
+  ///
+  /// **The company is kept.** It is saved only after a login succeeds, so it
+  /// is always one that worked, and a technician who has signed in on this
+  /// phone is not asked for it again — the user's rule, 2026-09-30.
   @override
   Future<void> logout() async {
     await _local.clearDeviceToken();
     await _local.clearUser();
-    await _local.clearDbName();
   }
 
   @override

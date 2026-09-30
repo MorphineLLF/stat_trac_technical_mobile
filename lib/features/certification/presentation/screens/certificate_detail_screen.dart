@@ -16,6 +16,8 @@ import '../../data/cert_document_result.dart';
 import '../providers/cert_document_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/add_facility_signature_sheet.dart';
+import '../widgets/result_radio_row.dart';
+import '../widgets/signed_chip.dart';
 import 'facility_signature_gate.dart';
 import 'facility_signature_upload.dart';
 import 'tech_signature_gate.dart';
@@ -130,6 +132,22 @@ class _CertificateDetailScreenState
     } finally {
       if (mounted) setState(() => _signing = false);
     }
+  }
+
+  /// The summary, marked technician-signed when this phone holds the
+  /// signature itself.
+  ///
+  /// The server's TestTechSigned covers every certificate once it has synced
+  /// back; this covers the gap before that, for a certificate signed here.
+  CertificateSummary _withOwnTechSignature(CertificateSummary summary) {
+    final mobileId = summary.mobileId;
+    if (summary.techSigned || mobileId == null || mobileId.isEmpty) {
+      return summary;
+    }
+    final local = ref.watch(localTechSignatureProvider(mobileId)).value;
+    return local?.techSigned == true
+        ? summary.copyWith(techSigned: true)
+        : summary;
   }
 
   /// The prompt to sign, or null when there is nothing to offer.
@@ -384,7 +402,7 @@ class _CertificateDetailScreenState
         data: (summary) => summary == null
             ? const Center(child: Text('Certificate not found'))
             : _DetailBody(
-                summary: summary,
+                summary: _withOwnTechSignature(summary),
                 outputsAsync: outputsAsync,
                 signPrompt: _techSignPrompt(summary),
               ),
@@ -627,6 +645,16 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ],
             ),
+            // On a line of their own: beside the type, compliance and sync
+            // chips they overflow a phone.
+            if (signedChips(summary).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: signedChips(summary, large: true),
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               summary.displayTitle,
@@ -719,39 +747,51 @@ class _OutputRow extends StatelessWidget {
   const _OutputRow({required this.output});
   final TestOutput output;
 
+  /// The Actual column's width on Create Certificate, so a line reads the
+  /// same here as when it was filled in.
+  static const double _actualWidth = 100;
+
+  static String _orDash(String? v) {
+    final t = v?.trim();
+    return t == null || t.isEmpty ? '-' : t;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final labelStyle = TextStyle(
+      color: brandGrey,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = Theme.of(context).textTheme.bodyMedium;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // The same headings as Create Certificate, on every line.
           Row(
             children: [
               Expanded(
                 flex: 3,
-                child: Text(
-                  output.description ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                child: Text('Test Description', style: labelStyle),
               ),
               const SizedBox(width: 8),
               Expanded(
                 flex: 2,
                 child: Text(
-                  output.expectedValue ?? '',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: brandGrey),
+                  'Test Value',
+                  style: labelStyle,
                   textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
+              SizedBox(
+                width: _actualWidth,
                 child: Text(
-                  output.actualValue ?? '—',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Actual',
+                  style: labelStyle,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -759,18 +799,41 @@ class _OutputRow extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _ResultChip(
-                label: 'P',
-                color: Colors.green,
-                selected: output.pass,
+              Expanded(
+                flex: 3,
+                child: Text(output.description ?? '', style: valueStyle),
               ),
-              const SizedBox(width: 4),
-              _ResultChip(label: 'F', color: brandError, selected: output.fail),
-              const SizedBox(width: 4),
-              _ResultChip(label: 'N/A', color: brandGrey, selected: output.na),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  _orDash(output.expectedValue),
+                  style: valueStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: _actualWidth,
+                child: Text(
+                  _orDash(output.actualValue),
+                  style: valueStyle?.copyWith(fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 4),
+          ResultRadioRow(
+            value: output.pass
+                ? TestResult.pass
+                : output.fail
+                ? TestResult.fail
+                : output.na
+                ? TestResult.na
+                : null,
+            onSelected: null,
           ),
           if (output.notes != null && output.notes!.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -781,37 +844,6 @@ class _OutputRow extends StatelessWidget {
           ],
           const Divider(height: 1),
         ],
-      ),
-    );
-  }
-}
-
-class _ResultChip extends StatelessWidget {
-  const _ResultChip({
-    required this.label,
-    required this.color,
-    required this.selected,
-  });
-  final String label;
-  final Color color;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: selected ? color : color.withAlpha(20),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected ? Colors.white : color,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
       ),
     );
   }

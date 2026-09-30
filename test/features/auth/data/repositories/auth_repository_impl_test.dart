@@ -116,12 +116,14 @@ void main() {
   });
 
   group('logout', () {
-    test('clears the device token, user and company', () async {
+    // The company stays: a technician who has signed in on this phone is
+    // not asked for it again after logging out. The user's rule, 2026-09-30.
+    test('clears the device token and user, keeps the company', () async {
       await repo.logout();
 
       verify(() => local.clearDeviceToken()).called(1);
       verify(() => local.clearUser()).called(1);
-      verify(() => local.clearDbName()).called(1);
+      verifyNever(() => local.clearDbName());
     });
   });
 }

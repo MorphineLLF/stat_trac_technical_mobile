@@ -163,28 +163,31 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           // only read when the signatures are exported.
           onMeasured: (size) => _padSize = size,
         ),
-        const SizedBox(height: 24),
-        Text(
-          'Facility Contact',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _clientNameController,
-          decoration: const InputDecoration(
-            // White like the pads — unfilled, it showed the grey page through.
-            filled: true,
-            fillColor: Colors.white,
-            labelText: 'Facility Contact Name',
-            // Not "Optional". It is optional only until somebody from the
-            // facility signs, and captioning it otherwise is what caused a
-            // real signature to be captured and then thrown away.
-            hintText: 'Required if the facility signs',
-          ),
-          textCapitalization: TextCapitalization.words,
-          textInputAction: TextInputAction.done,
-        ),
+        // The whole facility section, name included, only when the template
+        // asks for a facility signature. Shown on its own under the
+        // technician's pad, the name box read as part of the technician's
+        // signature — and with no facility pad to go with it, anything typed
+        // there was dropped on save.
         if (widget.requiresCustomerSig) ...[
+          const SizedBox(height: 24),
+          Text(
+            'Facility Contact',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _clientNameController,
+            decoration: const InputDecoration(
+              // White like the pads — unfilled, it showed the grey page
+              // through.
+              filled: true,
+              fillColor: Colors.white,
+              labelText: 'Facility Contact Name',
+              hintText: 'Required when the facility signs',
+            ),
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+          ),
           const SizedBox(height: 16),
           _SignaturePad(
             title: 'Facility Signature',

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../data/models/certificate_summary.dart';
+import '../widgets/signed_chip.dart';
 import '../providers/certificate_providers.dart';
 import 'certificate_detail_screen.dart';
 import 'certificate_search.dart';
@@ -257,33 +258,7 @@ class _CertTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (cert.isFacilitySigned)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: brandTeal.withAlpha(25),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: brandTeal.withAlpha(120)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.how_to_reg, size: 12, color: brandTeal),
-                        const SizedBox(width: 3),
-                        Text(
-                          'SIGNED',
-                          style: TextStyle(
-                            color: brandTeal,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                ...signedChips(cert),
                 if (cert.complianceLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(

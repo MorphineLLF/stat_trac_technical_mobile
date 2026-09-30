@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/test_template_item.dart';
 import '../../domain/entities/test_output.dart';
 import '../providers/certificate_providers.dart';
+import 'actual_value_field.dart';
+import 'result_radio_row.dart';
 
 class CertTestGrid extends ConsumerStatefulWidget {
   const CertTestGrid({
@@ -278,6 +279,10 @@ class _TestItemRow extends StatelessWidget {
   final _OutputState state;
   final ValueChanged<_OutputState> onChanged;
 
+  // Fixed, not a flex share: at flex 2 the box took over a quarter of the
+  // card for readings that are a few digits long.
+  static const double _actualWidth = 100;
+
   bool get _noActualRequired => item.noActualRequired;
   bool get _noExpectedValue {
     final v = item.expectedValue?.trim();
@@ -285,9 +290,9 @@ class _TestItemRow extends StatelessWidget {
   }
 
   Color get _accentColor {
-    if (state.pass) return const Color(0xFF2E7D32);
-    if (state.fail) return const Color(0xFFC62828);
-    if (state.na) return const Color(0xFF37474F);
+    if (state.pass) return TestResult.pass.color;
+    if (state.fail) return TestResult.fail.color;
+    if (state.na) return TestResult.na.color;
     return const Color(0xFFDDE3EA);
   }
 
@@ -312,19 +317,21 @@ class _TestItemRow extends StatelessWidget {
               color: _accentColor,
             ),
             Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Column labels
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text('Test Description', style: labelStyle),
-                      ),
-                      if (!_noExpectedValue) ...[
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column headings on every line, as in the mockup the
+                    // user chose on 2026-09-30. A line with no test value or no
+                    // reading shows "-" in that column rather than dropping
+                    // it, so the columns sit in the same place on every card.
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text('Test Description', style: labelStyle),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
@@ -334,11 +341,9 @@ class _TestItemRow extends StatelessWidget {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                      ],
-                      if (!_noActualRequired) ...[
                         const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
+                        SizedBox(
+                          width: _actualWidth,
                           child: Text(
                             'Actual',
                             style: labelStyle,
@@ -346,184 +351,99 @@ class _TestItemRow extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  // Description + expected + actual row
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          item.description ?? '',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    // Description + expected + actual row
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            item.description ?? '',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
                         ),
-                      ),
-                      if (!_noExpectedValue) ...[
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
                           child: Text(
-                            item.expectedValue!,
+                            _noExpectedValue ? '-' : item.expectedValue!,
                             style: Theme.of(context).textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),
                         ),
-                      ],
-                      if (!_noActualRequired) ...[
                         const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            key: ValueKey(item.id),
-                            initialValue: state.actualValue,
-                            decoration: const InputDecoration(
-                              hintText: 'Actual',
-                              isDense: true,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(15),
-                            ],
-                            onChanged: (v) {
-                              onChanged(
-                                _OutputState()
-                                  ..actualValue = v
-                                  ..notes = state.notes
-                                  ..pass = state.pass
-                                  ..fail = state.fail
-                                  ..na = state.na,
-                              );
-                            },
-                          ),
+                        SizedBox(
+                          width: _actualWidth,
+                          // '-' is the register saying there is nothing to
+                          // measure on this line; the server counts it complete.
+                          child: _noActualRequired
+                              ? Text(
+                                  '-',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  textAlign: TextAlign.center,
+                                )
+                              : ActualValueField(
+                                  key: ValueKey(item.id),
+                                  initialValue: state.actualValue,
+                                  onChanged: (v) {
+                                    onChanged(
+                                      _OutputState()
+                                        ..actualValue = v
+                                        ..notes = state.notes
+                                        ..pass = state.pass
+                                        ..fail = state.fail
+                                        ..na = state.na,
+                                    );
+                                  },
+                                ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Pass / Fail / N/A chips
-                  Row(
-                    children: [
-                      _ResultChip(
-                        label: 'Pass',
-                        icon: Icons.check_circle,
-                        color: const Color(0xFF2E7D32),
-                        selected: state.pass,
-                        onTap: () => onChanged(
-                          _OutputState()
-                            ..actualValue = state.actualValue
-                            ..notes = state.notes
-                            ..pass = !state.pass
-                            ..fail = false
-                            ..na = false,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _ResultChip(
-                        label: 'Fail',
-                        icon: Icons.cancel,
-                        color: const Color(0xFFC62828),
-                        selected: state.fail,
-                        onTap: () => onChanged(
-                          _OutputState()
-                            ..actualValue = state.actualValue
-                            ..notes = state.notes
-                            ..pass = false
-                            ..fail = !state.fail
-                            ..na = false,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _ResultChip(
-                        label: 'N/A',
-                        icon: Icons.remove_circle,
-                        color: const Color(0xFF37474F),
-                        selected: state.na,
-                        onTap: () => onChanged(
-                          _OutputState()
-                            ..actualValue = state.actualValue
-                            ..notes = state.notes
-                            ..pass = false
-                            ..fail = false
-                            ..na = !state.na,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Template note (read-only reference from TestTempNotes)
-                  if (item.notes != null && item.notes!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF374151),
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'Notes: ',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          TextSpan(
-                            text: item.notes!,
-                            style: const TextStyle(fontStyle: FontStyle.italic),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 4),
+                    ResultRadioRow(
+                      value: state.pass
+                          ? TestResult.pass
+                          : state.fail
+                          ? TestResult.fail
+                          : state.na
+                          ? TestResult.na
+                          : null,
+                      onSelected: (r) => onChanged(
+                        _OutputState()
+                          ..actualValue = state.actualValue
+                          ..notes = state.notes
+                          ..pass = r == TestResult.pass
+                          ..fail = r == TestResult.fail
+                          ..na = r == TestResult.na,
                       ),
                     ),
+                    // Template note (read-only reference from TestTempNotes)
+                    if (item.notes != null && item.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF374151),
+                          ),
+                          children: [
+                            const TextSpan(
+                              text: 'Notes: ',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            TextSpan(
+                              text: item.notes!,
+                              style: const TextStyle(
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ),
-          ),
-        ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultChip extends StatelessWidget {
-  const _ResultChip({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final IconData icon;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = selected ? Colors.white : color;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : color.withAlpha(20),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color, width: selected ? 0 : 1.5),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: fg),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                color: fg,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+                ),
               ),
             ),
           ],

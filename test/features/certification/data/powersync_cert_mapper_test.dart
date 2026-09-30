@@ -3,6 +3,34 @@ import 'package:stat_trac_technical/features/certification/data/powersync_cert_m
 
 void main() {
   group('certificateSummaryFromPowerSync', () {
+    // The signatures are bytea and never reach the phone. The sync rule sends
+    // whether each exists instead, and the TECH SIGNED / CLIENT SIGNED chips
+    // read these.
+    test('reads the signed flags the sync rule computes', () {
+      final c = certificateSummaryFromPowerSync(const {
+        'TestCertificateID': 1,
+        'TestTechSigned': 1,
+        'TestClientSigned': 0,
+      });
+      expect(c.isTechSigned, isTrue);
+      expect(c.isFacilitySigned, isFalse);
+
+      final both = certificateSummaryFromPowerSync(const {
+        'TestCertificateID': 2,
+        'TestTechSigned': 1,
+        'TestClientSigned': 1,
+      });
+      expect(both.isFacilitySigned, isTrue);
+    });
+
+    // Before the sync rule is redeployed the columns are absent: nothing is
+    // claimed signed that the phone cannot see.
+    test('no flags means not signed', () {
+      final c = certificateSummaryFromPowerSync(const {'TestCertificateID': 1});
+      expect(c.isTechSigned, isFalse);
+      expect(c.isFacilitySigned, isFalse);
+    });
+
     test('maps the columns the list shows', () {
       final c = certificateSummaryFromPowerSync(const {
         'TestCertificateID': 5030,

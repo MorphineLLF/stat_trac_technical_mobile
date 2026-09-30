@@ -390,7 +390,7 @@ Work in this order. Each phase builds on the previous.
 - `lib/features/auth/data/models/` — `UserModel`, `AuthTokenModel` (JSON DTOs)
 - `lib/features/auth/data/datasources/auth_remote_data_source.dart` — Dio (login/logout/refresh); `login()` sends `db` from `dbName` param (not hardcoded)
 - `lib/features/auth/data/datasources/auth_local_data_source.dart` — FlutterSecureStorage: token + user + db_name (`saveDbName` / `readDbName` / `clearDbName`)
-- `lib/features/auth/data/repositories/auth_repository_impl.dart` — saves `db_name` on login; clears `db_name` on logout
+- `lib/features/auth/data/repositories/auth_repository_impl.dart` — saves `db_name` on login; **keeps it on logout** — Company is asked only on the first sign-in on a phone (user rule, 2026-09-30)
 - `lib/features/auth/presentation/providers/auth_providers.dart` + `.g.dart` — `@riverpod` infra + `AuthNotifier`; `login()` accepts `dbName`
 - `lib/features/auth/presentation/providers/auth_state.dart` — sealed `AuthInitial / AuthAuthenticated / AuthUnauthenticated`
 - `lib/features/auth/presentation/screens/login_screen.dart` — DB Name field shown on first login only (hidden once `db_name` stored); username/password form; error banner; loading state

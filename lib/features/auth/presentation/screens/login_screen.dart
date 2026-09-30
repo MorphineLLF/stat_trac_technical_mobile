@@ -67,11 +67,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ? authState.errorMessage
         : null;
 
-    ref.listen<AuthState>(authProvider, (_, next) {
-      if (next is AuthAuthenticated) {
-        Navigator.of(context).pushReplacementNamed('/dashboard');
-      }
-    });
+    // No navigation here. _AuthGate in main.dart swaps this screen for the
+    // dashboard when the state turns authenticated. This screen used to also
+    // push '/dashboard' over it, which replaced the gate itself: after
+    // signing in from here, Log out cleared the session with nothing left to
+    // show the login screen, so the dashboard stayed up with nobody signed in
+    // — no name, and an empty certificate list.
 
     return Scaffold(
       body: Center(

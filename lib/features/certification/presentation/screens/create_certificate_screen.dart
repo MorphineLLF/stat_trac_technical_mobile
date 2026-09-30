@@ -388,13 +388,9 @@ class _CreateCertificateScreenState
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(pendingUploadCountProvider);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Certificate saved — PDF will be generated on next sync',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Certificate created')));
       Navigator.of(context).pop();
     }
   }
@@ -524,14 +520,22 @@ class _CreateCertificateScreenState
                           //
                           TextField(
                             controller: _notesController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               // White — unfilled, it showed the grey page
-                              // through and read as disabled.
+                              // through and read as disabled. Grey border:
+                              // the theme's #DDE3EA one was barely visible.
                               filled: true,
                               fillColor: Colors.white,
                               labelText: 'Notes',
                               hintText: 'Optional certificate notes…',
-                              prefixIcon: Icon(Icons.notes_outlined),
+                              prefixIcon: const Icon(Icons.notes_outlined),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: brandGrey,
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
                             maxLength: 200,
                             maxLines: 2,

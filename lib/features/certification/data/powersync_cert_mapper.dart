@@ -33,6 +33,10 @@ CertificateSummary certificateSummaryFromPowerSync(Map<String, Object?> row) {
     mobileId: row['TestMobileID'] as String?,
     testType: psInt(row['TestType']),
     clientNameSignature: row['TestClientNameSignature'] as String?,
+    // Computed by the sync rule from the bytea signatures, which never reach
+    // the phone. Absent until the rule is deployed, and absent reads false.
+    techSigned: psBool(row['TestTechSigned']),
+    clientSigned: psBool(row['TestClientSigned']),
   );
 }
 

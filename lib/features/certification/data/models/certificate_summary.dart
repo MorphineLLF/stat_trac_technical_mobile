@@ -18,6 +18,8 @@ class CertificateSummary {
     this.mobileId,
     this.testType,
     this.clientNameSignature,
+    this.techSigned = false,
+    this.clientSigned = false,
     this.isLocal = false,
   });
 
@@ -62,7 +64,21 @@ class CertificateSummary {
   /// The facility has signed. A name is recorded only with a signature, and
   /// unlike the signature itself it syncs down — so this holds on every
   /// certificate, not only this phone's.
-  bool get isFacilitySigned => (clientNameSignature ?? '').trim().isNotEmpty;
+  bool get isFacilitySigned =>
+      clientSigned || (clientNameSignature ?? '').trim().isNotEmpty;
+
+  /// Whether the technician's signature exists — TestTechSigned from the sync
+  /// rule, or on this phone's own certificates, its own copy.
+  ///
+  /// The signature is bytea and never reaches the phone, so the server works
+  /// out "signed or not" and sends only that.
+  final bool techSigned;
+
+  /// Whether the facility's signature exists, the same way as [techSigned].
+  final bool clientSigned;
+
+  /// The TECH SIGNED chip.
+  bool get isTechSigned => techSigned;
 
   /// Finished on this device and not yet confirmed by the server.
   ///
@@ -91,6 +107,8 @@ class CertificateSummary {
     mobileId: mobileId,
     testType: testType,
     clientNameSignature: clientNameSignature,
+    techSigned: techSigned,
+    clientSigned: clientSigned,
     isLocal: true,
   );
 
@@ -164,26 +182,34 @@ class CertificateSummary {
         mobileId: m['mobile_id'] as String?,
         testType: m['test_type'] as int?,
         clientNameSignature: m['client_name_signature'] as String?,
+        techSigned: m['tech_signed'] == 1,
+        clientSigned: m['client_signed'] == 1,
       );
 
-  /// A copy with the facility attached, once the asset lookup has run.
-  CertificateSummary copyWith({String? hospital, String? equipmentType}) =>
-      CertificateSummary(
-        id: id,
-        certificateNo: certificateNo,
-        certType: certType,
-        syncStatus: syncStatus,
-        createdAt: createdAt,
-        certName: certName,
-        templateName: templateName,
-        equipmentType: equipmentType ?? this.equipmentType,
-        patientSafe: patientSafe,
-        templateNameId: templateNameId,
-        pmTaskDescription: pmTaskDescription,
-        hospital: hospital ?? this.hospital,
-        mobileId: mobileId,
-        testType: testType,
-        clientNameSignature: clientNameSignature,
-        isLocal: isLocal,
-      );
+  /// A copy with the facility attached, once the asset lookup has run, or
+  /// marked technician-signed from this phone's own copy.
+  CertificateSummary copyWith({
+    String? hospital,
+    String? equipmentType,
+    bool? techSigned,
+  }) => CertificateSummary(
+    id: id,
+    certificateNo: certificateNo,
+    certType: certType,
+    syncStatus: syncStatus,
+    createdAt: createdAt,
+    certName: certName,
+    templateName: templateName,
+    equipmentType: equipmentType ?? this.equipmentType,
+    patientSafe: patientSafe,
+    templateNameId: templateNameId,
+    pmTaskDescription: pmTaskDescription,
+    hospital: hospital ?? this.hospital,
+    mobileId: mobileId,
+    testType: testType,
+    clientNameSignature: clientNameSignature,
+    techSigned: techSigned ?? this.techSigned,
+    clientSigned: clientSigned,
+    isLocal: isLocal,
+  );
 }
