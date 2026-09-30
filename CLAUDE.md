@@ -20,6 +20,14 @@
 > `demo` on the VPS), sync rules, token issuance and PowerSync deployment.
 > **This repository owns the Flutter app only.**
 >
+> **Where it lives (from 2026-09-30):** `E:\Stat_Trac_Technical\Stat_Trac-Technical-app`.
+> The Flutter package cache is on E: too — user environment variable
+> `PUB_CACHE=E:\PubCache`. Keep them on the same drive: with the project on E:
+> and the cache on C:, Kotlin's incremental compiler failed on every Android
+> build ("different roots"). The upload keystore, Flutter SDK, Android SDK and
+> the Go repo stay on C:. The old copy at `C:\Users\HomePC\Stat_Trac Technical\`
+> is to be deleted only when the user says so.
+>
 > **Start here next session:** `docs/STATE-2026-09-30.md` — build 3 is live
 > on Google Play, build 5 (encryption, one technician per phone, login fixes,
 > radio results) is built and waiting to upload, and what is waiting on the
