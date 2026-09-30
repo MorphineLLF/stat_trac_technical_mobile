@@ -25,8 +25,10 @@
 > `PUB_CACHE=E:\PubCache`. Keep them on the same drive: with the project on E:
 > and the cache on C:, Kotlin's incremental compiler failed on every Android
 > build ("different roots"). The upload keystore, Flutter SDK, Android SDK and
-> the Go repo stay on C:. The old copy at `C:\Users\HomePC\Stat_Trac Technical\`
-> is to be deleted only when the user says so.
+> the Go repo stay on C:; a verified copy of the upload key folder is at
+> `E:\keys\stat_trac_technical\` (separate physical drive). The old C: copy
+> of the project was deleted on 2026-09-30 at the user's word, after `master`
+> was pushed to GitHub.
 >
 > **Start here next session:** `docs/STATE-2026-09-30.md` — build 3 is live
 > on Google Play, build 5 (encryption, one technician per phone, login fixes,
