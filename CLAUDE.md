@@ -30,7 +30,7 @@
 >
 > **Start here next session:** `docs/STATE-2026-09-30.md` — build 3 is live
 > on Google Play, build 5 (encryption, one technician per phone, login fixes,
-> radio results) is built and waiting to upload, and what is waiting on the
+> radio results) is uploaded and in production review (2026-09-30), and what is waiting on the
 > user. Then `docs/STATE-2026-09-29.md` and `docs/STATE-2026-09-06.md` for the
 > untested paths, which are still untested.
 >
@@ -544,7 +544,7 @@ Work in this order. Each phase builds on the previous.
 ### Google Play (from 2026-09-29)
 - Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) **approved and live** 2026-09-30.
 - Build 4 (`1.0.0+4`, artwork only) went to **internal testing 2026-09-29 17:15**.
-- Build 5 (`1.0.0+5`) — **built 2026-09-30, not yet uploaded**: encryption at rest, one technician per phone, logout fixes, radio results and certificate layout, signed chips, gear icon and v2 store artwork. See `docs/STATE-2026-09-30.md`.
+- Build 5 (`1.0.0+5`) — **uploaded 2026-09-30, in production review** (straight to production, not internal testing). Next upload is `1.0.0+6`. Contents: encryption at rest, one technician per phone, logout fixes, radio results and certificate layout, signed chips, gear icon and v2 store artwork. See `docs/STATE-2026-09-30.md`.
 - **Bump `version:` in `pubspec.yaml` before every upload**, then `flutter build appbundle --release`.
 - Adaptive launcher icon ("ST" + gear) in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork (current set is the `-v2` files) and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
 
