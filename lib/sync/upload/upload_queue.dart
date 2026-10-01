@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import 'certificate_upload.dart';
+import 'queued_upload.dart';
 
 /// Where a certificate waits between being finished and reaching the server.
 enum UploadStatus {
@@ -38,7 +39,7 @@ class UploadQueueEntry {
     this.reason,
   });
 
-  final CertificateUpload upload;
+  final QueuedUpload upload;
   final UploadStatus status;
   final int attempts;
   final String? lastError;
@@ -84,7 +85,7 @@ class UploadQueue {
   /// Replacing matters twice: a retried save must not duplicate, and a
   /// technician correcting a rejected certificate re-queues it — which is how
   /// [UploadStatus.rejected] is escaped.
-  Future<void> enqueue(CertificateUpload upload) async {
+  Future<void> enqueue(QueuedUpload upload) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.insert(table, {
       // Keyed by the queue key, not the certificate's mobile id: a signature
@@ -116,7 +117,10 @@ class UploadQueue {
   /// "2" for a single job.
   Future<int> certificateCount() async {
     final entries = await all();
-    return {for (final e in entries) e.upload.mobileId}.length;
+    return {
+      for (final e in entries)
+        if (e.upload is CertificateUpload) e.upload.mobileId,
+    }.length;
   }
 
   Future<int> count() async {
@@ -231,7 +235,7 @@ class UploadQueue {
     return [
       for (final r in rows)
         UploadQueueEntry(
-          upload: CertificateUpload.fromJson(
+          upload: fromQueuedJson(
             jsonDecode(r['payload']! as String) as Map<String, Object?>,
           ),
           status: UploadStatus.values.firstWhere(

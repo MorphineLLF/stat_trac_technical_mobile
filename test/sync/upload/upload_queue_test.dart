@@ -54,9 +54,10 @@ void main() {
 
       final pending = await queue.pending();
       expect(pending, hasLength(1));
-      expect(pending.single.upload.mobileId, 'cert-1');
-      expect(pending.single.upload.certificate['TestAssetID'], 9304);
-      expect(pending.single.upload.lines.single.mobileId, 'line-0');
+      final upload = pending.single.upload as CertificateUpload;
+      expect(upload.mobileId, 'cert-1');
+      expect(upload.certificate['TestAssetID'], 9304);
+      expect(upload.lines.single.mobileId, 'line-0');
     });
 
     test('the issue decisions survive the round trip', () async {
@@ -70,7 +71,8 @@ void main() {
         ),
       ));
 
-      final issue = (await queue.pending()).single.upload.issue!;
+      final issue =
+          ((await queue.pending()).single.upload as CertificateUpload).issue!;
       // 0 is Non-Compliant and must survive as 0, not as absent.
       expect(issue.verdict, 0);
       expect(issue.notes, 'failed leakage');

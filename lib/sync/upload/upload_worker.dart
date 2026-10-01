@@ -125,11 +125,13 @@ class UploadWorker {
     var shortApplied = 0, unguaranteed = 0;
 
     for (final entry in pending) {
+      final upload = entry.upload;
+      final cert = upload is CertificateUpload ? upload : null;
       attempted++;
       final result = await _client.upload(
         company: company,
         deviceToken: token,
-        upload: entry.upload,
+        upload: upload,
       );
 
       switch (result) {
@@ -137,11 +139,13 @@ class UploadWorker {
           // Checked before anything is called a success. A server that will
           // not promise this may have written the readings attached to
           // nothing, and a 200 looks identical either way.
-          if (entry.upload.lines.isNotEmpty && !result.guaranteesCertRef) {
+          if (cert != null &&
+              cert.lines.isNotEmpty &&
+              !result.guaranteesCertRef) {
             unguaranteed++;
             debugPrint(
               noGuaranteeNote(
-                mobileId: entry.upload.mobileId,
+                mobileId: upload.mobileId,
                 enforces: result.enforces,
               ),
             );
@@ -149,31 +153,33 @@ class UploadWorker {
           // Archived BEFORE the queue row goes. Deleting first is what left
           // the last lost certificate with no record of what was sent.
           await _archive.record(
-            upload: entry.upload,
+            upload: upload,
             applied: rowsApplied,
             assigned: assigned,
           );
-          final serverId = assigned[entry.upload.mobileId];
-          if (serverId != null) {
-            await _confirm(entry.upload.mobileId, serverId);
+          final serverId = assigned[upload.mobileId];
+          // Certificates only: the local certificate table is what this
+          // writes to. A work order's number arrives with its synced row.
+          if (cert != null && serverId != null) {
+            await _confirm(upload.mobileId, serverId);
           }
-          if (rowsApplied < entry.upload.rowOpCount) {
+          if (cert != null && rowsApplied < cert.rowOpCount) {
             shortApplied++;
             debugPrint(
               shortApplyNote(
-                mobileId: entry.upload.mobileId,
-                opsSent: entry.upload.rowOpCount,
-                lines: entry.upload.lines.length,
+                mobileId: upload.mobileId,
+                opsSent: cert.rowOpCount,
+                lines: cert.lines.length,
                 applied: rowsApplied,
               ),
             );
           }
-          await _queue.markApplied(entry.upload.queueKey);
+          await _queue.markApplied(upload.queueKey);
           applied++;
 
         case UploadConflict(:final conflicts):
           await _queue.markConflicted(
-            entry.upload.queueKey,
+            upload.queueKey,
             _describeConflict(conflicts),
           );
           conflicted++;
@@ -194,30 +200,32 @@ class UploadWorker {
           // how a certificate reached the server with no readings and nobody
           // was told. The reason code describes the certificate; the batch
           // describes what would be thrown away by believing it.
+          // Anything that is not a certificate carries a whole job.
           final carriesWork =
-              entry.upload.lines.isNotEmpty ||
-              entry.upload.certificate.isNotEmpty;
+              cert == null ||
+              cert.lines.isNotEmpty ||
+              cert.certificate.isNotEmpty;
 
           if (UploadRejectionReason.isBenign(reason) && !carriesWork) {
             await _archive.record(
-              upload: entry.upload,
+              upload: upload,
               applied: 0,
               assigned: const {},
             );
-            await _queue.markApplied(entry.upload.queueKey);
+            await _queue.markApplied(upload.queueKey);
             applied++;
             break;
           }
 
           await _queue.markRejected(
-            entry.upload.queueKey,
+            upload.queueKey,
             reason: reason,
             message: r?.message ?? 'The server refused this certificate.',
           );
           rejected++;
 
         case UploadClientError(:final message):
-          await _queue.markFailed(entry.upload.queueKey, message);
+          await _queue.markFailed(upload.queueKey, message);
           failed++;
 
         // Parked, not retried: the same batch gets the same 413 for ever.
@@ -226,7 +234,7 @@ class UploadWorker {
         // technician's whole day. Splitting is not yet automatic, so this is
         // where such a certificate stops until it is.
         case UploadTooLarge(:final message):
-          await _queue.markFailed(entry.upload.queueKey, message);
+          await _queue.markFailed(upload.queueKey, message);
           failed++;
 
         // Kept pending rather than failed: the certificate is not at fault
@@ -234,7 +242,7 @@ class UploadWorker {
         // carries the same dead token, so the run ends here — and it ends
         // saying so, rather than claiming there is no signal.
         case UploadAuthExpired(:final message):
-          await _queue.markRetryable(entry.upload.queueKey, message);
+          await _queue.markRetryable(upload.queueKey, message);
           return UploadRunResult(
             attempted: attempted,
             applied: applied,
@@ -248,7 +256,7 @@ class UploadWorker {
           );
 
         case UploadTransportError(:final message):
-          await _queue.markRetryable(entry.upload.queueKey, message);
+          await _queue.markRetryable(upload.queueKey, message);
           // Stop the run. Signal does not usually return between two
           // certificates, and sending the rest would fail identically while
           // spending a technician's battery.

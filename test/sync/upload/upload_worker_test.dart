@@ -299,7 +299,10 @@ void main() {
 
     // The queue is drained, which is what destroyed the evidence before.
     expect(await queue.count(), 0);
-    expect((await archive.all()).single.upload.lines, hasLength(1));
+    expect(
+      ((await archive.all()).single.upload as CertificateUpload).lines,
+      hasLength(1),
+    );
   });
 
   test('the server key is written back against the mobile id', () async {

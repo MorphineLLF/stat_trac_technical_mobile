@@ -48,10 +48,11 @@ void main() {
     expect(repaired, 1);
     final entry = (await queue.all()).single;
     expect(entry.status, UploadStatus.pending);
-    expect(entry.upload.certificate.containsKey('TestCertPatientSafe'), isFalse);
+    final upload = entry.upload as CertificateUpload;
+    expect(upload.certificate.containsKey('TestCertPatientSafe'), isFalse);
     // Everything else survives — this is a repair, not a rewrite.
-    expect(entry.upload.certificate['TestAssetID'], 9304);
-    expect(entry.upload.lines, hasLength(1));
+    expect(upload.certificate['TestAssetID'], 9304);
+    expect(upload.lines, hasLength(1));
   });
 
   // Anything parked for another reason is left exactly where it is. A repair

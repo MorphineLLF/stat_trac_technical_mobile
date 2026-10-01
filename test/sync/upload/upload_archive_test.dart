@@ -70,7 +70,8 @@ void main() {
       assigned: const {},
     );
 
-    final restored = (await archive.all()).single.upload;
+    final restored =
+        (await archive.all()).single.upload as CertificateUpload;
     expect(restored.mobileId, 'cert-3');
     expect(restored.lines, hasLength(2));
     expect(restored.certificate['TestAssetID'], 9304);

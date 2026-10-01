@@ -1,3 +1,4 @@
+import 'queued_upload.dart';
 import 'sync_upload_batch.dart';
 
 /// A certificate as it leaves the device: the header, its readings, and — when
@@ -7,7 +8,12 @@ import 'sync_upload_batch.dart';
 /// matters here: a certificate and its readings must never be half-uploaded,
 /// because a certificate missing readings is not an incomplete record, it is a
 /// wrong one.
-class CertificateUpload {
+class CertificateUpload implements QueuedUpload {
+  static const kindName = 'certificate';
+
+  @override
+  String get kind => kindName;
+
   CertificateUpload({
     required this.mobileId,
     required this.certificate,
@@ -55,6 +61,7 @@ class CertificateUpload {
 
   /// The certificate's client-generated UUIDv4. Its readings name it by this,
   /// and the server returns the real key against it in `assigned`.
+  @override
   final String mobileId;
 
   /// Allowlisted columns only. An unlisted one is dropped silently server-side.
@@ -80,6 +87,7 @@ class CertificateUpload {
   /// batch would silently replace the first and the readings would never go.
   final String? _queueKey;
 
+  @override
   String get queueKey => _queueKey ?? mobileId;
 
   /// The `SyncUpdatedAt` last seen, for optimistic concurrency.
@@ -127,7 +135,9 @@ class CertificateUpload {
   /// How it is held in the queue. Deliberately not the wire shape: the batch
   /// is rebuilt from this at send time, so a change to the wire format cannot
   /// strand work already queued on a technician's device.
+  @override
   Map<String, Object?> toJson() => {
+    'kind': kind,
     'mobile_id': mobileId,
     'certificate': certificate,
     'lines': [
@@ -145,6 +155,7 @@ class CertificateUpload {
   /// in the order the work happened. The server writes certificates before
   /// other row ops regardless, so this ordering is for the reader rather than
   /// for correctness.
+  @override
   SyncUploadBatch toBatch() => SyncUploadBatch([
     // Omitted when there is nothing to set. A row op naming no known column
     // is refused outright — "sets nothing this server knows about" — which

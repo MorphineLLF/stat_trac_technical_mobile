@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
-import 'certificate_upload.dart';
+import 'queued_upload.dart';
 import 'sync_upload_result.dart';
 
 /// Posts a certificate batch to `POST /{company}/sync/upload`.
@@ -23,7 +23,7 @@ class SyncUploadClient {
   Future<SyncUploadResult> upload({
     required String company,
     required String deviceToken,
-    required CertificateUpload upload,
+    required QueuedUpload upload,
   }) async {
     final batch = upload.toBatch();
 

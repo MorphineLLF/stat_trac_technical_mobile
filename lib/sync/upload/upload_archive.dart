@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import 'certificate_upload.dart';
+import 'queued_upload.dart';
 
 /// What was sent, and what the server said it did with it.
 ///
@@ -50,15 +51,17 @@ class UploadArchive {
   /// A certificate re-queued after a rejection archives every attempt rather
   /// than replacing the last — the history of what was tried is the point.
   Future<void> record({
-    required CertificateUpload upload,
+    required QueuedUpload upload,
     required int applied,
     required Map<String, int> assigned,
   }) async {
+    final cert = upload is CertificateUpload ? upload : null;
     await _db.insert(table, {
       'mobile_id': upload.mobileId,
       'archived_at': DateTime.now().toUtc().toIso8601String(),
-      'ops_sent': upload.rowOpCount,
-      'lines_sent': upload.lines.length,
+      // A work order has no row ops for `applied` to count against.
+      'ops_sent': cert?.rowOpCount ?? 0,
+      'lines_sent': cert?.lines.length ?? 0,
       'applied': applied,
       'assigned': jsonEncode(assigned),
       'payload': jsonEncode(upload.toJson()),
@@ -82,7 +85,7 @@ class UploadArchive {
                 .entries)
               e.key as String: (e.value as num).toInt(),
           },
-          upload: CertificateUpload.fromJson(
+          upload: fromQueuedJson(
             jsonDecode(r['payload']! as String) as Map<String, Object?>,
           ),
         ),
@@ -132,7 +135,7 @@ class UploadArchiveEntry {
   final int applied;
 
   final Map<String, int> assigned;
-  final CertificateUpload upload;
+  final QueuedUpload upload;
 
   /// How many row ops the server did not apply.
   ///
