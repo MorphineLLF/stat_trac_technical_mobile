@@ -9,6 +9,54 @@ part of 'asset_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(assetLocalDataSource)
+final assetLocalDataSourceProvider = AssetLocalDataSourceProvider._();
+
+final class AssetLocalDataSourceProvider
+    extends
+        $FunctionalProvider<
+          AssetLocalDataSource,
+          AssetLocalDataSource,
+          AssetLocalDataSource
+        >
+    with $Provider<AssetLocalDataSource> {
+  AssetLocalDataSourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'assetLocalDataSourceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$assetLocalDataSourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<AssetLocalDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AssetLocalDataSource create(Ref ref) {
+    return assetLocalDataSource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AssetLocalDataSource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AssetLocalDataSource>(value),
+    );
+  }
+}
+
+String _$assetLocalDataSourceHash() =>
+    r'c683e51a245db09607beeac2c7b9ed6e8e433f6b';
+
 @ProviderFor(assetRemoteDataSource)
 final assetRemoteDataSourceProvider = AssetRemoteDataSourceProvider._();
 

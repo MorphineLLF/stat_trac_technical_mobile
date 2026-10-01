@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,8 +10,6 @@ import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../assets/presentation/screens/asset_list_screen.dart';
 import '../../../certification/presentation/screens/create_certificate_screen.dart';
 import '../../../certification/presentation/screens/certificate_list_screen.dart';
-import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
-import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
@@ -317,7 +314,7 @@ class _HomeBody extends ConsumerWidget {
           // Pending task counts — WO and PM side by side
           stats.when(
             data: (s) => _PendingTasksRow(
-              woCount: s.overdue + s.pending,
+              woCount: s.pendingWorkOrders,
               pmCount: 0,
               certsCount: s.pendingCerts,
             ),
@@ -325,30 +322,6 @@ class _HomeBody extends ConsumerWidget {
                 const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
             error: (e, _) =>
                 const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
-          ),
-          const SizedBox(height: 16),
-          // Donut chart + KPI row
-          stats.when(
-            data: (s) => Column(
-              children: [
-                _StatsCard(stats: s),
-                const SizedBox(height: 12),
-                _KpiRow(stats: s),
-              ],
-            ),
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Stats unavailable',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
           ),
           const SizedBox(height: 16),
           const DashboardModuleGrid(),
@@ -461,205 +434,7 @@ class _TaskCountCard extends StatelessWidget {
 
 // ── Donut chart card ──────────────────────────────────────────────────────────
 
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.stats});
-  final DashboardStats stats;
-
-  static const _colorOverdue = brandError;
-  static const _colorPending = Color(0xFFF57F17);
-  static const _colorPendingCerts = Color(0xFF00838F);
-  static const _colorEmpty = Color(0xFFDDE3EA);
-
-  @override
-  Widget build(BuildContext context) {
-    final sections = stats.total == 0
-        ? [
-            PieChartSectionData(
-              value: 1,
-              color: _colorEmpty,
-              radius: 22,
-              title: '',
-            ),
-          ]
-        : [
-            if (stats.overdue > 0)
-              PieChartSectionData(
-                value: stats.overdue.toDouble(),
-                color: _colorOverdue,
-                radius: 22,
-                title: '',
-              ),
-            if (stats.pending > 0)
-              PieChartSectionData(
-                value: stats.pending.toDouble(),
-                color: _colorPending,
-                radius: 22,
-                title: '',
-              ),
-            if (stats.pendingCerts > 0)
-              PieChartSectionData(
-                value: stats.pendingCerts.toDouble(),
-                color: _colorPendingCerts,
-                radius: 22,
-                title: '',
-              ),
-          ];
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 110,
-              height: 110,
-              child: PieChart(
-                PieChartData(
-                  sections: sections,
-                  centerSpaceRadius: 38,
-                  sectionsSpace: 2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ChartLegend(
-                    color: _colorOverdue,
-                    label: 'Overdue',
-                    pct: stats.overduePct,
-                  ),
-                  const SizedBox(height: 10),
-                  _ChartLegend(
-                    color: _colorPending,
-                    label: 'Pending',
-                    pct: stats.pendingPct,
-                  ),
-                  const SizedBox(height: 10),
-                  _ChartLegend(
-                    color: _colorPendingCerts,
-                    label: 'Certs to sync',
-                    pct: stats.pendingCertsPct,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChartLegend extends StatelessWidget {
-  const _ChartLegend({
-    required this.color,
-    required this.label,
-    required this.pct,
-  });
-  final Color color;
-  final String label;
-  final double pct;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        Text(
-          '${(pct * 100).toStringAsFixed(0)}%',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
 // ── KPI row ───────────────────────────────────────────────────────────────────
-
-class _KpiRow extends StatelessWidget {
-  const _KpiRow({required this.stats});
-  final DashboardStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _KpiTile(
-            label: 'Overdue',
-            count: stats.overdue,
-            color: brandError,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _KpiTile(
-            label: 'Pending',
-            count: stats.pending,
-            color: Color(0xFFF57F17),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _KpiTile(
-            label: 'Certs to sync',
-            count: stats.pendingCerts,
-            color: Color(0xFF00838F),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _KpiTile extends StatelessWidget {
-  const _KpiTile({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-  final String label;
-  final int count;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$count',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: color),
-            ),
-            const SizedBox(height: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Module grid ───────────────────────────────────────────────────────────────
 
@@ -694,11 +469,7 @@ class DashboardModuleGrid extends StatelessWidget {
                   enabled: false,
                   color: brandTeal,
                   actions: [
-                    _TileAction(
-                      label: 'View',
-                      icon: Icons.visibility_outlined,
-                      destination: (_) => const WorkOrderListScreen(),
-                    ),
+                    _TileAction(label: 'View', icon: Icons.visibility_outlined),
                   ],
                 ),
               ),
@@ -714,13 +485,8 @@ class DashboardModuleGrid extends StatelessWidget {
                     _TileAction(
                       label: 'Create',
                       icon: Icons.add_circle_outline,
-                      destination: (_) => const CreateWorkOrderScreen(),
                     ),
-                    _TileAction(
-                      label: 'View',
-                      icon: Icons.visibility_outlined,
-                      destination: (_) => const WorkOrderListScreen(),
-                    ),
+                    _TileAction(label: 'View', icon: Icons.visibility_outlined),
                   ],
                 ),
               ),

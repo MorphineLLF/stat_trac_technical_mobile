@@ -2,8 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../api/auth_interceptor.dart';
 import '../../../../api/dio_client.dart';
+import '../../../../database/database_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../../work_orders/presentation/providers/work_order_providers.dart';
 import '../../data/datasources/asset_local_data_source.dart';
 import '../../data/datasources/asset_remote_data_source.dart';
 import '../../data/repositories/asset_repository_impl.dart';
@@ -16,6 +16,10 @@ import '../../../../sync/powersync_providers.dart';
 part 'asset_providers.g.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
+
+@riverpod
+AssetLocalDataSource assetLocalDataSource(Ref ref) =>
+    AssetLocalDataSourceImpl(DatabaseHelper.instance);
 
 @riverpod
 AssetRemoteDataSource assetRemoteDataSource(Ref ref) {

@@ -183,7 +183,7 @@ final class UploadWorkerProvider
   }
 }
 
-String _$uploadWorkerHash() => r'c4cd419abc4ff47ed22cae8c3882bf96d9ff3da3';
+String _$uploadWorkerHash() => r'53db74c3bb57e089abd20b949e5fddc911d6e16a';
 
 /// How many certificates are waiting to reach the server.
 ///
@@ -234,4 +234,4 @@ final class PendingUploadCountProvider
 }
 
 String _$pendingUploadCountHash() =>
-    r'7ab0ce9297002e2e2c262405262397f199a7faae';
+    r'69c6d07b47e262b81a64376563cb9805451c87d4';

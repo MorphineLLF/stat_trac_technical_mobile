@@ -57,14 +57,16 @@ final class LastSyncedAtProvider
 
 String _$lastSyncedAtHash() => r'a55ef5c067d8b7e18a498598d9fd09e2461c460f';
 
-/// Active WO counts for the dashboard donut chart and KPI row.
-/// Active = not completed / reviewed / closed / cancelled.
+/// Counted from the OUTBOX. A captured work order is completed the moment
+/// the server applies it, so nothing synced is pending — what is pending is
+/// what has not left the phone.
 
 @ProviderFor(dashboardStats)
 final dashboardStatsProvider = DashboardStatsProvider._();
 
-/// Active WO counts for the dashboard donut chart and KPI row.
-/// Active = not completed / reviewed / closed / cancelled.
+/// Counted from the OUTBOX. A captured work order is completed the moment
+/// the server applies it, so nothing synced is pending — what is pending is
+/// what has not left the phone.
 
 final class DashboardStatsProvider
     extends
@@ -74,8 +76,9 @@ final class DashboardStatsProvider
           FutureOr<DashboardStats>
         >
     with $FutureModifier<DashboardStats>, $FutureProvider<DashboardStats> {
-  /// Active WO counts for the dashboard donut chart and KPI row.
-  /// Active = not completed / reviewed / closed / cancelled.
+  /// Counted from the OUTBOX. A captured work order is completed the moment
+  /// the server applies it, so nothing synced is pending — what is pending is
+  /// what has not left the phone.
   DashboardStatsProvider._()
     : super(
         from: null,
@@ -102,4 +105,4 @@ final class DashboardStatsProvider
   }
 }
 
-String _$dashboardStatsHash() => r'f5d78e034a34073dd98092a36eb98f2d9de2124a';
+String _$dashboardStatsHash() => r'061732605de6c299a22958362c12ec87d70c46b4';
