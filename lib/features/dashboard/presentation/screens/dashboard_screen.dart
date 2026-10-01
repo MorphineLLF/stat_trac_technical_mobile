@@ -823,22 +823,6 @@ class _ModuleTile extends StatelessWidget {
               ),
             ],
           ),
-          // The line's space is kept on every tile, shown or not: without it
-          // a disabled tile was one line taller, its row grew to match, and the
-          // Certificate tile beside PM stood taller than Work Order above it.
-          const SizedBox(height: 4),
-          Visibility(
-            visible: !enabled,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: Text(
-              'Coming soon',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: brandGrey),
-            ),
-          ),
           // Phone only: a tile is half a phone's width, too narrow to put two
           // buttons side by side — "Create" broke into "Crea / te". Stack
           // them, each full width. The Spacer keeps one-action tiles' button
