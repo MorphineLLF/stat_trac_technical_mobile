@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/dashboard_providers.dart';
 
-// The app's own colours for the three, the same as the dashboard has always
-// used for them.
-const _wo = Color(0xFF1B7EA6);
+// The same colours as the module tiles: Work Order, PM Work Order and
+// Certificate.
+const _wo = Color(0xFF1565C0);
 const _pm = Color(0xFF2E7D32);
 const _certs = Color(0xFF00838F);
 

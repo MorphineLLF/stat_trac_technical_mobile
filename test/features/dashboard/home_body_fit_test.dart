@@ -108,6 +108,17 @@ void main() {
     });
   }
 
+  // A small phone is too short for the summary and the unchanged tiles: the
+  // page scrolls there (the user, 2026-10-01), and nothing overflows.
+  testWidgets('a 360 × 640 phone scrolls instead of breaking', (tester) async {
+    const dp = Size(360, 616);
+    await pump(tester, dp: dp, scale: 1.15);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expectOnScreen(tester, find.text('Home'), dp);
+  });
+
   testWidgets('a long PM list scrolls inside its card; the tiles stay put', (
     tester,
   ) async {

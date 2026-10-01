@@ -313,9 +313,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 /// **One screen, no page scroll** — clients see this. Only the PM list
 /// scrolls, inside its own card, which takes whatever height is left.
 ///
-/// A phone too short for the summary and the tiles as they are (a 360 × 640
-/// handset) scrolls the page instead of overflowing; the tiles are never
-/// shrunk to make it fit.
+/// A small phone too short for the summary and the tiles as they are scrolls
+/// the page instead (the user, 2026-10-01); the tiles are never shrunk.
 @visibleForTesting
 class DashboardHome extends ConsumerWidget {
   const DashboardHome({super.key});
