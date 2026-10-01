@@ -329,7 +329,11 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                 const SizedBox(height: 16),
                 TextFormField(
                   initialValue: widget.jobcardNo,
+                  // White, as the Notes box — unfilled, the grey page shows
+                  // through and the box reads as disabled.
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
                     labelText: 'J/C No',
                     hintText: 'Job card number (optional)',
                     prefixIcon: Icon(Icons.assignment_outlined),
@@ -580,9 +584,22 @@ class _TestEquipmentPickerSheet extends ConsumerWidget {
                     assets
                         .where((a) => !excludeAssetIds.contains(a.assetId))
                         .toList()
+                      // Usable first, then alphabetical by the name shown
+                      // (user, 2026-10-01) — the equipment type, else the
+                      // asset's name, which also breaks a tie.
                       ..sort((a, b) {
-                        if (a.isUsable == b.isUsable) return 0;
-                        return a.isUsable ? -1 : 1;
+                        if (a.isUsable != b.isUsable) {
+                          return a.isUsable ? -1 : 1;
+                        }
+                        final byTitle = (a.equipmentType ?? a.displayName)
+                            .toLowerCase()
+                            .compareTo(
+                              (b.equipmentType ?? b.displayName).toLowerCase(),
+                            );
+                        if (byTitle != 0) return byTitle;
+                        return a.displayName.toLowerCase().compareTo(
+                          b.displayName.toLowerCase(),
+                        );
                       });
                 if (available.isEmpty) {
                   return Center(
