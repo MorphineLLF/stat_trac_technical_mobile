@@ -407,12 +407,12 @@ class _HistoryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // The old list read the Horse-era work_orders table, which nothing has
-    // filled since 2026-09-05. Captured work orders are in the Worklist.
+    // filled since 2026-09-05. Captured work orders are under Work Order → View.
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          'Work orders for this machine are in the Worklist.',
+          'Captured work orders are under Work Order → View.',
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),

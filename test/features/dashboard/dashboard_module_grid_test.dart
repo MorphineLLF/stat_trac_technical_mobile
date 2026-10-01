@@ -8,7 +8,7 @@ import 'package:stat_trac_technical/features/dashboard/presentation/screens/dash
 // font scale 1.15) "Create" broke mid-word into "Crea / te".
 void main() {
   // PM work orders belong to the PM module, which the phone does not do yet.
-  testWidgets('work order and certificate actions can be pressed; PM cannot', (
+  testWidgets('work order and certificate actions can be pressed; Worklist and PM cannot', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2316);
@@ -38,14 +38,14 @@ void main() {
 
     // Tree order — View: Worklist, Work Order, PM, Certificate.
     // Create: Work Order, PM, Certificate.
-    expect(pressable('View', 0), isTrue, reason: 'Worklist');
+    expect(pressable('View', 0), isFalse, reason: 'Worklist');
     expect(pressable('View', 1), isTrue, reason: 'Work Order');
     expect(pressable('View', 2), isFalse, reason: 'PM Work Order');
     expect(pressable('View', 3), isTrue, reason: 'Certificate');
     expect(pressable('Create', 0), isTrue, reason: 'Work Order');
     expect(pressable('Create', 1), isFalse, reason: 'PM Work Order');
     expect(pressable('Create', 2), isTrue, reason: 'Certificate');
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Coming soon'), findsNWidgets(2));
   });
 
   for (final scale in [1.0, 1.15, 1.3]) {

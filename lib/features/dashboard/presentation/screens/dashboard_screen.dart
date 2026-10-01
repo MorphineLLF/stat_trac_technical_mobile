@@ -476,12 +476,15 @@ class DashboardModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.list_alt_outlined,
                   label: 'Worklist',
+                  // Not work orders — the Worklist is its own module and is
+                  // not built yet (the user, 2026-10-01). Captured work
+                  // orders are under Work Order → View.
+                  enabled: false,
                   color: brandTeal,
                   actions: [
                     _TileAction(
                       label: 'View',
                       icon: Icons.visibility_outlined,
-                      destination: (_) => const WorkOrderListScreen(),
                     ),
                   ],
                 ),

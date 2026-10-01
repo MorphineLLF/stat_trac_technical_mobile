@@ -439,7 +439,7 @@ Work in this order. Each phase builds on the previous.
 - `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
 - **Top row** — Pending Work Orders (queued), Captured this month, Certs to Sync. Donut and KPI tiles removed 2026-10-01.
-- **Quick actions grid** (`DashboardModuleGrid`) — four tiles in two rows: Worklist (View → `WorkOrderListScreen`), Work Order (Create → `CreateWorkOrderScreen`, View → `WorkOrderListScreen`), PM Work Order (disabled — PM not on the phone yet), Certificate (Create → `CreateCertificateScreen`, View → `CertificateListScreen`)
+- **Quick actions grid** (`DashboardModuleGrid`) — four tiles in two rows: Worklist (disabled — its own module, not work orders, not built yet), Work Order (Create → `CreateWorkOrderScreen`, View → `WorkOrderListScreen`, titled "Work Orders"), PM Work Order (disabled — PM not on the phone yet), Certificate (Create → `CreateCertificateScreen`, View → `CertificateListScreen`)
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 
 ### Sync engine ✅
@@ -489,7 +489,7 @@ Work in this order. Each phase builds on the previous.
 - **Capture only.** Book-in is desktop-only. The phone shows only the Work Order tab (job card) — no WO Request, no WO Progress.
 - Create: machine → job card → both signatures (required) → `upload_queue` as a `WorkOrderUpload` (`lib/sync/upload/work_order_upload.dart`): one batch, `capture` + `sign` tech + `sign` client on `Repair`.
 - Sent only when the server's `enforces` lists `capture_action` and `job_sign_action`; otherwise it waits as "server not ready". Go side: `docs/go-requirements-work-order-capture.md`.
-- Worklist: the technician's captured work orders (`RepairTechID`, `RepairDetailType = 3`) from PowerSync, no joins, plus jobs still queued. Set-aside jobs are never deleted except by Discard.
+- Work Order → View (`WorkOrderListScreen`, "Work Orders"; **not** the Worklist tile, which is a separate module and stays disabled): the technician's captured work orders (`RepairTechID`, `RepairDetailType = 3`) from PowerSync, no joins, plus jobs still queued. Set-aside jobs are never deleted except by Discard.
 - Spec: `docs/superpowers/specs/2026-10-01-work-orders-capture-design.md`.
 
 ### Certification module ✅

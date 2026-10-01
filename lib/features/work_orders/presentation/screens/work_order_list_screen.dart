@@ -15,7 +15,7 @@ class WorkOrderListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(worklistProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Worklist')),
+      appBar: AppBar(title: const Text('Work Orders')),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(worklistProvider.future),
         child: list.when(
