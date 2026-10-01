@@ -8,45 +8,91 @@ import 'package:stat_trac_technical/features/dashboard/presentation/screens/dash
 // font scale 1.15) "Create" broke mid-word into "Crea / te".
 void main() {
   // PM work orders belong to the PM module, which the phone does not do yet.
-  testWidgets('work order and certificate actions can be pressed; Worklist and PM cannot', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 2316);
-    tester.view.devicePixelRatio = 1080 / 384;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'work order and certificate actions can be pressed; Worklist and PM cannot',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2316);
+      tester.view.devicePixelRatio = 1080 / 384;
+      addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: appTheme,
-        home: const Scaffold(
-          body: SingleChildScrollView(child: DashboardModuleGrid()),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(child: DashboardModuleGrid()),
+          ),
         ),
-      ),
-    );
-
-    bool pressable(String label, int index) {
-      final button = tester.widget<ButtonStyleButton>(
-        find
-            .ancestor(
-              of: find.text(label).at(index),
-              matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
-            )
-            .first,
       );
-      return button.onPressed != null;
-    }
 
-    // Tree order — View: Worklist, Work Order, PM, Certificate.
-    // Create: Work Order, PM, Certificate.
-    expect(pressable('View', 0), isFalse, reason: 'Worklist');
-    expect(pressable('View', 1), isTrue, reason: 'Work Order');
-    expect(pressable('View', 2), isFalse, reason: 'PM Work Order');
-    expect(pressable('View', 3), isTrue, reason: 'Certificate');
-    expect(pressable('Create', 0), isTrue, reason: 'Work Order');
-    expect(pressable('Create', 1), isFalse, reason: 'PM Work Order');
-    expect(pressable('Create', 2), isTrue, reason: 'Certificate');
-    expect(find.text('Coming soon'), findsNWidgets(2));
-  });
+      bool pressable(String label, int index) {
+        final button = tester.widget<ButtonStyleButton>(
+          find
+              .ancestor(
+                of: find.text(label).at(index),
+                matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+              )
+              .first,
+        );
+        return button.onPressed != null;
+      }
+
+      // Tree order — View: Worklist, Work Order, PM, Certificate.
+      // Create: Work Order, PM, Certificate.
+      expect(pressable('View', 0), isFalse, reason: 'Worklist');
+      expect(pressable('View', 1), isTrue, reason: 'Work Order');
+      expect(pressable('View', 2), isFalse, reason: 'PM Work Order');
+      expect(pressable('View', 3), isTrue, reason: 'Certificate');
+      expect(pressable('Create', 0), isTrue, reason: 'Work Order');
+      expect(pressable('Create', 1), isFalse, reason: 'PM Work Order');
+      expect(pressable('Create', 2), isTrue, reason: 'Certificate');
+      // Shown on the two disabled tiles only; the other two keep the space.
+      expect(
+        tester
+            .widgetList<Visibility>(find.byType(Visibility))
+            .where((v) => v.visible)
+            .length,
+        2,
+      );
+    },
+  );
+
+  // The Certificate tile stood taller than Work Order: PM beside it showed a
+  // "Coming soon" line and its row grew to fit. Every tile is one height.
+  for (final scale in [1.0, 1.15]) {
+    testWidgets('Certificate is the same height as Work Order at text scale '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2316);
+      tester.view.devicePixelRatio = 1080 / 384;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme,
+          home: MediaQuery.withClampedTextScaling(
+            minScaleFactor: scale,
+            maxScaleFactor: scale,
+            child: const Scaffold(
+              body: SingleChildScrollView(child: DashboardModuleGrid()),
+            ),
+          ),
+        ),
+      );
+
+      double tileHeight(String label) => tester
+          .getSize(
+            find
+                .ancestor(
+                  of: find.text(label),
+                  matching: find.byType(Container),
+                )
+                .first,
+          )
+          .height;
+
+      expect(tileHeight('Certificate'), tileHeight('Work Order'));
+      expect(tileHeight('PM Work Order'), tileHeight('Work Order'));
+    });
+  }
 
   for (final scale in [1.0, 1.15, 1.3]) {
     testWidgets('action labels stay on one line on a phone at text scale '
