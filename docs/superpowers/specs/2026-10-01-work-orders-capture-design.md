@@ -1,7 +1,7 @@
 # Work Orders — capture on site (design)
 
 **Date:** 2026-10-01
-**Status:** approved in conversation, section by section; awaiting review of this document
+**Status:** implemented 2026-10-01 — plan `docs/superpowers/plans/2026-10-01-work-orders-capture.md`; waits on the Go side
 **Go side:** `docs/go-requirements-work-order-capture.md` — built by the user in a
 separate Stat Trac Go session. **This repository does not touch `E:\Stat_Trac_Go`.**
 

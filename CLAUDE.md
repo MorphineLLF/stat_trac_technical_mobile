@@ -31,11 +31,13 @@
 > of the project was deleted on 2026-09-30 at the user's word, after `master`
 > was pushed to GitHub.
 >
-> **Start here next session:** `docs/STATE-2026-09-30.md` — build 3 is live
-> on Google Play, build 5 (encryption, one technician per phone, login fixes,
-> radio results) is uploaded and in production review (2026-09-30), and what is waiting on the
-> user. Then `docs/STATE-2026-09-29.md` and `docs/STATE-2026-09-06.md` for the
-> untested paths, which are still untested.
+> **Start here next session:** `docs/STATE-2026-10-01.md` — work orders
+> (capture on site) are built on `master` and wait on a Go session
+> (`docs/go-requirements-work-order-capture.md`) and a phone check. Then
+> `docs/STATE-2026-09-30.md` — build 3 is live on Google Play, build 5
+> (encryption, one technician per phone, login fixes, radio results) is in
+> production review — and `docs/STATE-2026-09-29.md` / `docs/STATE-2026-09-06.md`
+> for the untested paths, which are still untested.
 >
 > ## ✅ A CERTIFICATE NOW UPLOADS, ISSUES, AND COMES BACK WITH A NUMBER
 >
@@ -144,6 +146,7 @@ Implementation plans live in `docs/superpowers/plans/`. Check this folder at ses
 | `2026-06-03-certificate-pdf-design.md` | ✅ Complete — FastReport PDF generation working for all cert IDs; View PDF + Email buttons in cert detail screen |
 | `2026-06-05-pm-task-equipment-picker.md` | ✅ Complete — PM task selector in cert wizard; equipment type + "Next Cal" + EXPIRED badge in picker; `asset_pm_tasks` sync; DB v12 |
 | `2026-09-05-powersync-schema-sync-rules.md` | ⛔ SUPERSEDED before execution — written against an assumed greenfield schema that does not exist. Do not run. |
+| `2026-10-01-work-orders-capture.md` | ✅ Complete 2026-10-01 — capture on site, Worklist, outbox `WorkOrderUpload`, DB v19. Waits on the Go side (`docs/go-requirements-work-order-capture.md`) |
 
 ## What This Is
 
@@ -713,7 +716,10 @@ proved on 2026-09-06 was proved with signal, one certificate at a time.
    them, and let `techSignatureState` use the server's answer rather than only
    the phone's copy. Still to decide with the user: whether the chip shows
    technician, facility, or both.
-5. Then resume feature work: Service Reports, signatures on WO completion.
+5. **Work orders (added 2026-10-01).** Built on the phone; the Go side is the
+   user's to start — `docs/go-requirements-work-order-capture.md`. Then the
+   phone check listed in `docs/STATE-2026-10-01.md`.
+6. Then resume feature work: Service Reports.
 
 **With the user, not with either repository:** migration 026 on `safeline` and
 the other company databases, and the technician-app grant per login. Athi
