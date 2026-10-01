@@ -24,20 +24,35 @@ class _Queue extends Mock implements UploadQueue {}
 
 class _SignedIn extends AuthNotifier {
   @override
-  AuthState build() => const AuthAuthenticated(User(
-    id: 31, name: 'Athi', email: '', role: UserRole.technician,
-    technicianCode: '',
-  ));
+  AuthState build() => const AuthAuthenticated(
+    User(
+      id: 31,
+      name: 'Athi',
+      email: '',
+      role: UserRole.technician,
+      technicianCode: '',
+    ),
+  );
 }
 
 WorkOrderUpload _original({String client = 'X'}) => WorkOrderUpload(
   mobileId: 'wo-1',
-  capture: {'asset_id': 100, 'work_type': 1,
-      'date_in': '2026-10-01', 'time_in': '08:00',
-      'date_out': '2026-10-01', 'time_out': '09:00',
-      'fault': '', 'work': '', 'note': '', 'client_name': client,
-      'job_card_no': ''},
-  techPng: 'AAAA', clientPng: 'BBBB', clientName: 'X',
+  capture: {
+    'asset_id': 100,
+    'work_type': 1,
+    'date_in': '2026-10-01',
+    'time_in': '08:00',
+    'date_out': '2026-10-01',
+    'time_out': '09:00',
+    'fault': '',
+    'work': '',
+    'note': '',
+    'client_name': client,
+    'job_card_no': '',
+  },
+  techPng: 'AAAA',
+  clientPng: 'BBBB',
+  clientName: 'X',
 );
 
 /// A real in-memory outbox holding [original], as a set-aside job would be.
@@ -46,7 +61,8 @@ Future<(Database, UploadQueue)> _queueWith(
   WorkOrderUpload original,
 ) async {
   final db = await tester.runAsync(
-      () => databaseFactoryFfi.openDatabase(inMemoryDatabasePath));
+    () => databaseFactoryFfi.openDatabase(inMemoryDatabasePath),
+  );
   await tester.runAsync(() => UploadQueue.createTable(db!));
   final queue = UploadQueue(db!);
   await tester.runAsync(() => queue.enqueue(original));
@@ -70,36 +86,48 @@ Future<void> _open(
   when(() => source.assetsByIds(any())).thenAnswer((_) async => const {});
   when(() => source.openRepairOn(any())).thenAnswer((_) async => null);
   final worker = _Worker();
-  when(() => worker.drain()).thenAnswer((_) async => const UploadRunResult(
-      attempted: 0, applied: 0, conflicted: 0, rejected: 0, failed: 0,
-      stoppedForSignal: false));
+  when(() => worker.drain()).thenAnswer(
+    (_) async => const UploadRunResult(
+      attempted: 0,
+      applied: 0,
+      conflicted: 0,
+      rejected: 0,
+      failed: 0,
+      stoppedForSignal: false,
+    ),
+  );
 
-  await tester.pumpWidget(ProviderScope(
-    overrides: [
-      authProvider.overrideWith(_SignedIn.new),
-      uploadQueueProvider.overrideWith((ref) async => queue),
-      uploadWorkerProvider.overrideWith((ref) async => worker),
-      workOrderSourceProvider.overrideWith((ref) async => source),
-    ],
-    child: MaterialApp(
-      theme: appTheme,
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CreateWorkOrderScreen(resend: original,
-                      resendField: field, resendMessage: message),
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        authProvider.overrideWith(_SignedIn.new),
+        uploadQueueProvider.overrideWith((ref) async => queue),
+        uploadWorkerProvider.overrideWith((ref) async => worker),
+        workOrderSourceProvider.overrideWith((ref) async => source),
+      ],
+      child: MaterialApp(
+        theme: appTheme,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CreateWorkOrderScreen(
+                      resend: original,
+                      resendField: field,
+                      resendMessage: message,
+                    ),
+                  ),
                 ),
+                child: const Text('Open'),
               ),
-              child: const Text('Open'),
             ),
           ),
         ),
       ),
     ),
-  ));
+  );
   await tester.tap(find.text('Open'));
   await tester.pumpAndSettle();
 }
@@ -107,8 +135,11 @@ Future<void> _open(
 /// The client box sits below the fold of the form's lazy list.
 Future<void> _toClient(WidgetTester tester) async {
   final client = find.byKey(const Key('wo-client'));
-  await tester.dragUntilVisible(client, find.byType(ListView),
-      const Offset(0, -200));
+  await tester.dragUntilVisible(
+    client,
+    find.byType(ListView),
+    const Offset(0, -200),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -159,8 +190,13 @@ void main() {
     final long = 'N' * 60;
     final original = _original(client: long);
     final (db, queue) = await _queueWith(tester, original);
-    await _open(tester, queue: queue, original: original,
-        field: 'client', message: 'Too long');
+    await _open(
+      tester,
+      queue: queue,
+      original: original,
+      field: 'client',
+      message: 'Too long',
+    );
 
     // Refused on the device: Next stays off, nothing can reach the outbox.
     final next = find.widgetWithText(FilledButton, 'Next');
@@ -172,8 +208,10 @@ void main() {
     await tester.tap(next);
     await tester.pumpAndSettle();
     // The kept signatures carry the corrected name.
-    expect(find.text('Signed by the technician and Sister Mbeki'),
-        findsOneWidget);
+    expect(
+      find.text('Signed by the technician and Sister Mbeki'),
+      findsOneWidget,
+    );
     await _save(tester);
 
     final rows = await tester.runAsync(queue.all);
@@ -208,8 +246,9 @@ void main() {
     await tester.runAsync(db.close);
   });
 
-  testWidgets('a failed outbox write says so and leaves Save usable',
-      (tester) async {
+  testWidgets('a failed outbox write says so and leaves Save usable', (
+    tester,
+  ) async {
     final queue = _Queue();
     when(() => queue.enqueue(any())).thenThrow(Exception('disk full'));
     await _open(tester, queue: queue, original: _original());
@@ -260,17 +299,19 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2316);
     tester.view.devicePixelRatio = 1080 / 384;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(
-      theme: appTheme,
-      home: Scaffold(
-        body: CertSignatureStep(
-          requiresCustomerSig: true,
-          clientLabel: 'Client',
-          clientNameMaxLength: 50,
-          onSigned: (_) {},
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme,
+        home: Scaffold(
+          body: CertSignatureStep(
+            requiresCustomerSig: true,
+            clientLabel: 'Client',
+            clientNameMaxLength: 50,
+            onSigned: (_) {},
+          ),
         ),
       ),
-    ));
+    );
     await tester.enterText(find.byType(TextFormField), 'N' * 60);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller!.text, hasLength(50));
@@ -286,23 +327,25 @@ void main() {
     addTearDown(tester.view.reset);
     var name = 'Sister Dlamini';
     late StateSetter rebuild;
-    await tester.pumpWidget(MaterialApp(
-      theme: appTheme,
-      home: Scaffold(
-        body: StatefulBuilder(
-          builder: (context, setState) {
-            rebuild = setState;
-            return CertSignatureStep(
-              requiresCustomerSig: true,
-              clientLabel: 'Client',
-              initialClientName: name,
-              clientNameMaxLength: 50,
-              onSigned: (_) {},
-            );
-          },
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme,
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return CertSignatureStep(
+                requiresCustomerSig: true,
+                clientLabel: 'Client',
+                initialClientName: name,
+                clientNameMaxLength: 50,
+                onSigned: (_) {},
+              );
+            },
+          ),
         ),
       ),
-    ));
+    );
     TextEditingController box() =>
         tester.widget<TextField>(find.byType(TextField)).controller!;
     expect(box().text, 'Sister Dlamini');
@@ -323,31 +366,34 @@ void main() {
   // The "Leave without saving?" question once a machine is chosen needs the
   // asset picker, which reads the PowerSync database — that half is the
   // phone check.
-  testWidgets('a new capture with nothing started leaves without asking',
-      (tester) async {
+  testWidgets('a new capture with nothing started leaves without asking', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2316);
     tester.view.devicePixelRatio = 1080 / 384;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [authProvider.overrideWith(_SignedIn.new)],
-      child: MaterialApp(
-        theme: appTheme,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CreateWorkOrderScreen(),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authProvider.overrideWith(_SignedIn.new)],
+        child: MaterialApp(
+          theme: appTheme,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CreateWorkOrderScreen(),
+                    ),
                   ),
+                  child: const Text('Open'),
                 ),
-                child: const Text('Open'),
               ),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
     expect(find.text('Step 1 of 3 — Machine'), findsOneWidget);

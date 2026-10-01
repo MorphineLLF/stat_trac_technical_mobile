@@ -42,41 +42,99 @@ void main() {
       expect(e?.message, message);
     }
 
-    test('no work type', () =>
-        refuses(job(workType: null), 'jobworktype', 'Choose the type of work'));
-    test('no start', () => refuses(
-      WorkOrderJob(assetId: 1, workType: WorkType.repair, finished: DateTime(2026)),
-      'datein',
-      'The date in is needed',
-    ));
-    test('no finish', () => refuses(
-      WorkOrderJob(assetId: 1, workType: WorkType.repair, started: DateTime(2026)),
-      'dateout',
-      'The date completed is needed',
-    ));
-    test('finished on an earlier day', () => refuses(
-      job(started: DateTime(2026, 10, 2, 8), finished: DateTime(2026, 10, 1, 9)),
-      'dateout',
-      'The date completed is before the date in',
-    ));
-    test('negative hours', () => refuses(
-      job(equipHrs: -1), 'equiphrs', 'Equipment hours cannot be negative'));
+    test(
+      'no work type',
+      () => refuses(
+        job(workType: null),
+        'jobworktype',
+        'Choose the type of work',
+      ),
+    );
+    test(
+      'no start',
+      () => refuses(
+        WorkOrderJob(
+          assetId: 1,
+          workType: WorkType.repair,
+          finished: DateTime(2026),
+        ),
+        'datein',
+        'The date in is needed',
+      ),
+    );
+    test(
+      'no finish',
+      () => refuses(
+        WorkOrderJob(
+          assetId: 1,
+          workType: WorkType.repair,
+          started: DateTime(2026),
+        ),
+        'dateout',
+        'The date completed is needed',
+      ),
+    );
+    test(
+      'finished on an earlier day',
+      () => refuses(
+        job(
+          started: DateTime(2026, 10, 2, 8),
+          finished: DateTime(2026, 10, 1, 9),
+        ),
+        'dateout',
+        'The date completed is before the date in',
+      ),
+    );
+    test(
+      'negative hours',
+      () => refuses(
+        job(equipHrs: -1),
+        'equiphrs',
+        'Equipment hours cannot be negative',
+      ),
+    );
     // Stricter than the server here, and deliberately: the server checks
     // only for a negative, and a larger number fails the database's integer
     // column as a 500 that holds the whole queue for ever.
-    test('hours too large', () => refuses(
-      job(equipHrs: 1000000000), 'equiphrs', 'Equipment hours is too large'));
-    test('N.O.P too large', () => refuses(
-      job(nop: 1000000000), 'nop', 'N.O.P is too large'));
+    test(
+      'hours too large',
+      () => refuses(
+        job(equipHrs: 1000000000),
+        'equiphrs',
+        'Equipment hours is too large',
+      ),
+    );
+    test(
+      'N.O.P too large',
+      () => refuses(job(nop: 1000000000), 'nop', 'N.O.P is too large'),
+    );
     test('the largest nine-digit values are allowed', () {
       expect(job(equipHrs: 999999999, nop: 999999999).validate(), isNull);
     });
-    test('fault too long', () => refuses(
-      job(fault: 'x' * 201), 'jobfault', 'The fault is longer than 200 characters'));
-    test('notes too long', () => refuses(
-      job(note: 'x' * 101), 'jobnote', 'Comments is longer than 100 characters'));
-    test('job card no too long', () => refuses(
-      job(jobCardNo: 'x' * 31), 'jobcardno', 'The job card no is longer than 30 characters'));
+    test(
+      'fault too long',
+      () => refuses(
+        job(fault: 'x' * 201),
+        'jobfault',
+        'The fault is longer than 200 characters',
+      ),
+    );
+    test(
+      'notes too long',
+      () => refuses(
+        job(note: 'x' * 101),
+        'jobnote',
+        'Comments is longer than 100 characters',
+      ),
+    );
+    test(
+      'job card no too long',
+      () => refuses(
+        job(jobCardNo: 'x' * 31),
+        'jobcardno',
+        'The job card no is longer than 30 characters',
+      ),
+    );
   });
 
   // The server compares dates, not times. A job that ends earlier in the
@@ -84,8 +142,10 @@ void main() {
   // stricter than the server.
   test('same day, time out before time in, is allowed', () {
     expect(
-      job(started: DateTime(2026, 10, 1, 10), finished: DateTime(2026, 10, 1, 9))
-          .validate(),
+      job(
+        started: DateTime(2026, 10, 1, 10),
+        finished: DateTime(2026, 10, 1, 9),
+      ).validate(),
       isNull,
     );
   });

@@ -87,8 +87,7 @@ class SyncUploadClient {
   }
 
   static String _transportMessage(DioException e) => switch (e.type) {
-    DioExceptionType.connectionError ||
-    DioExceptionType.unknown =>
+    DioExceptionType.connectionError || DioExceptionType.unknown =>
       'Cannot reach the server. This will be sent when there is signal.',
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||

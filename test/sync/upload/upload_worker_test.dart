@@ -14,7 +14,9 @@ class MockClient extends Mock implements SyncUploadClient {}
 CertificateUpload _upload(String id) => CertificateUpload(
   mobileId: id,
   certificate: const {'TestAssetID': 9304},
-  lines: const [CertificateLineUpload(mobileId: 'l', data: {'TestPass': true})],
+  lines: const [
+    CertificateLineUpload(mobileId: 'l', data: {'TestPass': true}),
+  ],
 );
 
 void main() {
@@ -75,8 +77,11 @@ void main() {
       ),
     ).thenAnswer((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 50));
-      return const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
-          issued: []);
+      return const UploadApplied(
+        applied: 2,
+        assigned: {'cert-1': 5031},
+        issued: [],
+      );
     });
     final second = UploadWorker(
       queue: queue,
@@ -114,8 +119,9 @@ void main() {
 
   test('an applied certificate leaves the queue', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
-        issued: []));
+    answers(
+      const UploadApplied(applied: 2, assigned: {'cert-1': 5031}, issued: []),
+    );
 
     final result = await worker.drain();
 
@@ -125,14 +131,16 @@ void main() {
 
   test('a rejection is kept with its message and not retried', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadRejected([
-      UploadRejection(
-        table: 'TestCertificate',
-        mobileId: 'cert-1',
-        reason: 'incomplete_values',
-        message: 'not every test has a reading against it',
-      ),
-    ]));
+    answers(
+      const UploadRejected([
+        UploadRejection(
+          table: 'TestCertificate',
+          mobileId: 'cert-1',
+          reason: 'incomplete_values',
+          message: 'not every test has a reading against it',
+        ),
+      ]),
+    );
 
     await worker.drain();
 
@@ -154,20 +162,22 @@ void main() {
 
   test('a conflict is kept for a person to resolve', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadConflict([
-      UploadRowConflict(
-        table: 'TestCertificate',
-        mobileId: 'cert-1',
-        fields: [
-          UploadFieldDiff(
-            field: 'TestDate',
-            mine: '2026-09-05',
-            server: '2026-01-31',
-            differs: true,
-          ),
-        ],
-      ),
-    ]));
+    answers(
+      const UploadConflict([
+        UploadRowConflict(
+          table: 'TestCertificate',
+          mobileId: 'cert-1',
+          fields: [
+            UploadFieldDiff(
+              field: 'TestDate',
+              mine: '2026-09-05',
+              server: '2026-01-31',
+              differs: true,
+            ),
+          ],
+        ),
+      ]),
+    );
 
     await worker.drain();
 
@@ -190,42 +200,46 @@ void main() {
     expect((await queue.pending()).first.attempts, 1);
   });
 
-  test('an oversized batch is parked and the rest of the queue drains',
-      () async {
-    await queue.enqueue(_upload('cert-1'));
-    await queue.enqueue(_upload('cert-2'));
-    answers(const UploadTooLarge('1300 KB and the server accepts 1024 KB'));
+  test(
+    'an oversized batch is parked and the rest of the queue drains',
+    () async {
+      await queue.enqueue(_upload('cert-1'));
+      await queue.enqueue(_upload('cert-2'));
+      answers(const UploadTooLarge('1300 KB and the server accepts 1024 KB'));
 
-    final result = await worker.drain();
+      final result = await worker.drain();
 
-    // Unlike no signal, this says nothing about the certificates behind it —
-    // one fat certificate must not hold up a technician's whole day.
-    expect(result.attempted, 2);
-    expect(result.stoppedForSignal, isFalse);
-    expect(
-      (await queue.all()).map((e) => e.status),
-      everyElement(UploadStatus.failed),
-    );
-    expect((await queue.pending()), isEmpty);
-  });
+      // Unlike no signal, this says nothing about the certificates behind it —
+      // one fat certificate must not hold up a technician's whole day.
+      expect(result.attempted, 2);
+      expect(result.stoppedForSignal, isFalse);
+      expect(
+        (await queue.all()).map((e) => e.status),
+        everyElement(UploadStatus.failed),
+      );
+      expect((await queue.pending()), isEmpty);
+    },
+  );
 
-  test('a dead device token stays pending and stops the run for sign-in',
-      () async {
-    await queue.enqueue(_upload('cert-1'));
-    await queue.enqueue(_upload('cert-2'));
-    answers(const UploadAuthExpired('sign in first'));
+  test(
+    'a dead device token stays pending and stops the run for sign-in',
+    () async {
+      await queue.enqueue(_upload('cert-1'));
+      await queue.enqueue(_upload('cert-2'));
+      answers(const UploadAuthExpired('sign in first'));
 
-    final result = await worker.drain();
+      final result = await worker.drain();
 
-    // The certificate is not at fault and must not be condemned — it goes up
-    // once somebody signs in. But every other batch carries the same dead
-    // token, so there is nothing to gain by trying them.
-    expect(result.attempted, 1);
-    expect(result.stoppedForAuth, isTrue);
-    expect(result.stoppedForSignal, isFalse);
-    expect((await queue.pending()), hasLength(2));
-    expect((await queue.pending()).first.lastError, contains('sign in'));
-  });
+      // The certificate is not at fault and must not be condemned — it goes up
+      // once somebody signs in. But every other batch carries the same dead
+      // token, so there is nothing to gain by trying them.
+      expect(result.attempted, 1);
+      expect(result.stoppedForAuth, isTrue);
+      expect(result.stoppedForSignal, isFalse);
+      expect((await queue.pending()), hasLength(2));
+      expect((await queue.pending()).first.lastError, contains('sign in'));
+    },
+  );
 
   _benignOnlyWhenNothingIsLost();
 
@@ -261,8 +275,9 @@ void main() {
     // one row op means the reading did not land. A 200 said success and the
     // count that contradicted it used to be discarded.
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadApplied(applied: 1, assigned: {'cert-1': 5031},
-        issued: []));
+    answers(
+      const UploadApplied(applied: 1, assigned: {'cert-1': 5031}, issued: []),
+    );
 
     final result = await worker.drain();
 
@@ -278,8 +293,9 @@ void main() {
 
   test('a full apply is archived with nothing short', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
-        issued: []));
+    answers(
+      const UploadApplied(applied: 2, assigned: {'cert-1': 5031}, issued: []),
+    );
 
     final result = await worker.drain();
 
@@ -311,8 +327,9 @@ void main() {
     // names the certificate by the uuid it travelled under and by nothing
     // else, and the queue row is gone the moment it succeeds.
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
-        issued: []));
+    answers(
+      const UploadApplied(applied: 2, assigned: {'cert-1': 5031}, issued: []),
+    );
 
     await worker.drain();
 
@@ -328,28 +345,33 @@ void main() {
     expect(confirmed, isEmpty);
   });
 
-  test('a server that will not promise a cert ref is reported, not trusted',
-      () async {
-    await queue.enqueue(_upload('cert-1'));
-    // A 200 with no enforces: the shape of the build that orphaned 46
-    // readings while reporting success.
-    answers(const UploadApplied(applied: 2, assigned: {'cert-1': 5031},
-        issued: []));
+  test(
+    'a server that will not promise a cert ref is reported, not trusted',
+    () async {
+      await queue.enqueue(_upload('cert-1'));
+      // A 200 with no enforces: the shape of the build that orphaned 46
+      // readings while reporting success.
+      answers(
+        const UploadApplied(applied: 2, assigned: {'cert-1': 5031}, issued: []),
+      );
 
-    final result = await worker.drain();
+      final result = await worker.drain();
 
-    expect(result.applied, 1);
-    expect(result.unguaranteed, 1);
-  });
+      expect(result.applied, 1);
+      expect(result.unguaranteed, 1);
+    },
+  );
 
   test('a server that does promise it is not flagged', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadApplied(
-      applied: 2,
-      assigned: {'cert-1': 5031},
-      issued: [],
-      enforces: ['cert_ref_required'],
-    ));
+    answers(
+      const UploadApplied(
+        applied: 2,
+        assigned: {'cert-1': 5031},
+        issued: [],
+        enforces: ['cert_ref_required'],
+      ),
+    );
 
     final result = await worker.drain();
 
@@ -375,14 +397,16 @@ void main() {
         ],
       ),
     );
-    answers(const UploadRejected([
-      UploadRejection(
-        table: 'TestCertificate',
-        mobileId: 'cert-1',
-        reason: 'already_signed',
-        message: 'that side has already signed',
-      ),
-    ]));
+    answers(
+      const UploadRejected([
+        UploadRejection(
+          table: 'TestCertificate',
+          mobileId: 'cert-1',
+          reason: 'already_signed',
+          message: 'that side has already signed',
+        ),
+      ]),
+    );
 
     final result = await worker.drain();
 
@@ -393,14 +417,16 @@ void main() {
 
   test('no_client_signature is held for the technician', () async {
     await queue.enqueue(_upload('cert-1'));
-    answers(const UploadRejected([
-      UploadRejection(
-        table: 'TestCertificate',
-        mobileId: 'cert-1',
-        reason: 'no_client_signature',
-        message: 'this design does not ask for a client signature',
-      ),
-    ]));
+    answers(
+      const UploadRejected([
+        UploadRejection(
+          table: 'TestCertificate',
+          mobileId: 'cert-1',
+          reason: 'no_client_signature',
+          message: 'this design does not ask for a client signature',
+        ),
+      ]),
+    );
 
     await worker.drain();
 
@@ -415,48 +441,51 @@ void main() {
 // readings, and none of them landed, calling it benign deletes the queue row
 // and the work with it — refused, and reported as done.
 void _benignOnlyWhenNothingIsLost() {
-  test('an already_issued that also carried unapplied readings is kept', () async {
-    late Database db;
-    late UploadQueue queue;
-    late MockClient client;
-    late UploadWorker worker;
+  test(
+    'an already_issued that also carried unapplied readings is kept',
+    () async {
+      late Database db;
+      late UploadQueue queue;
+      late MockClient client;
+      late UploadWorker worker;
 
-    db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
-    await UploadQueue.createTable(db);
-    await UploadArchive.createTable(db);
-    queue = UploadQueue(db);
-    client = MockClient();
-    worker = UploadWorker(
-      queue: queue,
-      archive: UploadArchive(db),
-      client: client,
-      confirm: (_, _) async => true,
-      company: () async => 'demo',
-      deviceToken: () async => 'token',
-    );
+      db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await UploadQueue.createTable(db);
+      await UploadArchive.createTable(db);
+      queue = UploadQueue(db);
+      client = MockClient();
+      worker = UploadWorker(
+        queue: queue,
+        archive: UploadArchive(db),
+        client: client,
+        confirm: (_, _) async => true,
+        company: () async => 'demo',
+        deviceToken: () async => 'token',
+      );
 
-    await queue.enqueue(_upload('cert-1'));
-    when(
-      () => client.upload(
-        company: any(named: 'company'),
-        deviceToken: any(named: 'deviceToken'),
-        upload: any(named: 'upload'),
-      ),
-    ).thenAnswer(
-      (_) async => const UploadRejected([
-        UploadRejection(
-          table: 'TestCertificate',
-          mobileId: 'cert-1',
-          reason: UploadRejectionReason.alreadyIssued,
-          message: 'the certificate is closed',
+      await queue.enqueue(_upload('cert-1'));
+      when(
+        () => client.upload(
+          company: any(named: 'company'),
+          deviceToken: any(named: 'deviceToken'),
+          upload: any(named: 'upload'),
         ),
-      ]),
-    );
+      ).thenAnswer(
+        (_) async => const UploadRejected([
+          UploadRejection(
+            table: 'TestCertificate',
+            mobileId: 'cert-1',
+            reason: UploadRejectionReason.alreadyIssued,
+            message: 'the certificate is closed',
+          ),
+        ]),
+      );
 
-    await worker.drain();
+      await worker.drain();
 
-    // Kept, not swallowed: the readings never landed.
-    expect((await queue.all()).single.status, UploadStatus.rejected);
-    await db.close();
-  });
+      // Kept, not swallowed: the readings never landed.
+      expect((await queue.all()).single.status, UploadStatus.rejected);
+      await db.close();
+    },
+  );
 }

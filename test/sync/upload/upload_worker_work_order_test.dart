@@ -75,8 +75,14 @@ void main() {
   test('applied: archived, then gone from the queue, never confirmed as a '
       'certificate', () async {
     await queue.enqueue(_wo('wo-1'));
-    answers(const UploadApplied(applied: 0, assigned: {'wo-1': 1801},
-        issued: [], enforces: _ready));
+    answers(
+      const UploadApplied(
+        applied: 0,
+        assigned: {'wo-1': 1801},
+        issued: [],
+        enforces: _ready,
+      ),
+    );
 
     final r = await worker.drain();
 
@@ -89,20 +95,27 @@ void main() {
 
   // An older server refuses `capture` as a 400 and applies nothing. That is
   // "not ready yet", not a broken app — the job must wait, not be parked.
-  test('a 400 from a server without the actions keeps the job pending',
-      () async {
-    await queue.enqueue(_wo('wo-1'));
-    answers(const UploadClientError('"capture" is not something a device may '
-        'ask for', enforces: ['batch_atomic']));
+  test(
+    'a 400 from a server without the actions keeps the job pending',
+    () async {
+      await queue.enqueue(_wo('wo-1'));
+      answers(
+        const UploadClientError(
+          '"capture" is not something a device may '
+          'ask for',
+          enforces: ['batch_atomic'],
+        ),
+      );
 
-    final r = await worker.drain();
+      final r = await worker.drain();
 
-    final e = (await queue.all()).single;
-    expect(e.status, UploadStatus.pending);
-    expect(e.lastError, UploadWorker.serverNotReady);
-    expect(r.waitingForServer, 1);
-    expect(r.failed, 0);
-  });
+      final e = (await queue.all()).single;
+      expect(e.status, UploadStatus.pending);
+      expect(e.lastError, UploadWorker.serverNotReady);
+      expect(r.waitingForServer, 1);
+      expect(r.failed, 0);
+    },
+  );
 
   // Asked once per drain, not never again: a server updated after the gate
   // closed must be found out without anyone reinstalling the app.
@@ -117,39 +130,49 @@ void main() {
     expect((await queue.all()).single.status, UploadStatus.pending);
   });
 
-  test('a closed gate sends one probe per drain, however many are held',
-      () async {
-    await queue.enqueue(_wo('wo-1'));
-    answers(const UploadClientError('no', enforces: ['batch_atomic']));
-    await worker.drain();
-    await queue.enqueue(_wo('wo-2'));
-    clearInteractions(client);
+  test(
+    'a closed gate sends one probe per drain, however many are held',
+    () async {
+      await queue.enqueue(_wo('wo-1'));
+      answers(const UploadClientError('no', enforces: ['batch_atomic']));
+      await worker.drain();
+      await queue.enqueue(_wo('wo-2'));
+      clearInteractions(client);
 
-    final r = await worker.drain();
+      final r = await worker.drain();
 
-    expect(sends(), 1);
-    expect(r.waitingForServer, 2);
-    final left = await queue.all();
-    expect(left, hasLength(2));
-    expect(left.every((e) => e.status == UploadStatus.pending), isTrue);
-  });
+      expect(sends(), 1);
+      expect(r.waitingForServer, 2);
+      final left = await queue.all();
+      expect(left, hasLength(2));
+      expect(left.every((e) => e.status == UploadStatus.pending), isTrue);
+    },
+  );
 
-  test('a server updated after the gate closed takes the held work orders',
-      () async {
-    await queue.enqueue(_wo('wo-1'));
-    await queue.enqueue(_wo('wo-2'));
-    answers(const UploadClientError('no', enforces: ['batch_atomic']));
-    await worker.drain();
-    expect(await queue.count(), 2);
+  test(
+    'a server updated after the gate closed takes the held work orders',
+    () async {
+      await queue.enqueue(_wo('wo-1'));
+      await queue.enqueue(_wo('wo-2'));
+      answers(const UploadClientError('no', enforces: ['batch_atomic']));
+      await worker.drain();
+      expect(await queue.count(), 2);
 
-    answers(const UploadApplied(applied: 0, assigned: {}, issued: [],
-        enforces: _ready));
-    final r = await worker.drain();
+      answers(
+        const UploadApplied(
+          applied: 0,
+          assigned: {},
+          issued: [],
+          enforces: _ready,
+        ),
+      );
+      final r = await worker.drain();
 
-    expect(r.appliedWorkOrders, 2);
-    expect(r.waitingForServer, 0);
-    expect(await queue.count(), 0);
-  });
+      expect(r.appliedWorkOrders, 2);
+      expect(r.waitingForServer, 0);
+      expect(await queue.count(), 0);
+    },
+  );
 
   test('a 400 from a server that does take them is a real failure', () async {
     await queue.enqueue(_wo('wo-1'));
@@ -161,14 +184,25 @@ void main() {
     expect(r.failed, 1);
   });
 
-  for (final reason in ['open_work_order', 'asset_on_loan', 'asset_inactive',
-      'not_found', 'already_signed']) {
+  for (final reason in [
+    'open_work_order',
+    'asset_on_loan',
+    'asset_inactive',
+    'not_found',
+    'already_signed',
+  ]) {
     test('$reason sets the job aside and never deletes it', () async {
       await queue.enqueue(_wo('wo-1'));
-      answers(UploadRejected([
-        UploadRejection(table: 'Repair', mobileId: 'wo-1', reason: reason,
-            message: 'refused'),
-      ], enforces: _ready));
+      answers(
+        UploadRejected([
+          UploadRejection(
+            table: 'Repair',
+            mobileId: 'wo-1',
+            reason: reason,
+            message: 'refused',
+          ),
+        ], enforces: _ready),
+      );
 
       await worker.drain();
 
@@ -180,38 +214,48 @@ void main() {
 
   test('invalid keeps the field', () async {
     await queue.enqueue(_wo('wo-1'));
-    answers(const UploadRejected([
-      UploadRejection(table: 'Repair', mobileId: 'wo-1', reason: 'invalid',
-          message: 'Choose the type of work', field: 'jobworktype'),
-    ], enforces: _ready));
+    answers(
+      const UploadRejected([
+        UploadRejection(
+          table: 'Repair',
+          mobileId: 'wo-1',
+          reason: 'invalid',
+          message: 'Choose the type of work',
+          field: 'jobworktype',
+        ),
+      ], enforces: _ready),
+    );
 
     await worker.drain();
 
     expect((await queue.all()).single.field, 'jobworktype');
   });
 
-  test('no signal: stays pending, unchanged, for the identical resend',
-      () async {
-    final wo = _wo('wo-1');
-    await queue.enqueue(wo);
-    answers(const UploadTransportError(0, 'Cannot reach the server.'));
+  test(
+    'no signal: stays pending, unchanged, for the identical resend',
+    () async {
+      final wo = _wo('wo-1');
+      await queue.enqueue(wo);
+      answers(const UploadTransportError(0, 'Cannot reach the server.'));
 
-    await worker.drain();
+      await worker.drain();
 
-    final e = (await queue.all()).single;
-    expect(e.status, UploadStatus.pending);
-    expect(e.upload.toJson(), wo.toJson());
-  });
+      final e = (await queue.all()).single;
+      expect(e.status, UploadStatus.pending);
+      expect(e.upload.toJson(), wo.toJson());
+    },
+  );
 
   // The local size check never reached the server, so it says nothing about
   // what the server takes.
-  test('a local too-large result does not close the work-order gate',
-      () async {
-    await queue.enqueue(CertificateUpload(
-      mobileId: 'cert-big',
-      certificate: const {'TestAssetID': 1},
-      lines: const [],
-    ));
+  test('a local too-large result does not close the work-order gate', () async {
+    await queue.enqueue(
+      CertificateUpload(
+        mobileId: 'cert-big',
+        certificate: const {'TestAssetID': 1},
+        lines: const [],
+      ),
+    );
     await queue.enqueue(_wo('wo-1'));
     when(
       () => client.upload(
@@ -222,8 +266,12 @@ void main() {
     ).thenAnswer((i) async {
       final u = i.namedArguments[#upload] as dynamic;
       return u is WorkOrderUpload
-          ? const UploadApplied(applied: 0, assigned: {'wo-1': 1801},
-              issued: [], enforces: _ready)
+          ? const UploadApplied(
+              applied: 0,
+              assigned: {'wo-1': 1801},
+              issued: [],
+              enforces: _ready,
+            )
           : const UploadTooLarge('too big');
     });
 
@@ -239,11 +287,13 @@ void main() {
     answers(const UploadClientError('no', enforces: ['batch_atomic']));
     await worker.drain();
 
-    await queue.enqueue(CertificateUpload(
-      mobileId: 'cert-1',
-      certificate: const {'TestAssetID': 1},
-      lines: const [],
-    ));
+    await queue.enqueue(
+      CertificateUpload(
+        mobileId: 'cert-1',
+        certificate: const {'TestAssetID': 1},
+        lines: const [],
+      ),
+    );
     when(
       () => client.upload(
         company: any(named: 'company'),
@@ -255,8 +305,12 @@ void main() {
       // The work order is probed again and the server still refuses it.
       return u is WorkOrderUpload
           ? const UploadClientError('no', enforces: ['batch_atomic'])
-          : const UploadApplied(applied: 1, assigned: {'cert-1': 77},
-              issued: [], enforces: ['batch_atomic']);
+          : const UploadApplied(
+              applied: 1,
+              assigned: {'cert-1': 77},
+              issued: [],
+              enforces: ['batch_atomic'],
+            );
     });
 
     final r = await worker.drain();

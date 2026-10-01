@@ -65,13 +65,19 @@ class WorkOrderJob {
 
   WorkOrderFieldError? validate() {
     if (workType == null) {
-      return const WorkOrderFieldError('jobworktype', 'Choose the type of work');
+      return const WorkOrderFieldError(
+        'jobworktype',
+        'Choose the type of work',
+      );
     }
     if (started == null) {
       return const WorkOrderFieldError('datein', 'The date in is needed');
     }
     if (finished == null) {
-      return const WorkOrderFieldError('dateout', 'The date completed is needed');
+      return const WorkOrderFieldError(
+        'dateout',
+        'The date completed is needed',
+      );
     }
     // Dates, not times — the server compares the two dates only.
     if (_day(finished!).isBefore(_day(started!))) {
@@ -91,7 +97,10 @@ class WorkOrderJob {
     // which the outbox reads as no signal — and the job then blocks every
     // upload behind it for ever. Nine digits is the form's limit too.
     if ((equipHrs ?? 0) > maxCount) {
-      return const WorkOrderFieldError('equiphrs', 'Equipment hours is too large');
+      return const WorkOrderFieldError(
+        'equiphrs',
+        'Equipment hours is too large',
+      );
     }
     if ((nop ?? 0) > maxCount) {
       return const WorkOrderFieldError('nop', 'N.O.P is too large');
@@ -104,7 +113,10 @@ class WorkOrderJob {
       ('jobnote', 'Comments', note, maxNote),
     ]) {
       if (value.trim().runes.length > max) {
-        return WorkOrderFieldError(field, '$label is longer than $max characters');
+        return WorkOrderFieldError(
+          field,
+          '$label is longer than $max characters',
+        );
       }
     }
     return null;

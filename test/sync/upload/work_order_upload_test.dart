@@ -46,18 +46,33 @@ void main() {
 
   test('both signatures and a client name are required', () {
     expect(
-      () => WorkOrderUpload(mobileId: 'w', capture: const {}, techPng: '',
-          clientPng: 'B', clientName: 'x'),
+      () => WorkOrderUpload(
+        mobileId: 'w',
+        capture: const {},
+        techPng: '',
+        clientPng: 'B',
+        clientName: 'x',
+      ),
       throwsArgumentError,
     );
     expect(
-      () => WorkOrderUpload(mobileId: 'w', capture: const {}, techPng: 'A',
-          clientPng: '', clientName: 'x'),
+      () => WorkOrderUpload(
+        mobileId: 'w',
+        capture: const {},
+        techPng: 'A',
+        clientPng: '',
+        clientName: 'x',
+      ),
       throwsArgumentError,
     );
     expect(
-      () => WorkOrderUpload(mobileId: 'w', capture: const {}, techPng: 'A',
-          clientPng: 'B', clientName: '  '),
+      () => WorkOrderUpload(
+        mobileId: 'w',
+        capture: const {},
+        techPng: 'A',
+        clientPng: 'B',
+        clientName: '  ',
+      ),
       throwsArgumentError,
     );
   });

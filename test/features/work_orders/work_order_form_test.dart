@@ -5,28 +5,31 @@ import 'package:stat_trac_technical/features/work_orders/domain/work_order_job.d
 import 'package:stat_trac_technical/features/work_orders/presentation/widgets/work_order_form.dart';
 
 void main() {
-  Future<List<WorkOrderJob>> pump(WidgetTester tester, {
+  Future<List<WorkOrderJob>> pump(
+    WidgetTester tester, {
     WorkOrderFieldError? serverError,
   }) async {
     tester.view.physicalSize = const Size(1080, 2316);
     tester.view.devicePixelRatio = 1080 / 384;
     addTearDown(tester.view.reset);
     final changes = <WorkOrderJob>[];
-    await tester.pumpWidget(MaterialApp(
-      theme: appTheme,
-      home: Scaffold(
-        body: WorkOrderForm(
-          job: WorkOrderJob(
-            assetId: 100,
-            started: DateTime(2026, 10, 1, 8),
-            finished: DateTime(2026, 10, 1, 10),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme,
+        home: Scaffold(
+          body: WorkOrderForm(
+            job: WorkOrderJob(
+              assetId: 100,
+              started: DateTime(2026, 10, 1, 8),
+              finished: DateTime(2026, 10, 1, 10),
+            ),
+            technicianName: 'Athi',
+            serverError: serverError,
+            onChanged: changes.add,
           ),
-          technicianName: 'Athi',
-          serverError: serverError,
-          onChanged: changes.add,
         ),
       ),
-    ));
+    );
     return changes;
   }
 
@@ -54,8 +57,10 @@ void main() {
   });
 
   testWidgets('a server refusal shows under its box', (tester) async {
-    await pump(tester,
-        serverError: const WorkOrderFieldError('jobfault', 'Too long'));
+    await pump(
+      tester,
+      serverError: const WorkOrderFieldError('jobfault', 'Too long'),
+    );
     expect(find.text('Too long'), findsOneWidget);
   });
 }

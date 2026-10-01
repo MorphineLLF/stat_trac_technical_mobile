@@ -32,20 +32,23 @@ class WorkOrderListScreen extends ConsumerWidget {
             ],
           ),
           error: (e, _) => ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-            Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('Work orders could not be read — pull to retry'),
-            ),
-          ]),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('Work orders could not be read — pull to retry'),
+              ),
+            ],
+          ),
           data: (w) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               if (!w.syncedComplete)
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('Synced work orders still loading — pull to retry'),
+                  child: Text(
+                    'Synced work orders still loading — pull to retry',
+                  ),
                 ),
               if (w.items.isEmpty && w.syncedComplete)
                 const Padding(
@@ -81,25 +84,34 @@ class _Row extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text([
-              if (item.dateIn != null) DateFormat('dd MMM yyyy').format(item.dateIn!),
-              ?item.workType?.label,
-            ].join(' · ')),
+            Text(
+              [
+                if (item.dateIn != null)
+                  DateFormat('dd MMM yyyy').format(item.dateIn!),
+                ?item.workType?.label,
+              ].join(' · '),
+            ),
             if (asset != null)
-              Text([asset.equipment, asset.serial, asset.hospital]
-                  .whereType<String>()
-                  .join(' · ')),
+              Text(
+                [
+                  asset.equipment,
+                  asset.serial,
+                  asset.hospital,
+                ].whereType<String>().join(' · '),
+              ),
             if (setAside && item.message != null)
               Text(item.message!, style: const TextStyle(color: brandError)),
           ],
         ),
         trailing: Text(item.status, style: TextStyle(color: colour)),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => WorkOrderDetailScreen(
-            trackId: item.trackId,
-            mobileId: item.mobileId,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => WorkOrderDetailScreen(
+              trackId: item.trackId,
+              mobileId: item.mobileId,
+            ),
           ),
-        )),
+        ),
       ),
     );
   }

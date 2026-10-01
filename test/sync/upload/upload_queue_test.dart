@@ -61,15 +61,17 @@ void main() {
     });
 
     test('the issue decisions survive the round trip', () async {
-      await queue.enqueue(_upload(
-        'cert-2',
-        issue: const CertificateIssue(
-          verdict: 0,
-          notes: 'failed leakage',
-          nextService: '2027-03-01',
-          completePmWorkOrder: true,
+      await queue.enqueue(
+        _upload(
+          'cert-2',
+          issue: const CertificateIssue(
+            verdict: 0,
+            notes: 'failed leakage',
+            nextService: '2027-03-01',
+            completePmWorkOrder: true,
+          ),
         ),
-      ));
+      );
 
       final issue =
           ((await queue.pending()).single.upload as CertificateUpload).issue!;
@@ -83,13 +85,15 @@ void main() {
 
     // A retried save must not queue the same certificate twice — the mobile
     // id is the identity, on the device as well as on the server.
-    test('re-queueing the same certificate replaces rather than duplicates',
-        () async {
-      await queue.enqueue(_upload('cert-1'));
-      await queue.enqueue(_upload('cert-1'));
+    test(
+      're-queueing the same certificate replaces rather than duplicates',
+      () async {
+        await queue.enqueue(_upload('cert-1'));
+        await queue.enqueue(_upload('cert-1'));
 
-      expect(await queue.pending(), hasLength(1));
-    });
+        expect(await queue.pending(), hasLength(1));
+      },
+    );
   });
 
   group('draining', () {
@@ -103,47 +107,56 @@ void main() {
       expect(await queue.count(), 0);
     });
 
-    test('a conflicted certificate stays, and stays out of the retry set',
-        () async {
-      await queue.enqueue(_upload('cert-1'));
-      await queue.markConflicted('cert-1', 'TestDate differs');
+    test(
+      'a conflicted certificate stays, and stays out of the retry set',
+      () async {
+        await queue.enqueue(_upload('cert-1'));
+        await queue.markConflicted('cert-1', 'TestDate differs');
 
-      expect(await queue.pending(), isEmpty);
-      final all = await queue.all();
-      expect(all.single.status, UploadStatus.conflicted);
-      expect(all.single.lastError, contains('TestDate'));
-    });
+        expect(await queue.pending(), isEmpty);
+        final all = await queue.all();
+        expect(all.single.status, UploadStatus.conflicted);
+        expect(all.single.lastError, contains('TestDate'));
+      },
+    );
 
     // 422 is understood-and-refused. Retrying it forever would be the app
     // arguing with an answer.
-    test('a rejected certificate keeps its reason and is not retried',
-        () async {
-      await queue.enqueue(_upload('cert-1'));
-      await queue.markRejected(
-        'cert-1',
-        reason: 'incomplete_values',
-        message: 'not every test has a reading against it',
-      );
+    test(
+      'a rejected certificate keeps its reason and is not retried',
+      () async {
+        await queue.enqueue(_upload('cert-1'));
+        await queue.markRejected(
+          'cert-1',
+          reason: 'incomplete_values',
+          message: 'not every test has a reading against it',
+        );
 
-      expect(await queue.pending(), isEmpty);
-      final entry = (await queue.all()).single;
-      expect(entry.status, UploadStatus.rejected);
-      expect(entry.reason, 'incomplete_values');
-      expect(entry.lastError, contains('reading'));
-    });
+        expect(await queue.pending(), isEmpty);
+        final entry = (await queue.all()).single;
+        expect(entry.status, UploadStatus.rejected);
+        expect(entry.reason, 'incomplete_values');
+        expect(entry.lastError, contains('reading'));
+      },
+    );
 
     // ...but the technician can fix it on the device and send it again, so
     // the state must be leavable.
-    test('a rejected certificate can be re-queued after being corrected',
-        () async {
-      await queue.enqueue(_upload('cert-1'));
-      await queue.markRejected('cert-1', reason: 'incomplete_values',
-          message: 'x');
-      await queue.enqueue(_upload('cert-1'));
+    test(
+      'a rejected certificate can be re-queued after being corrected',
+      () async {
+        await queue.enqueue(_upload('cert-1'));
+        await queue.markRejected(
+          'cert-1',
+          reason: 'incomplete_values',
+          message: 'x',
+        );
+        await queue.enqueue(_upload('cert-1'));
 
-      expect(await queue.pending(), hasLength(1));
-      expect((await queue.all()).single.status, UploadStatus.pending);
-    });
+        expect(await queue.pending(), hasLength(1));
+        expect((await queue.all()).single.status, UploadStatus.pending);
+      },
+    );
   });
 
   group('retrying', () {
@@ -194,9 +207,10 @@ void main() {
       await queue.enqueue(_upload('cert-1'));
       await queue.enqueue(_upload('cert-2'));
       await queue.discard('cert-1');
-      expect([for (final e in await queue.all()) e.upload.mobileId], [
-        'cert-2',
-      ]);
+      expect(
+        [for (final e in await queue.all()) e.upload.mobileId],
+        ['cert-2'],
+      );
     });
   });
 }

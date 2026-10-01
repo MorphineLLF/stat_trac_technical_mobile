@@ -41,16 +41,19 @@ void main() {
       expect(data['client_name'], 'A. Sister');
     });
 
-    test('a client signature with no name is refused here, not at the wire', () {
-      expect(
-        () => SyncUploadOp.sign(
-          mobileId: 'cert-1',
-          which: SignatureSide.client,
-          png: _png,
-        ),
-        throwsArgumentError,
-      );
-    });
+    test(
+      'a client signature with no name is refused here, not at the wire',
+      () {
+        expect(
+          () => SyncUploadOp.sign(
+            mobileId: 'cert-1',
+            which: SignatureSide.client,
+            png: _png,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
 
     test('a name on a tech signature is refused, unknown fields are kept', () {
       expect(
@@ -137,7 +140,6 @@ void main() {
       // The server still matches it to the certificate by mobile id.
       expect(upload.mobileId, 'cert-1');
     });
-
 
     test('a signatures-only batch sends no certificate row op', () {
       // An op naming no known column is refused outright, and a batch is all

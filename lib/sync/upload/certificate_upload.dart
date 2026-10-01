@@ -46,15 +46,21 @@ class CertificateUpload implements QueuedUpload {
   }
 
   /// Columns the device must never set, and why.
-  static const _serverOwned = ['TestTotalTest', 'TestTotalDone',
-      'TestNextService'];
+  static const _serverOwned = [
+    'TestTotalTest',
+    'TestTotalDone',
+    'TestNextService',
+  ];
 
   static const _serverOwnedReason = {
-    'TestTotalTest': 'the server counts the actual lines, and a second '
+    'TestTotalTest':
+        'the server counts the actual lines, and a second '
         'opinion on a fact is only ever a disagreement',
-    'TestTotalDone': 'the server counts the actual lines, and a second '
+    'TestTotalDone':
+        'the server counts the actual lines, and a second '
         'opinion on a fact is only ever a disagreement',
-    'TestNextService': 'it is written by the issue op from next_service, '
+    'TestNextService':
+        'it is written by the issue op from next_service, '
         'which also moves the PM schedule — setting the column directly '
         'would bypass both the design switch and the schedule move',
   };
@@ -126,9 +132,7 @@ class CertificateUpload implements QueuedUpload {
         queueKey: j['queue_key'] as String?,
         signatures: [
           for (final g in (j['signatures'] as List?) ?? const [])
-            CertificateSignature.fromJson(
-              Map<String, Object?>.from(g as Map),
-            ),
+            CertificateSignature.fromJson(Map<String, Object?>.from(g as Map)),
         ],
       );
 
@@ -259,7 +263,6 @@ class CertificateIssue {
     'complete_pm_job_card': completePmJobCard,
   };
 }
-
 
 /// One side's signature, as it travels.
 ///

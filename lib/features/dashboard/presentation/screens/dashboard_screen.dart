@@ -323,18 +323,16 @@ class _HomeBody extends ConsumerWidget {
               capturedCount: s.capturedThisMonth,
               certsCount: s.pendingCerts,
             ),
-            loading: () =>
-                const _PendingTasksRow(
-                  woCount: 0,
-                  capturedCount: 0,
-                  certsCount: 0,
-                ),
-            error: (e, _) =>
-                const _PendingTasksRow(
-                  woCount: 0,
-                  capturedCount: 0,
-                  certsCount: 0,
-                ),
+            loading: () => const _PendingTasksRow(
+              woCount: 0,
+              capturedCount: 0,
+              certsCount: 0,
+            ),
+            error: (e, _) => const _PendingTasksRow(
+              woCount: 0,
+              capturedCount: 0,
+              certsCount: 0,
+            ),
           ),
           const SizedBox(height: 16),
           const DashboardModuleGrid(),

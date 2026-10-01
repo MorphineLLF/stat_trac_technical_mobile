@@ -45,9 +45,6 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await expectLater(
-      container.read(uploadWorkerProvider.future),
-      completes,
-    );
+    await expectLater(container.read(uploadWorkerProvider.future), completes);
   });
 }

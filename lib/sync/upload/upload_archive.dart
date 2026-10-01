@@ -75,14 +75,13 @@ class UploadArchive {
       for (final r in rows)
         UploadArchiveEntry(
           mobileId: r['mobile_id']! as String,
-          archivedAt:
-              DateTime.parse(r['archived_at']! as String),
+          archivedAt: DateTime.parse(r['archived_at']! as String),
           opsSent: (r['ops_sent'] as num).toInt(),
           linesSent: (r['lines_sent'] as num).toInt(),
           applied: (r['applied'] as num).toInt(),
           assigned: {
-            for (final e in (jsonDecode(r['assigned']! as String) as Map)
-                .entries)
+            for (final e
+                in (jsonDecode(r['assigned']! as String) as Map).entries)
               e.key as String: (e.value as num).toInt(),
           },
           upload: fromQueuedJson(

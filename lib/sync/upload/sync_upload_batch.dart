@@ -170,7 +170,12 @@ class SyncUploadOp {
     });
   }
 
-  static const _technicianKeys = {'tech', 'tech_id', 'RepairTech', 'RepairTechID'};
+  static const _technicianKeys = {
+    'tech',
+    'tech_id',
+    'RepairTech',
+    'RepairTechID',
+  };
 
   /// Attach a signature to a certificate or, with [table] `Repair`, to a captured work order's job card.
   ///
@@ -252,7 +257,6 @@ class SyncUploadOp {
 
   Map<String, Object?> toJson() => _json;
 }
-
 
 /// Which side of a certificate a signature belongs to.
 ///

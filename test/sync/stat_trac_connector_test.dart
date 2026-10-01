@@ -56,9 +56,9 @@ void main() {
     });
 
     test('returns null when no company has been stored', () async {
-      when(() => local.readDeviceToken()).thenAnswer(
-        (_) async => _validDeviceToken(),
-      );
+      when(
+        () => local.readDeviceToken(),
+      ).thenAnswer((_) async => _validDeviceToken());
       when(() => local.readDbName()).thenAnswer((_) async => null);
 
       expect(await connector.fetchCredentials(), isNull);
@@ -66,9 +66,9 @@ void main() {
 
     test('exchanges the device token and returns the endpoint it was '
         'given', () async {
-      when(() => local.readDeviceToken()).thenAnswer(
-        (_) async => _validDeviceToken(),
-      );
+      when(
+        () => local.readDeviceToken(),
+      ).thenAnswer((_) async => _validDeviceToken());
       when(() => local.readDbName()).thenAnswer((_) async => 'demo');
       when(
         () => syncTokens.fetchSyncCredentials(
@@ -94,25 +94,27 @@ void main() {
       expect(creds.userId, '35');
     });
 
-    test('propagates a network failure instead of reporting signed out',
-        () async {
-      when(() => local.readDeviceToken()).thenAnswer(
-        (_) async => _validDeviceToken(),
-      );
-      when(() => local.readDbName()).thenAnswer((_) async => 'demo');
-      when(
-        () => syncTokens.fetchSyncCredentials(
-          company: any(named: 'company'),
-          deviceToken: any(named: 'deviceToken'),
-        ),
-      ).thenThrow(Exception('connection closed'));
+    test(
+      'propagates a network failure instead of reporting signed out',
+      () async {
+        when(
+          () => local.readDeviceToken(),
+        ).thenAnswer((_) async => _validDeviceToken());
+        when(() => local.readDbName()).thenAnswer((_) async => 'demo');
+        when(
+          () => syncTokens.fetchSyncCredentials(
+            company: any(named: 'company'),
+            deviceToken: any(named: 'deviceToken'),
+          ),
+        ).thenThrow(Exception('connection closed'));
 
-      // Returning null here would tell PowerSync the user is signed out and
-      // stop it retrying. A temporary failure must throw.
-      await expectLater(
-        connector.fetchCredentials(),
-        throwsA(isA<Exception>()),
-      );
-    });
+        // Returning null here would tell PowerSync the user is signed out and
+        // stop it retrying. A temporary failure must throw.
+        await expectLater(
+          connector.fetchCredentials(),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
   });
 }

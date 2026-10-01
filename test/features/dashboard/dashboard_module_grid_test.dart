@@ -8,8 +8,9 @@ import 'package:stat_trac_technical/features/dashboard/presentation/screens/dash
 // font scale 1.15) "Create" broke mid-word into "Crea / te".
 void main() {
   // PM work orders belong to the PM module, which the phone does not do yet.
-  testWidgets('work order and certificate actions can be pressed; PM cannot',
-      (tester) async {
+  testWidgets('work order and certificate actions can be pressed; PM cannot', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2316);
     tester.view.devicePixelRatio = 1080 / 384;
     addTearDown(tester.view.reset);

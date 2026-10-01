@@ -42,41 +42,50 @@ void main() {
     ).thenAnswer((_) async => r);
   }
 
-  test('posts to the company-scoped path with the device token as bearer',
-      () async {
-    stub(_resp(200, const {'applied': 2, 'assigned': {'cert-uuid': 5031}}));
+  test(
+    'posts to the company-scoped path with the device token as bearer',
+    () async {
+      stub(
+        _resp(200, const {
+          'applied': 2,
+          'assigned': {'cert-uuid': 5031},
+        }),
+      );
 
-    await client.upload(
-      company: 'demo',
-      deviceToken: 'device-token-90d',
-      upload: _upload(),
-    );
+      await client.upload(
+        company: 'demo',
+        deviceToken: 'device-token-90d',
+        upload: _upload(),
+      );
 
-    final captured = verify(
-      () => dio.post<Map<String, Object?>>(
-        captureAny(),
-        data: captureAny(named: 'data'),
-        options: captureAny(named: 'options'),
-      ),
-    ).captured;
+      final captured = verify(
+        () => dio.post<Map<String, Object?>>(
+          captureAny(),
+          data: captureAny(named: 'data'),
+          options: captureAny(named: 'options'),
+        ),
+      ).captured;
 
-    expect(captured[0], '/demo/sync/upload');
-    // A cookie gets a 403 from the CSRF guard; this route wants a Bearer.
-    expect(
-      (captured[2] as Options).headers?['Authorization'],
-      'Bearer device-token-90d',
-    );
+      expect(captured[0], '/demo/sync/upload');
+      // A cookie gets a 403 from the CSRF guard; this route wants a Bearer.
+      expect(
+        (captured[2] as Options).headers?['Authorization'],
+        'Bearer device-token-90d',
+      );
 
-    final ops = (captured[1] as Map)['ops']! as List;
-    expect(ops, hasLength(2));
-  });
+      final ops = (captured[1] as Map)['ops']! as List;
+      expect(ops, hasLength(2));
+    },
+  );
 
   test('returns the applied result with its assigned keys', () async {
-    stub(_resp(200, const {
-      'applied': 2,
-      'assigned': {'cert-uuid': 5031, 'line-0': 90210},
-      'issued': ['cert-uuid'],
-    }));
+    stub(
+      _resp(200, const {
+        'applied': 2,
+        'assigned': {'cert-uuid': 5031, 'line-0': 90210},
+        'issued': ['cert-uuid'],
+      }),
+    );
 
     final r = await client.upload(
       company: 'demo',
@@ -94,36 +103,38 @@ void main() {
   // exactly the shape that finds a megabyte, and the answer would be a 413 —
   // which is permanent. Better to refuse it here than to spend a round trip
   // from a device on one bar of signal to be told the same thing.
-  test('refuses a body over the 1 MB cap without spending a round trip',
-      () async {
-    final fat = CertificateUpload(
-      mobileId: 'cert-uuid',
-      certificate: const {'TestAssetID': 9304},
-      lines: [
-        for (var i = 0; i < 20; i++)
-          CertificateLineUpload(
-            mobileId: 'line-$i',
-            data: {'TestNote': 'x' * 60000},
-          ),
-      ],
-    );
+  test(
+    'refuses a body over the 1 MB cap without spending a round trip',
+    () async {
+      final fat = CertificateUpload(
+        mobileId: 'cert-uuid',
+        certificate: const {'TestAssetID': 9304},
+        lines: [
+          for (var i = 0; i < 20; i++)
+            CertificateLineUpload(
+              mobileId: 'line-$i',
+              data: {'TestNote': 'x' * 60000},
+            ),
+        ],
+      );
 
-    final r = await client.upload(
-      company: 'demo',
-      deviceToken: 't',
-      upload: fat,
-    );
+      final r = await client.upload(
+        company: 'demo',
+        deviceToken: 't',
+        upload: fat,
+      );
 
-    expect(r, isA<UploadTooLarge>());
-    expect(r.isRetryable, isFalse);
-    verifyNever(
-      () => dio.post<Map<String, Object?>>(
-        any(),
-        data: any(named: 'data'),
-        options: any(named: 'options'),
-      ),
-    );
-  });
+      expect(r, isA<UploadTooLarge>());
+      expect(r.isRetryable, isFalse);
+      verifyNever(
+        () => dio.post<Map<String, Object?>>(
+          any(),
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      );
+    },
+  );
 
   // Dio throws on a non-2xx by default. Each of these is a real answer from
   // the server, not a transport failure, so they must come back as results
@@ -189,57 +200,61 @@ void main() {
   });
 
   // No signal is the normal condition for this app, not an exception.
-  test('reports a connection failure as retryable rather than throwing',
-      () async {
-    when(
-      () => dio.post<Map<String, Object?>>(
-        any(),
-        data: any(named: 'data'),
-        options: any(named: 'options'),
-      ),
-    ).thenThrow(
-      DioException(
-        requestOptions: RequestOptions(path: '/x'),
-        type: DioExceptionType.connectionError,
-      ),
-    );
+  test(
+    'reports a connection failure as retryable rather than throwing',
+    () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          any(),
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/x'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
 
-    final r = await client.upload(
-      company: 'demo',
-      deviceToken: 't',
-      upload: _upload(),
-    );
+      final r = await client.upload(
+        company: 'demo',
+        deviceToken: 't',
+        upload: _upload(),
+      );
 
-    expect(r, isA<UploadTransportError>());
-    expect(r.isRetryable, isTrue);
-  });
+      expect(r, isA<UploadTransportError>());
+      expect(r.isRetryable, isTrue);
+    },
+  );
 
-  test('refuses a batch larger than the server accepts before sending it',
-      () async {
-    final tooBig = CertificateUpload(
-      mobileId: 'c',
-      certificate: const {},
-      lines: [
-        for (var i = 0; i < 501; i++)
-          CertificateLineUpload(mobileId: '$i', data: const {}),
-      ],
-    );
+  test(
+    'refuses a batch larger than the server accepts before sending it',
+    () async {
+      final tooBig = CertificateUpload(
+        mobileId: 'c',
+        certificate: const {},
+        lines: [
+          for (var i = 0; i < 501; i++)
+            CertificateLineUpload(mobileId: '$i', data: const {}),
+        ],
+      );
 
-    final r = await client.upload(
-      company: 'demo',
-      deviceToken: 't',
-      upload: tooBig,
-    );
+      final r = await client.upload(
+        company: 'demo',
+        deviceToken: 't',
+        upload: tooBig,
+      );
 
-    // Too many ops and too many bytes are the same situation with the same
-    // remedy — fewer ops — so they answer with the same type.
-    expect(r, isA<UploadTooLarge>());
-    verifyNever(
-      () => dio.post<Map<String, Object?>>(
-        any(),
-        data: any(named: 'data'),
-        options: any(named: 'options'),
-      ),
-    );
-  });
+      // Too many ops and too many bytes are the same situation with the same
+      // remedy — fewer ops — so they answer with the same type.
+      expect(r, isA<UploadTooLarge>());
+      verifyNever(
+        () => dio.post<Map<String, Object?>>(
+          any(),
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      );
+    },
+  );
 }

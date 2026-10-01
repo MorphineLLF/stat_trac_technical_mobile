@@ -51,8 +51,7 @@ sealed class SyncUploadResult {
           ],
           applied: (body['applied'] as num?)?.toInt() ?? 0,
           assigned: {
-            for (final e
-                in ((body['assigned'] as Map?) ?? const {}).entries)
+            for (final e in ((body['assigned'] as Map?) ?? const {}).entries)
               e.key as String: (e.value as num).toInt(),
           },
           issued: [
@@ -305,7 +304,6 @@ class UploadTransportError extends SyncUploadResult {
   @override
   bool get isRetryable => true;
 }
-
 
 /// The guarantee names a server can advertise in `enforces`.
 abstract final class SyncUploadGuarantee {

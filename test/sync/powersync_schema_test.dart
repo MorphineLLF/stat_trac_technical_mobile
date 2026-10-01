@@ -2,8 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 import 'package:stat_trac_technical/sync/powersync_schema.dart';
 
-Table _table(String name) =>
-    schema.tables.firstWhere((t) => t.name == name);
+Table _table(String name) => schema.tables.firstWhere((t) => t.name == name);
 
 Iterable<String> _columnNames(String table) =>
     _table(table).columns.map((c) => c.name);
@@ -47,39 +46,41 @@ void main() {
     test('omits the bytea signature columns', () {
       expect(
         _columnNames('TestCertificate'),
-        isNot(anyOf(
-          contains('TestTechSignature'),
-          contains('TestClientSignature'),
-        )),
+        isNot(
+          anyOf(contains('TestTechSignature'), contains('TestClientSignature')),
+        ),
       );
       expect(
         _columnNames('Repair'),
-        isNot(anyOf(
-          contains('RepairTechSignature'),
-          contains('RepairClientSignature'),
-        )),
+        isNot(
+          anyOf(
+            contains('RepairTechSignature'),
+            contains('RepairClientSignature'),
+          ),
+        ),
       );
     });
 
     // numeric arrives as a STRING. Typing these as integer or real would
     // silently drop the value.
     test('maps numeric columns to text', () {
-      final assetPrice = _table('Asset')
-          .columns
-          .firstWhere((c) => c.name == 'AssetPurchasePrice');
+      final assetPrice = _table(
+        'Asset',
+      ).columns.firstWhere((c) => c.name == 'AssetPurchasePrice');
       expect(assetPrice.type, ColumnType.text);
 
-      final progressHrs = _table('RepairProgress')
-          .columns
-          .firstWhere((c) => c.name == 'ProgressHrs');
+      final progressHrs = _table(
+        'RepairProgress',
+      ).columns.firstWhere((c) => c.name == 'ProgressHrs');
       expect(progressHrs.type, ColumnType.text);
     });
 
     // Postgres booleans arrive as 0/1.
     test('maps boolean columns to integer', () {
       for (final name in ['TestPass', 'TestFail', 'TestNA']) {
-        final column =
-            _table('TestOutput').columns.firstWhere((c) => c.name == name);
+        final column = _table(
+          'TestOutput',
+        ).columns.firstWhere((c) => c.name == name);
         expect(column.type, ColumnType.integer, reason: name);
       }
     });
@@ -104,8 +105,7 @@ void main() {
         'TestCertificate',
         'TestOutput',
       ]) {
-        expect(_columnNames(table), contains('SyncUpdatedAt'),
-            reason: table);
+        expect(_columnNames(table), contains('SyncUpdatedAt'), reason: table);
       }
     });
   });

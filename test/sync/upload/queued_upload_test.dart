@@ -6,7 +6,9 @@ void main() {
   CertificateUpload cert() => CertificateUpload(
     mobileId: 'cert-1',
     certificate: const {'TestAssetID': 9304},
-    lines: const [CertificateLineUpload(mobileId: 'l', data: {'TestPass': true})],
+    lines: const [
+      CertificateLineUpload(mobileId: 'l', data: {'TestPass': true}),
+    ],
   );
 
   test('a certificate is stored with its kind', () {

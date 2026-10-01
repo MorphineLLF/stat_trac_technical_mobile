@@ -43,7 +43,15 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
 
   @override
   void dispose() {
-    for (final c in [_equipHrs, _nop, _fault, _work, _note, _client, _jobCard]) {
+    for (final c in [
+      _equipHrs,
+      _nop,
+      _fault,
+      _work,
+      _note,
+      _client,
+      _jobCard,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -53,19 +61,21 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
   /// becomes null rather than keeping its old value.
   void _emit({WorkType? workType, DateTime? started, DateTime? finished}) {
     final j = widget.job;
-    widget.onChanged(WorkOrderJob(
-      assetId: j.assetId,
-      workType: workType ?? j.workType,
-      started: started ?? j.started,
-      finished: finished ?? j.finished,
-      equipHrs: int.tryParse(_equipHrs.text),
-      nop: int.tryParse(_nop.text),
-      fault: _fault.text,
-      work: _work.text,
-      note: _note.text,
-      clientName: _client.text,
-      jobCardNo: _jobCard.text,
-    ));
+    widget.onChanged(
+      WorkOrderJob(
+        assetId: j.assetId,
+        workType: workType ?? j.workType,
+        started: started ?? j.started,
+        finished: finished ?? j.finished,
+        equipHrs: int.tryParse(_equipHrs.text),
+        nop: int.tryParse(_nop.text),
+        fault: _fault.text,
+        work: _work.text,
+        note: _note.text,
+        clientName: _client.text,
+        jobCardNo: _jobCard.text,
+      ),
+    );
   }
 
   String? _errorFor(String field) {
@@ -90,24 +100,40 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
     return DateTime(day.year, day.month, day.day, time.hour, time.minute);
   }
 
-  Widget _when(String label, String field, DateTime? value,
-      ValueChanged<DateTime> set) {
+  Widget _when(
+    String label,
+    String field,
+    DateTime? value,
+    ValueChanged<DateTime> set,
+  ) {
     return InputDecorator(
-      decoration: InputDecoration(labelText: label, errorText: _errorFor(field)),
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: _errorFor(field),
+      ),
       child: InkWell(
         onTap: () async {
           final picked = await _pick(value);
           if (picked != null) set(picked);
         },
         child: Text(
-          value == null ? 'Choose' : DateFormat('dd MMM yyyy  HH:mm').format(value),
+          value == null
+              ? 'Choose'
+              : DateFormat('dd MMM yyyy  HH:mm').format(value),
         ),
       ),
     );
   }
 
-  Widget _text(String key, String label, TextEditingController c, String field,
-      {int? max, int lines = 1, bool digits = false}) {
+  Widget _text(
+    String key,
+    String label,
+    TextEditingController c,
+    String field, {
+    int? max,
+    int lines = 1,
+    bool digits = false,
+  }) {
     return TextField(
       key: Key(key),
       controller: c,
@@ -116,9 +142,13 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
       maxLines: lines == 1 ? 1 : lines + 2,
       keyboardType: digits ? TextInputType.number : TextInputType.text,
       inputFormatters: digits ? [FilteringTextInputFormatter.digitsOnly] : null,
-      textCapitalization:
-          digits ? TextCapitalization.none : TextCapitalization.sentences,
-      decoration: InputDecoration(labelText: label, errorText: _errorFor(field)),
+      textCapitalization: digits
+          ? TextCapitalization.none
+          : TextCapitalization.sentences,
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: _errorFor(field),
+      ),
       onChanged: (_) => _emit(),
     );
   }
@@ -143,33 +173,81 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
           onChanged: (w) => _emit(workType: w),
         ),
         gap,
-        _when('Date in / time in', 'datein', widget.job.started,
-            (d) => _emit(started: d)),
+        _when(
+          'Date in / time in',
+          'datein',
+          widget.job.started,
+          (d) => _emit(started: d),
+        ),
         gap,
-        _when('Date completed / time out', 'dateout', widget.job.finished,
-            (d) => _emit(finished: d)),
+        _when(
+          'Date completed / time out',
+          'dateout',
+          widget.job.finished,
+          (d) => _emit(finished: d),
+        ),
         gap,
         InputDecorator(
           decoration: const InputDecoration(labelText: 'Technician'),
           child: Text(widget.technicianName),
         ),
         gap,
-        _text('wo-hours', 'Equipment hours', _equipHrs, 'equiphrs',
-            max: WorkOrderJob.maxCountDigits, digits: true),
+        _text(
+          'wo-hours',
+          'Equipment hours',
+          _equipHrs,
+          'equiphrs',
+          max: WorkOrderJob.maxCountDigits,
+          digits: true,
+        ),
         gap,
-        _text('wo-nop', 'N.O.P', _nop, 'nop',
-            max: WorkOrderJob.maxCountDigits, digits: true),
+        _text(
+          'wo-nop',
+          'N.O.P',
+          _nop,
+          'nop',
+          max: WorkOrderJob.maxCountDigits,
+          digits: true,
+        ),
         gap,
-        _text('wo-fault', 'Fault', _fault, 'jobfault',
-            max: WorkOrderJob.maxFault, lines: 2),
-        _text('wo-work', 'Work done', _work, 'jobwork',
-            max: WorkOrderJob.maxWork, lines: 3),
-        _text('wo-note', 'Notes', _note, 'jobnote',
-            max: WorkOrderJob.maxNote, lines: 2),
-        _text('wo-client', 'Client name', _client, 'client',
-            max: WorkOrderJob.maxClient),
-        _text('wo-jobcard', 'Job card no', _jobCard, 'jobcardno',
-            max: WorkOrderJob.maxJobCardNo),
+        _text(
+          'wo-fault',
+          'Fault',
+          _fault,
+          'jobfault',
+          max: WorkOrderJob.maxFault,
+          lines: 2,
+        ),
+        _text(
+          'wo-work',
+          'Work done',
+          _work,
+          'jobwork',
+          max: WorkOrderJob.maxWork,
+          lines: 3,
+        ),
+        _text(
+          'wo-note',
+          'Notes',
+          _note,
+          'jobnote',
+          max: WorkOrderJob.maxNote,
+          lines: 2,
+        ),
+        _text(
+          'wo-client',
+          'Client name',
+          _client,
+          'client',
+          max: WorkOrderJob.maxClient,
+        ),
+        _text(
+          'wo-jobcard',
+          'Job card no',
+          _jobCard,
+          'jobcardno',
+          max: WorkOrderJob.maxJobCardNo,
+        ),
       ],
     );
   }

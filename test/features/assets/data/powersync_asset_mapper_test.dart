@@ -55,11 +55,15 @@ void main() {
 
     // A malformed value in one column must not take out the whole list.
     test('survives a null or unparseable date', () {
-      expect(assetFromPowerSync(_row(nextService: null)).nextServiceDate,
-          isNull);
+      expect(
+        assetFromPowerSync(_row(nextService: null)).nextServiceDate,
+        isNull,
+      );
       expect(assetFromPowerSync(_row(nextService: '')).nextServiceDate, isNull);
-      expect(assetFromPowerSync(_row(nextService: 'not a date')).nextServiceDate,
-          isNull);
+      expect(
+        assetFromPowerSync(_row(nextService: 'not a date')).nextServiceDate,
+        isNull,
+      );
     });
 
     // Everything from the server is registered; provisional means created on

@@ -50,7 +50,10 @@ void main() {
       expect(detail.nextServiceDate, isNotNull);
       expect(detail.servicePlanValue, 5000.0);
       expect(detail.riskLabel, 'High');
-      expect(detail.isUnderWarranty, isFalse); // warrantyEndDate 2025-01-01 is in the past
+      expect(
+        detail.isUnderWarranty,
+        isFalse,
+      ); // warrantyEndDate 2025-01-01 is in the past
     });
 
     test('handles all-null optionals gracefully', () {

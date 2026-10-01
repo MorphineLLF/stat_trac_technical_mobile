@@ -1,21 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stat_trac_technical/sync/upload/certificate_upload.dart';
 
-CertificateUpload _upload({
-  CertificateIssue? issue,
-  int lines = 1,
-}) => CertificateUpload(
-  mobileId: 'cert-uuid',
-  certificate: const {'TestAssetID': 9304, 'TestDate': '2026-09-05'},
-  lines: [
-    for (var i = 0; i < lines; i++)
-      CertificateLineUpload(
-        mobileId: 'line-$i',
-        data: {'TestDescription': 'Reading $i', 'TestPass': true},
-      ),
-  ],
-  issue: issue,
-);
+CertificateUpload _upload({CertificateIssue? issue, int lines = 1}) =>
+    CertificateUpload(
+      mobileId: 'cert-uuid',
+      certificate: const {'TestAssetID': 9304, 'TestDate': '2026-09-05'},
+      lines: [
+        for (var i = 0; i < lines; i++)
+          CertificateLineUpload(
+            mobileId: 'line-$i',
+            data: {'TestDescription': 'Reading $i', 'TestPass': true},
+          ),
+      ],
+      issue: issue,
+    );
 
 void main() {
   group('batch assembly', () {
@@ -49,10 +47,12 @@ void main() {
 
   group('issuing', () {
     test('appends the issue op last, after the readings', () {
-      final ops = _upload(
-        lines: 2,
-        issue: const CertificateIssue(verdict: 1),
-      ).toBatch().toJson()['ops']! as List;
+      final ops =
+          _upload(
+                lines: 2,
+                issue: const CertificateIssue(verdict: 1),
+              ).toBatch().toJson()['ops']!
+              as List;
 
       expect(ops, hasLength(4));
       final last = ops.last as Map;
@@ -63,15 +63,17 @@ void main() {
     });
 
     test('carries the technician decisions', () {
-      final ops = _upload(
-        issue: const CertificateIssue(
-          verdict: 0,
-          notes: 'pump failed leakage',
-          nextService: '2027-03-01',
-          completePmWorkOrder: true,
-          completePmJobCard: true,
-        ),
-      ).toBatch().toJson()['ops']! as List;
+      final ops =
+          _upload(
+                issue: const CertificateIssue(
+                  verdict: 0,
+                  notes: 'pump failed leakage',
+                  nextService: '2027-03-01',
+                  completePmWorkOrder: true,
+                  completePmJobCard: true,
+                ),
+              ).toBatch().toJson()['ops']!
+              as List;
 
       final data = (ops.last as Map)['data']! as Map;
       expect(data['verdict'], 0);

@@ -62,7 +62,7 @@ Future<void> _open(
     ProviderScope(
       overrides: [
         uploadQueueProvider.overrideWith((ref) async => queue),
-      queuedWorkOrderProvider('wo-1').overrideWith((ref) async => entry),
+        queuedWorkOrderProvider('wo-1').overrideWith((ref) async => entry),
         phoneSignaturesProvider('wo-1').overrideWith((ref) async => signatures),
       ],
       child: MaterialApp(

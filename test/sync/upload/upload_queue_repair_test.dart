@@ -90,9 +90,6 @@ void main() {
     await queue.repairVerdictInRowOp();
 
     final row = (await db.query(UploadQueue.table)).single;
-    expect(
-      () => jsonDecode(row['payload']! as String),
-      returnsNormally,
-    );
+    expect(() => jsonDecode(row['payload']! as String), returnsNormally);
   });
 }

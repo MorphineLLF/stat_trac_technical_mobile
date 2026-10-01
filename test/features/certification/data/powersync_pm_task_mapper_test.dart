@@ -24,18 +24,30 @@ void main() {
     });
 
     test('reads active from a 0/1 integer', () {
-      expect(assetPmTaskFromPowerSync(const {'PmTaskID': 1, 'PmTaskActive': 1})
-          .active, isTrue);
-      expect(assetPmTaskFromPowerSync(const {'PmTaskID': 1, 'PmTaskActive': 0})
-          .active, isFalse);
+      expect(
+        assetPmTaskFromPowerSync(const {
+          'PmTaskID': 1,
+          'PmTaskActive': 1,
+        }).active,
+        isTrue,
+      );
+      expect(
+        assetPmTaskFromPowerSync(const {
+          'PmTaskID': 1,
+          'PmTaskActive': 0,
+        }).active,
+        isFalse,
+      );
     });
 
     // PmTaskInterval is an integer column, but interval is a String on the
     // entity. It must arrive as usable text, not "6.0" or an exception.
     test('renders the interval as text', () {
       expect(
-        assetPmTaskFromPowerSync(const {'PmTaskID': 1, 'PmTaskInterval': 6})
-            .interval,
+        assetPmTaskFromPowerSync(const {
+          'PmTaskID': 1,
+          'PmTaskInterval': 6,
+        }).interval,
         '6',
       );
     });
@@ -52,13 +64,17 @@ void main() {
     // The app has to be able to tell them apart.
     test('distinguishes a meter-based task from a dated one', () {
       expect(
-        assetPmTaskFromPowerSync(const {'PmTaskID': 1, 'PmTaskType': 2})
-            .isMeterBased,
+        assetPmTaskFromPowerSync(const {
+          'PmTaskID': 1,
+          'PmTaskType': 2,
+        }).isMeterBased,
         isTrue,
       );
       expect(
-        assetPmTaskFromPowerSync(const {'PmTaskID': 1, 'PmTaskType': 1})
-            .isMeterBased,
+        assetPmTaskFromPowerSync(const {
+          'PmTaskID': 1,
+          'PmTaskType': 1,
+        }).isMeterBased,
         isFalse,
       );
     });

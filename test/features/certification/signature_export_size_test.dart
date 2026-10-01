@@ -22,7 +22,10 @@ void main() {
     // export is at least as big as the drawing. A stroke reaching the edge of
     // the pad measures penStrokeWidth wider than the pad on each side, so the
     // export has to allow for it or a real signature is cropped.
-    expect(size.width, greaterThanOrEqualTo(1000 + 2 * signaturePenStrokeWidth));
+    expect(
+      size.width,
+      greaterThanOrEqualTo(1000 + 2 * signaturePenStrokeWidth),
+    );
     expect(
       size.height,
       greaterThanOrEqualTo(180 + 2 * signaturePenStrokeWidth),

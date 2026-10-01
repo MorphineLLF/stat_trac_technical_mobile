@@ -2,10 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stat_trac_technical/features/certification/domain/entities/test_output.dart';
 import 'package:stat_trac_technical/features/certification/presentation/widgets/certificate_completeness.dart';
 
-TestOutput _line({
-  bool pass = true,
-  String? actual = '12.3',
-}) => TestOutput(
+TestOutput _line({bool pass = true, String? actual = '12.3'}) => TestOutput(
   id: 0,
   certificateId: 0,
   description: 'a test',
@@ -28,20 +25,14 @@ void main() {
 
   test('every test must be marked pass, fail or N/A', () {
     expect(
-      certificateCompletenessError(
-        outputs: [_line()],
-        allItemsComplete: false,
-      ),
+      certificateCompletenessError(outputs: [_line()], allItemsComplete: false),
       contains('pass, fail'),
     );
   });
 
   test('a complete certificate has nothing to say', () {
     expect(
-      certificateCompletenessError(
-        outputs: [_line()],
-        allItemsComplete: true,
-      ),
+      certificateCompletenessError(outputs: [_line()], allItemsComplete: true),
       isNull,
     );
   });

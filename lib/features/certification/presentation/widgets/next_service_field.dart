@@ -61,9 +61,9 @@ class NextServiceField extends StatelessWidget {
                   children: [
                     Text(
                       'Next Service Due',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: brandGrey,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelLarge?.copyWith(color: brandGrey),
                     ),
                     const SizedBox(height: 2),
                     Text(

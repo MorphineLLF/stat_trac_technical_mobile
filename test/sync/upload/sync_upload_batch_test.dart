@@ -77,8 +77,11 @@ void main() {
     });
 
     test('omits notes when empty', () {
-      final json =
-          SyncUploadOp.issue(mobileId: 'c', verdict: 1, notes: '  ').toJson();
+      final json = SyncUploadOp.issue(
+        mobileId: 'c',
+        verdict: 1,
+        notes: '  ',
+      ).toJson();
       expect((json['data'] as Map).containsKey('notes'), isFalse);
     });
   });
@@ -92,7 +95,10 @@ void main() {
       final op = SyncUploadOp.certificateLine(
         lineMobileId: 'line-uuid',
         certificateMobileId: 'cert-uuid',
-        data: const {'TestDescription': 'Earth continuity', 'TestValue': '0.08'},
+        data: const {
+          'TestDescription': 'Earth continuity',
+          'TestValue': '0.08',
+        },
       );
 
       final json = op.toJson();
@@ -137,7 +143,11 @@ void main() {
     // first keeps the wire readable and matches the documented example.
     test('serialises ops in order under an ops key', () {
       final batch = SyncUploadBatch([
-        SyncUploadOp.row(table: 'TestCertificate', mobileId: 'c', data: const {}),
+        SyncUploadOp.row(
+          table: 'TestCertificate',
+          mobileId: 'c',
+          data: const {},
+        ),
         SyncUploadOp.row(table: 'TestOutput', mobileId: 'l', data: const {}),
         SyncUploadOp.issue(mobileId: 'c', verdict: 1),
       ]);
@@ -153,10 +163,17 @@ void main() {
     test('reports when it exceeds the server limit', () {
       final ops = List.generate(
         501,
-        (i) => SyncUploadOp.row(table: 'TestOutput', mobileId: '$i', data: const {}),
+        (i) => SyncUploadOp.row(
+          table: 'TestOutput',
+          mobileId: '$i',
+          data: const {},
+        ),
       );
       expect(SyncUploadBatch(ops).exceedsServerLimit, isTrue);
-      expect(SyncUploadBatch(ops.take(500).toList()).exceedsServerLimit, isFalse);
+      expect(
+        SyncUploadBatch(ops.take(500).toList()).exceedsServerLimit,
+        isFalse,
+      );
     });
   });
 }

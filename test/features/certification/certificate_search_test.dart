@@ -53,16 +53,18 @@ void main() {
 
   // A certificate with no hospital and no equipment must not crash the list
   // or match everything — it simply does not match a search for a hospital.
-  test('a certificate missing every searchable field matches nothing typed',
-      () {
-    final bare = _cert(
-      hospital: null,
-      certName: null,
-      equipmentType: null,
-      certificateNo: null,
-    );
+  test(
+    'a certificate missing every searchable field matches nothing typed',
+    () {
+      final bare = _cert(
+        hospital: null,
+        certName: null,
+        equipmentType: null,
+        certificateNo: null,
+      );
 
-    expect(certificateMatchesSearch(bare, 'milpark'), isFalse);
-    expect(certificateMatchesSearch(bare, ''), isTrue);
-  });
+      expect(certificateMatchesSearch(bare, 'milpark'), isFalse);
+      expect(certificateMatchesSearch(bare, ''), isTrue);
+    },
+  );
 }

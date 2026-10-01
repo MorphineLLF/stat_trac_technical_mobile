@@ -71,8 +71,10 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       _job = WorkOrderJob.fromWire(resend.capture);
       _step = 1;
       if (widget.resendField != null && widget.resendMessage != null) {
-        _serverError =
-            WorkOrderFieldError(widget.resendField!, widget.resendMessage!);
+        _serverError = WorkOrderFieldError(
+          widget.resendField!,
+          widget.resendMessage!,
+        );
       }
     }
   }
@@ -290,8 +292,16 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         ),
         if (asset != null) ...[
           const SizedBox(height: 12),
-          Text(asset.displayName, style: Theme.of(context).textTheme.titleMedium),
-          Text([asset.serialNumber, asset.hospital].whereType<String>().join(' · ')),
+          Text(
+            asset.displayName,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(
+            [
+              asset.serialNumber,
+              asset.hospital,
+            ].whereType<String>().join(' · '),
+          ),
           const SizedBox(height: 12),
           _OpenRepairWarning(assetId: asset.assetId!),
           const SizedBox(height: 24),
@@ -414,9 +424,14 @@ class _OpenRepairWarning extends ConsumerWidget {
     return Card(
       color: const Color(0xFFFFF8E1),
       child: ListTile(
-        leading: const Icon(Icons.warning_amber_rounded, color: Color(0xFFE65100)),
-        title: Text('Work order $open is still open on this machine '
-            '(as of last sync).'),
+        leading: const Icon(
+          Icons.warning_amber_rounded,
+          color: Color(0xFFE65100),
+        ),
+        title: Text(
+          'Work order $open is still open on this machine '
+          '(as of last sync).',
+        ),
         subtitle: const Text('The server will refuse a second one.'),
       ),
     );

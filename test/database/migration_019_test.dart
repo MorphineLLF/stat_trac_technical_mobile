@@ -33,8 +33,10 @@ void main() {
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL)
     ''');
     await db.insert('upload_queue', {
-      'mobile_id': 'cert-1', 'payload': '{}',
-      'created_at': 'x', 'updated_at': 'x',
+      'mobile_id': 'cert-1',
+      'payload': '{}',
+      'created_at': 'x',
+      'updated_at': 'x',
     });
     await UploadArchive.createTable(db);
   });
@@ -45,8 +47,10 @@ void main() {
     await migration019DropWorkOrders(db);
     final t = await tables(db);
     for (final gone in [
-      'work_orders', 'work_order_status_history',
-      'work_order_photos', 'work_order_signatures',
+      'work_orders',
+      'work_order_status_history',
+      'work_order_photos',
+      'work_order_signatures',
     ]) {
       expect(t, isNot(contains(gone)));
     }

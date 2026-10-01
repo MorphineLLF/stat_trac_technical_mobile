@@ -15,7 +15,9 @@ part 'work_order_providers.g.dart';
 
 @riverpod
 Future<PowerSyncWorkOrderDataSource> workOrderSource(Ref ref) async =>
-    PowerSyncWorkOrderDataSource.of(await ref.watch(syncDatabaseProvider.future));
+    PowerSyncWorkOrderDataSource.of(
+      await ref.watch(syncDatabaseProvider.future),
+    );
 
 class Worklist {
   const Worklist(this.items, {required this.syncedComplete});
@@ -31,7 +33,9 @@ class Worklist {
 @riverpod
 Future<Worklist> worklist(Ref ref) async {
   final auth = ref.watch(authProvider);
-  if (auth is! AuthAuthenticated) return const Worklist([], syncedComplete: true);
+  if (auth is! AuthAuthenticated) {
+    return const Worklist([], syncedComplete: true);
+  }
 
   final queueFuture = ref.watch(uploadQueueProvider.future);
   final source = await ref.watch(workOrderSourceProvider.future);

@@ -112,10 +112,8 @@ class UploadQueue {
 
   /// What the worker should send, oldest first — work reaches the office in
   /// the order it was done.
-  Future<List<UploadQueueEntry>> pending() => _read(
-    where: 'status = ?',
-    args: [UploadStatus.pending.name],
-  );
+  Future<List<UploadQueueEntry>> pending() =>
+      _read(where: 'status = ?', args: [UploadStatus.pending.name]);
 
   Future<List<UploadQueueEntry>> all() => _read();
 
@@ -251,7 +249,10 @@ class UploadQueue {
     );
   }
 
-  Future<List<UploadQueueEntry>> _read({String? where, List<Object?>? args}) async {
+  Future<List<UploadQueueEntry>> _read({
+    String? where,
+    List<Object?>? args,
+  }) async {
     final rows = await _db.query(
       table,
       where: where,
