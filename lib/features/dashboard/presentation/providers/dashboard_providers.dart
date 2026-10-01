@@ -16,6 +16,16 @@ class DashboardStats {
   /// Captured jobs still on this phone — waiting to send or set aside.
   final int pendingWorkOrders;
   final int pendingCerts;
+
+  // The donut and KPI row. Overdue read the Horse-era work_orders table, which
+  // is gone; nothing on the phone tracks a due date yet, so it is 0.
+  int get overdue => 0;
+  int get pending => pendingWorkOrders;
+
+  int get total => overdue + pending + pendingCerts;
+  double get overduePct => total == 0 ? 0 : overdue / total;
+  double get pendingPct => total == 0 ? 0 : pending / total;
+  double get pendingCertsPct => total == 0 ? 0 : pendingCerts / total;
 }
 
 /// Exposes the last successful sync timestamp for the "Last synced" display.

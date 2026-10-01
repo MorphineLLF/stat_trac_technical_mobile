@@ -438,7 +438,7 @@ Work in this order. Each phase builds on the previous.
 ### Dashboard — complete ✅
 - `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
-- **Top row** — Pending Work Orders (queued), Pending PM Orders (0 until the PM module — PM work orders are NOT work orders), Certs to Sync. Donut and KPI tiles removed 2026-10-01.
+- **Top row** — Pending Work Orders (queued), Pending PM Orders (0 until the PM module — PM work orders are NOT work orders), Certs to Sync. Donut + KPI row (Overdue / Pending / Certs to sync) kept; Overdue is 0 until something tracks a due date.
 - **Quick actions grid** (`DashboardModuleGrid`) — four tiles in two rows: Worklist (disabled — its own module, not work orders, not built yet), Work Order (Create → `CreateWorkOrderScreen`, View → `WorkOrderListScreen`, titled "Work Orders"), PM Work Order (disabled — PM not on the phone yet), Certificate (Create → `CreateCertificateScreen`, View → `CertificateListScreen`)
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 

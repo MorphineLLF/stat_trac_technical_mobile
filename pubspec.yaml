@@ -51,6 +51,9 @@ dependencies:
   # Date/time formatting
   intl: ^0.20.2
 
+  # Charts (donut/pie for dashboard stats)
+  fl_chart: ^1.2.0
+
   # Local database. Opened through sqflite_common_ffi on the bundled
   # `sqlite3` library, which is SQLite3MultipleCiphers (see `hooks:` below),
   # so it is encrypted with the same engine and key as the PowerSync
