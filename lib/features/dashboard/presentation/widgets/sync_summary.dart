@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/dashboard_providers.dart';
 
-// The same colours as the module tiles: Work Order, PM Work Order and
-// Certificate.
-const _wo = Color(0xFF1565C0);
-const _pm = Color(0xFF2E7D32);
-const _certs = Color(0xFF00838F);
+// The module tiles' background colours — Work Order, PM Work Order and
+// Certificate — as the user asked (2026-10-01).
+const _wo = Color(0xFFE8EEF8);
+const _pm = Color(0xFFEAF4EA);
+const _certs = Color(0xFFE6F3F4);
 
 /// The dark block under the app bar: what is still on the phone.
 ///
