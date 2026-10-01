@@ -167,7 +167,14 @@ class UploadWorker {
         deviceToken: token,
         upload: upload,
       );
-      if (result is! UploadTransportError && result is! UploadAuthExpired) {
+      // Only an answer that carries the list. The Go endpoint sends `enforces`
+      // on every reply it makes, so an empty one did not come from it: the
+      // local too-large check and a bodyless proxy 4xx both look like that,
+      // and recording them would hold every work order for a server that
+      // never said it was unready.
+      if (result is! UploadTransportError &&
+          result is! UploadAuthExpired &&
+          result.enforces.isNotEmpty) {
         _lastEnforces = result.enforces;
       }
 

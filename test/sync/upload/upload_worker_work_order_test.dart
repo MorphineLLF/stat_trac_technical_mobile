@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:stat_trac_technical/sync/upload/certificate_upload.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_client.dart';
 import 'package:stat_trac_technical/sync/upload/sync_upload_result.dart';
 import 'package:stat_trac_technical/sync/upload/upload_archive.dart';
@@ -164,5 +165,59 @@ void main() {
     final e = (await queue.all()).single;
     expect(e.status, UploadStatus.pending);
     expect(e.upload.toJson(), wo.toJson());
+  });
+
+  // The local size check never reached the server, so it says nothing about
+  // what the server takes.
+  test('a local too-large result does not close the work-order gate',
+      () async {
+    await queue.enqueue(CertificateUpload(
+      mobileId: 'cert-big',
+      certificate: const {'TestAssetID': 1},
+      lines: const [],
+    ));
+    await queue.enqueue(_wo('wo-1'));
+    when(
+      () => client.upload(
+        company: any(named: 'company'),
+        deviceToken: any(named: 'deviceToken'),
+        upload: any(named: 'upload'),
+      ),
+    ).thenAnswer((i) async {
+      final u = i.namedArguments[#upload] as dynamic;
+      return u is WorkOrderUpload
+          ? const UploadApplied(applied: 0, assigned: {'wo-1': 1801},
+              issued: [], enforces: _ready)
+          : const UploadTooLarge('too big');
+    });
+
+    final r = await worker.drain();
+
+    expect(sends(), 2);
+    expect(r.waitingForServer, 0);
+    expect(r.appliedWorkOrders, 1);
+  });
+
+  test('a held work order does not stop a certificate behind it', () async {
+    await queue.enqueue(_wo('wo-1'));
+    answers(const UploadClientError('no', enforces: ['batch_atomic']));
+    await worker.drain();
+
+    await queue.enqueue(CertificateUpload(
+      mobileId: 'cert-1',
+      certificate: const {'TestAssetID': 1},
+      lines: const [],
+    ));
+    answers(const UploadApplied(applied: 1, assigned: {'cert-1': 77},
+        issued: [], enforces: ['batch_atomic']));
+
+    final r = await worker.drain();
+
+    expect(r.applied, 1);
+    expect(r.waitingForServer, 1);
+    expect(confirmed, [('cert-1', 77)]);
+    final left = await queue.all();
+    expect(left.single.upload.mobileId, 'wo-1');
+    expect(left.single.status, UploadStatus.pending);
   });
 }
