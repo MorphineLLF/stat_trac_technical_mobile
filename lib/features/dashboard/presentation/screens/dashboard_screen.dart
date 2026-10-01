@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +13,8 @@ import '../../../certification/presentation/screens/certificate_list_screen.dart
 import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
 import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
+import '../widgets/pm_due_card.dart';
+import '../widgets/sync_summary.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
 import '../../../../sync/upload/upload_providers.dart';
@@ -139,6 +140,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // PM tasks due may have moved while the app was away.
+      ref.invalidate(pmDueThisWeekProvider);
       // Horse-era sync disabled -- see initState. PowerSync reconnects on
       // its own when the app resumes.
       // ref.read(syncProvider.notifier).triggerSync();
@@ -275,7 +278,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ],
       ),
-      body: _navIndex == 0 ? const _HomeBody() : const _ComingSoonBody(),
+      body: _navIndex == 0 ? const DashboardHome() : const _ComingSoonBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _navIndex,
         onDestinationSelected: _onNavTap,
@@ -305,58 +308,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
 // ── Home body ─────────────────────────────────────────────────────────────────
 
-class _HomeBody extends ConsumerWidget {
-  const _HomeBody();
+/// The home tab: the sync summary, the four tiles, and PM tasks due this week.
+///
+/// **One screen, no page scroll** — clients see this. Only the PM list
+/// scrolls, inside its own card, which takes whatever height is left.
+///
+/// A phone too short for the summary and the tiles as they are (a 360 × 640
+/// handset) scrolls the page instead of overflowing; the tiles are never
+/// shrunk to make it fit.
+@visibleForTesting
+class DashboardHome extends ConsumerWidget {
+  const DashboardHome({super.key});
+
+  /// Height the summary and the tiles need, plus room for a few PM rows.
+  /// Measured: 610 dp at text scale 1.0 and 661 dp at 1.15.
+  static double _needed(double scale) =>
+      610 + (scale.clamp(1.0, 2.0) - 1) / 0.15 * 51;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(dashboardStatsProvider);
+    final stats =
+        ref.watch(dashboardStatsProvider).value ??
+        const DashboardStats(woToSync: 0, certsToSync: 0);
+    final scale = MediaQuery.textScalerOf(context).scale(10) / 10;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Pending task counts — WO and PM side by side
-          stats.when(
-            data: (s) => _PendingTasksRow(
-              woCount: s.pendingWorkOrders,
-              pmCount: 0,
-              certsCount: s.pendingCerts,
+    return LayoutBuilder(
+      builder: (context, box) {
+        final fits = box.maxHeight >= _needed(scale);
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SyncSummary(stats: stats),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: DashboardModuleGrid(),
             ),
-            loading: () =>
-                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
-            error: (e, _) =>
-                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
-          ),
-          const SizedBox(height: 16),
-          // Donut chart + KPI row
-          stats.when(
-            data: (s) => Column(
-              children: [
-                _StatsCard(stats: s),
-                const SizedBox(height: 12),
-                _KpiRow(stats: s),
-              ],
-            ),
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: CircularProgressIndicator(),
+            if (fits)
+              const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: PmDueCard(),
+                ),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: SizedBox(height: 240, child: PmDueCard()),
               ),
-            ),
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Stats unavailable',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const DashboardModuleGrid(),
-        ],
-      ),
+          ],
+        );
+        return fits ? column : SingleChildScrollView(child: column);
+      },
     );
   }
 }
@@ -368,302 +370,6 @@ class _ComingSoonBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text('Coming soon', style: Theme.of(context).textTheme.bodyMedium),
-    );
-  }
-}
-
-// ── Pending tasks row (WO + PM side by side) ──────────────────────────────────
-
-class _PendingTasksRow extends StatelessWidget {
-  const _PendingTasksRow({
-    required this.woCount,
-    required this.pmCount,
-    required this.certsCount,
-  });
-  final int woCount;
-  final int pmCount;
-  final int certsCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _TaskCountCard(
-              label: 'Pending Work Orders',
-              count: woCount,
-              color: brandTeal,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _TaskCountCard(
-              label: 'Pending PM Orders',
-              count: pmCount,
-              color: Color(0xFF2E7D32),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _TaskCountCard(
-              label: 'Certs to Sync',
-              count: certsCount,
-              color: Color(0xFF00838F),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaskCountCard extends StatelessWidget {
-  const _TaskCountCard({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-  final String label;
-  final int count;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withAlpha(60)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$count',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w800,
-              fontSize: 32,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Donut chart card ──────────────────────────────────────────────────────────
-
-// ── KPI row ───────────────────────────────────────────────────────────────────
-
-// ── Donut chart card ──────────────────────────────────────────────────────────
-
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.stats});
-  final DashboardStats stats;
-
-  static const _colorOverdue = brandError;
-  static const _colorPending = Color(0xFFF57F17);
-  static const _colorPendingCerts = Color(0xFF00838F);
-  static const _colorEmpty = Color(0xFFDDE3EA);
-
-  @override
-  Widget build(BuildContext context) {
-    final sections = stats.total == 0
-        ? [
-            PieChartSectionData(
-              value: 1,
-              color: _colorEmpty,
-              radius: 22,
-              title: '',
-            ),
-          ]
-        : [
-            if (stats.overdue > 0)
-              PieChartSectionData(
-                value: stats.overdue.toDouble(),
-                color: _colorOverdue,
-                radius: 22,
-                title: '',
-              ),
-            if (stats.pending > 0)
-              PieChartSectionData(
-                value: stats.pending.toDouble(),
-                color: _colorPending,
-                radius: 22,
-                title: '',
-              ),
-            if (stats.pendingCerts > 0)
-              PieChartSectionData(
-                value: stats.pendingCerts.toDouble(),
-                color: _colorPendingCerts,
-                radius: 22,
-                title: '',
-              ),
-          ];
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 110,
-              height: 110,
-              child: PieChart(
-                PieChartData(
-                  sections: sections,
-                  centerSpaceRadius: 38,
-                  sectionsSpace: 2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ChartLegend(
-                    color: _colorOverdue,
-                    label: 'Overdue',
-                    pct: stats.overduePct,
-                  ),
-                  const SizedBox(height: 10),
-                  _ChartLegend(
-                    color: _colorPending,
-                    label: 'Pending',
-                    pct: stats.pendingPct,
-                  ),
-                  const SizedBox(height: 10),
-                  _ChartLegend(
-                    color: _colorPendingCerts,
-                    label: 'Certs to sync',
-                    pct: stats.pendingCertsPct,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChartLegend extends StatelessWidget {
-  const _ChartLegend({
-    required this.color,
-    required this.label,
-    required this.pct,
-  });
-  final Color color;
-  final String label;
-  final double pct;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        Text(
-          '${(pct * 100).toStringAsFixed(0)}%',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-// ── KPI row ───────────────────────────────────────────────────────────────────
-
-class _KpiRow extends StatelessWidget {
-  const _KpiRow({required this.stats});
-  final DashboardStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _KpiTile(
-            label: 'Overdue',
-            count: stats.overdue,
-            color: brandError,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _KpiTile(
-            label: 'Pending',
-            count: stats.pending,
-            color: Color(0xFFF57F17),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _KpiTile(
-            label: 'Certs to sync',
-            count: stats.pendingCerts,
-            color: Color(0xFF00838F),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _KpiTile extends StatelessWidget {
-  const _KpiTile({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-  final String label;
-  final int count;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$count',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: color),
-            ),
-            const SizedBox(height: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -1,31 +1,28 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../database/database_helper.dart';
+import '../../../../../sync/powersync_providers.dart';
 import '../../../../../sync/sync_notifier.dart';
 import '../../../../../sync/upload/upload_queue.dart';
 import '../../../../../sync/sync_state.dart';
 
+import '../../data/pm_due_data_source.dart';
+
 part 'dashboard_providers.g.dart';
 
+/// What is still on the phone, waiting to reach the server.
 class DashboardStats {
-  const DashboardStats({
-    required this.pendingWorkOrders,
-    required this.pendingCerts,
-  });
+  const DashboardStats({required this.woToSync, required this.certsToSync});
 
-  /// Captured jobs still on this phone — waiting to send or set aside.
-  final int pendingWorkOrders;
-  final int pendingCerts;
+  /// Captured work orders still on the phone — waiting or set aside.
+  final int woToSync;
+  final int certsToSync;
 
-  // The donut and KPI row. Overdue read the Horse-era work_orders table, which
-  // is gone; nothing on the phone tracks a due date yet, so it is 0.
-  int get overdue => 0;
-  int get pending => pendingWorkOrders;
+  /// PM work orders are their own module and are not on the phone yet. Never
+  /// fed from work orders.
+  int get pmWoToSync => 0;
 
-  int get total => overdue + pending + pendingCerts;
-  double get overduePct => total == 0 ? 0 : overdue / total;
-  double get pendingPct => total == 0 ? 0 : pending / total;
-  double get pendingCertsPct => total == 0 ? 0 : pendingCerts / total;
+  int get total => woToSync + pmWoToSync + certsToSync;
 }
 
 /// Exposes the last successful sync timestamp for the "Last synced" display.
@@ -47,7 +44,14 @@ DateTime? lastSyncedAt(Ref ref) {
 Future<DashboardStats> dashboardStats(Ref ref) async {
   final queue = UploadQueue(await DatabaseHelper.instance.database);
   return DashboardStats(
-    pendingWorkOrders: await queue.workOrderCount(),
-    pendingCerts: await queue.certificateCount(),
+    woToSync: await queue.workOrderCount(),
+    certsToSync: await queue.certificateCount(),
   );
+}
+
+/// PM tasks due from today to Sunday, from the synced PM schedule.
+@riverpod
+Future<List<PmDueTask>> pmDueThisWeek(Ref ref) async {
+  final db = await ref.watch(syncDatabaseProvider.future);
+  return PmDueDataSource.of(db).dueThisWeek(DateTime.now());
 }

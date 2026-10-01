@@ -105,4 +105,48 @@ final class DashboardStatsProvider
   }
 }
 
-String _$dashboardStatsHash() => r'061732605de6c299a22958362c12ec87d70c46b4';
+String _$dashboardStatsHash() => r'0fe47b993b468866630dbc9e8b1a7867d0b9b00a';
+
+/// PM tasks due from today to Sunday, from the synced PM schedule.
+
+@ProviderFor(pmDueThisWeek)
+final pmDueThisWeekProvider = PmDueThisWeekProvider._();
+
+/// PM tasks due from today to Sunday, from the synced PM schedule.
+
+final class PmDueThisWeekProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PmDueTask>>,
+          List<PmDueTask>,
+          FutureOr<List<PmDueTask>>
+        >
+    with $FutureModifier<List<PmDueTask>>, $FutureProvider<List<PmDueTask>> {
+  /// PM tasks due from today to Sunday, from the synced PM schedule.
+  PmDueThisWeekProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'pmDueThisWeekProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$pmDueThisWeekHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<PmDueTask>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<PmDueTask>> create(Ref ref) {
+    return pmDueThisWeek(ref);
+  }
+}
+
+String _$pmDueThisWeekHash() => r'ad341e5db41e535bc6898e6df8c644536357186c';
