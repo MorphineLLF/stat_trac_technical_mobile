@@ -165,4 +165,38 @@ void main() {
       expect(ids, ['cert-1', 'cert-2']);
     });
   });
+
+  group('refusal field and discard', () {
+    late Database db;
+    late UploadQueue queue;
+
+    setUp(() async {
+      db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await UploadQueue.createTable(db);
+      queue = UploadQueue(db);
+    });
+    tearDown(() async => db.close());
+
+    test('a refusal keeps the field the server named', () async {
+      await queue.enqueue(_upload('cert-1'));
+      await queue.markRejected(
+        'cert-1',
+        reason: 'invalid',
+        message: 'Choose the type of work',
+        field: 'jobworktype',
+      );
+      final e = (await queue.all()).single;
+      expect(e.status, UploadStatus.rejected);
+      expect(e.field, 'jobworktype');
+    });
+
+    test('discard removes only that row', () async {
+      await queue.enqueue(_upload('cert-1'));
+      await queue.enqueue(_upload('cert-2'));
+      await queue.discard('cert-1');
+      expect([for (final e in await queue.all()) e.upload.mobileId], [
+        'cert-2',
+      ]);
+    });
+  });
 }

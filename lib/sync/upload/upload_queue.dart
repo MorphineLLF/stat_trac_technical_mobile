@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'certificate_upload.dart';
 import 'queued_upload.dart';
+import 'work_order_upload.dart';
 
 /// Where a certificate waits between being finished and reaching the server.
 enum UploadStatus {
@@ -37,6 +38,7 @@ class UploadQueueEntry {
     required this.attempts,
     this.lastError,
     this.reason,
+    this.field,
   });
 
   final QueuedUpload upload;
@@ -47,6 +49,9 @@ class UploadQueueEntry {
   /// The server's 422 code — `incomplete_tests`, `incomplete_values`,
   /// `already_issued`, `void`, `not_found`, `invalid`.
   final String? reason;
+
+  /// The server's `ValidationError` field when [reason] is `invalid`.
+  final String? field;
 }
 
 /// The outbox.
@@ -70,6 +75,7 @@ class UploadQueue {
         attempts    INTEGER NOT NULL DEFAULT 0,
         last_error  TEXT,
         reason      TEXT,
+        field       TEXT,
         created_at  TEXT NOT NULL,
         updated_at  TEXT NOT NULL
       )
@@ -98,6 +104,7 @@ class UploadQueue {
       'attempts': 0,
       'last_error': null,
       'reason': null,
+      'field': null,
       'created_at': now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -123,6 +130,10 @@ class UploadQueue {
     }.length;
   }
 
+  /// Work orders still on the phone — waiting or set aside.
+  Future<int> workOrderCount() async =>
+      (await all()).where((e) => e.upload is WorkOrderUpload).length;
+
   Future<int> count() async {
     final rows = await _db.rawQuery('SELECT COUNT(*) AS n FROM $table');
     return (rows.first['n'] as num?)?.toInt() ?? 0;
@@ -134,6 +145,12 @@ class UploadQueue {
     await _db.delete(table, where: 'mobile_id = ?', whereArgs: [mobileId]);
   }
 
+  /// The technician chose to throw this away. Nothing else ever deletes a
+  /// refused job.
+  Future<void> discard(String queueKey) async {
+    await _db.delete(table, where: 'mobile_id = ?', whereArgs: [queueKey]);
+  }
+
   Future<void> markConflicted(String mobileId, String summary) =>
       _mark(mobileId, UploadStatus.conflicted, error: summary);
 
@@ -141,7 +158,14 @@ class UploadQueue {
     String mobileId, {
     required String reason,
     required String message,
-  }) => _mark(mobileId, UploadStatus.rejected, error: message, reason: reason);
+    String? field,
+  }) => _mark(
+    mobileId,
+    UploadStatus.rejected,
+    error: message,
+    reason: reason,
+    field: field,
+  );
 
   Future<void> markFailed(String mobileId, String message) =>
       _mark(mobileId, UploadStatus.failed, error: message);
@@ -211,6 +235,7 @@ class UploadQueue {
     UploadStatus status, {
     String? error,
     String? reason,
+    String? field,
   }) async {
     await _db.update(
       table,
@@ -218,6 +243,7 @@ class UploadQueue {
         'status': status.name,
         'last_error': error,
         'reason': reason,
+        'field': field,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       where: 'mobile_id = ?',
@@ -245,6 +271,7 @@ class UploadQueue {
           attempts: (r['attempts'] as num?)?.toInt() ?? 0,
           lastError: r['last_error'] as String?,
           reason: r['reason'] as String?,
+          field: r['field'] as String?,
         ),
     ];
   }

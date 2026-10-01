@@ -24,13 +24,14 @@ import 'migrations/migration_015_cert_test_type.dart';
 import 'migrations/migration_016_upload_queue.dart';
 import 'migrations/migration_017_upload_archive.dart';
 import 'migrations/migration_018_cert_mobile_id.dart';
+import 'migrations/migration_019_drop_work_orders.dart';
 
 class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static const _dbName = 'stat_trac_technical.db';
-  static const _dbVersion = 18;
+  static const _dbVersion = 19;
 
   /// One open, shared by every caller. `_db ??= await _open()` let callers
   /// arriving together each start their own open — harmless on a plain file,
@@ -99,6 +100,7 @@ class DatabaseHelper {
     await migration016UploadQueue(db);
     await migration017UploadArchive(db);
     await migration018CertMobileId(db);
+    await migration019DropWorkOrders(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -118,6 +120,7 @@ class DatabaseHelper {
     if (oldVersion < 16) await migration016UploadQueue(db);
     if (oldVersion < 17) await migration017UploadArchive(db);
     if (oldVersion < 18) await migration018CertMobileId(db);
+    if (oldVersion < 19) await migration019DropWorkOrders(db);
   }
 
   Future<void> close() async {
