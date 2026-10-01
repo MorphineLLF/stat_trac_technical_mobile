@@ -6,6 +6,7 @@ import 'sync_upload_client.dart';
 import 'sync_upload_result.dart';
 import 'upload_archive.dart';
 import 'upload_queue.dart';
+import 'work_order_upload.dart';
 
 /// What one drain did, for the status UI.
 class UploadRunResult {
@@ -19,6 +20,8 @@ class UploadRunResult {
     this.stoppedForAuth = false,
     this.shortApplied = 0,
     this.unguaranteed = 0,
+    this.waitingForServer = 0,
+    this.appliedWorkOrders = 0,
   });
 
   final int attempted;
@@ -44,6 +47,12 @@ class UploadRunResult {
   /// readings landed attached to the certificate rather than to nothing, and
   /// that is not a thing a technician can be left to discover later.
   final int unguaranteed;
+
+  /// Work orders held back because the server does not yet take them.
+  final int waitingForServer;
+
+  /// Of [applied], how many were work orders.
+  final int appliedWorkOrders;
 
   /// The run ended early because the server could not be reached. Not a
   /// failure — the work is still queued and will go when there is signal.
@@ -103,6 +112,25 @@ class UploadWorker {
   /// parks work that had in fact landed.
   static Future<UploadRunResult>? _running;
 
+  /// Shown on a work order held for a server that cannot take it yet.
+  static const serverNotReady =
+      'Waiting — the server is not ready for work orders yet.';
+
+  /// What the server last said it guarantees. Null until it has answered.
+  ///
+  /// Static for the same reason [_running] is: every worker talks to one
+  /// server. Unknown means "ask": an older server refuses `capture` outright
+  /// and applies nothing, so asking costs one round trip and loses nothing.
+  static List<String>? _lastEnforces;
+
+  @visibleForTesting
+  static void forgetServer() => _lastEnforces = null;
+
+  static bool _takesWorkOrders(List<String>? enforces) =>
+      enforces == null ||
+      (enforces.contains(SyncUploadGuarantee.captureAction) &&
+          enforces.contains(SyncUploadGuarantee.jobSignAction));
+
   /// Sends what is waiting. A call while a run is already going joins that
   /// run and gets its result, rather than sending the same rows again.
   Future<UploadRunResult> drain() {
@@ -123,16 +151,25 @@ class UploadWorker {
 
     var attempted = 0, applied = 0, conflicted = 0, rejected = 0, failed = 0;
     var shortApplied = 0, unguaranteed = 0;
+    var waitingForServer = 0, appliedWorkOrders = 0;
 
     for (final entry in pending) {
       final upload = entry.upload;
       final cert = upload is CertificateUpload ? upload : null;
+      if (upload is WorkOrderUpload && !_takesWorkOrders(_lastEnforces)) {
+        await _queue.markRetryable(upload.queueKey, serverNotReady);
+        waitingForServer++;
+        continue;
+      }
       attempted++;
       final result = await _client.upload(
         company: company,
         deviceToken: token,
         upload: upload,
       );
+      if (result is! UploadTransportError && result is! UploadAuthExpired) {
+        _lastEnforces = result.enforces;
+      }
 
       switch (result) {
         case UploadApplied(applied: final rowsApplied, :final assigned):
@@ -176,6 +213,7 @@ class UploadWorker {
           }
           await _queue.markApplied(upload.queueKey);
           applied++;
+          if (upload is WorkOrderUpload) appliedWorkOrders++;
 
         case UploadConflict(:final conflicts):
           await _queue.markConflicted(
@@ -220,11 +258,20 @@ class UploadWorker {
           await _queue.markRejected(
             upload.queueKey,
             reason: reason,
-            message: r?.message ?? 'The server refused this certificate.',
+            message: r?.message ?? 'The server refused this.',
+            field: r?.field,
           );
           rejected++;
 
         case UploadClientError(:final message):
+          // A server without the work-order actions refuses them with a 400
+          // and applies nothing. That is a server not yet updated, not a
+          // broken app, and the job waits rather than being parked.
+          if (upload is WorkOrderUpload && !_takesWorkOrders(result.enforces)) {
+            await _queue.markRetryable(upload.queueKey, serverNotReady);
+            waitingForServer++;
+            break;
+          }
           await _queue.markFailed(upload.queueKey, message);
           failed++;
 
@@ -251,6 +298,8 @@ class UploadWorker {
             failed: failed,
             shortApplied: shortApplied,
             unguaranteed: unguaranteed,
+            waitingForServer: waitingForServer,
+            appliedWorkOrders: appliedWorkOrders,
             stoppedForSignal: false,
             stoppedForAuth: true,
           );
@@ -268,6 +317,8 @@ class UploadWorker {
             failed: failed,
             shortApplied: shortApplied,
             unguaranteed: unguaranteed,
+            waitingForServer: waitingForServer,
+            appliedWorkOrders: appliedWorkOrders,
             stoppedForSignal: true,
           );
       }
@@ -281,6 +332,8 @@ class UploadWorker {
       failed: failed,
       shortApplied: shortApplied,
       unguaranteed: unguaranteed,
+      waitingForServer: waitingForServer,
+      appliedWorkOrders: appliedWorkOrders,
       stoppedForSignal: false,
     );
   }

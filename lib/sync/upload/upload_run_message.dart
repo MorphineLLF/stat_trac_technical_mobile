@@ -39,6 +39,7 @@ class UploadRunMessage {
 /// with no test able to reach it.
 UploadRunMessage describeUploadRun(UploadRunResult r) {
   if (r.attempted == 0) {
+    if (r.waitingForServer > 0) return _waitingForServer(r.waitingForServer);
     return const UploadRunMessage(
       'Nothing waiting to send.',
       UploadMessageTone.quiet,
@@ -65,8 +66,7 @@ UploadRunMessage describeUploadRun(UploadRunResult r) {
 
   if (r.rejected > 0 || r.failed > 0) {
     return UploadRunMessage(
-      '${r.rejected + r.failed} could not be sent — open the certificate to '
-      'see why.',
+      '${r.rejected + r.failed} could not be sent — open it to see why.',
       UploadMessageTone.alarm,
     );
   }
@@ -100,8 +100,23 @@ UploadRunMessage describeUploadRun(UploadRunResult r) {
     );
   }
 
-  return UploadRunMessage(
-    'Sent ${r.applied} certificate${r.applied == 1 ? '' : 's'}.',
-    UploadMessageTone.success,
-  );
+  if (r.waitingForServer > 0) return _waitingForServer(r.waitingForServer);
+
+  return UploadRunMessage('Sent ${_sent(r)}.', UploadMessageTone.success);
+}
+
+UploadRunMessage _waitingForServer(int n) => UploadRunMessage(
+  '$n work order${n == 1 ? '' : 's'} waiting — the server is not ready for '
+  'work orders yet.',
+  UploadMessageTone.warning,
+);
+
+String _sent(UploadRunResult r) {
+  final certs = r.applied - r.appliedWorkOrders;
+  final wos = r.appliedWorkOrders;
+  final parts = [
+    if (certs > 0 || wos == 0) '$certs certificate${certs == 1 ? '' : 's'}',
+    if (wos > 0) '$wos work order${wos == 1 ? '' : 's'}',
+  ];
+  return parts.join(' and ');
 }

@@ -29,6 +29,7 @@ void main() {
   late List<(String, int)> confirmed;
 
   setUp(() async {
+    UploadWorker.forgetServer();
     db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     await UploadQueue.createTable(db);
     await UploadArchive.createTable(db);

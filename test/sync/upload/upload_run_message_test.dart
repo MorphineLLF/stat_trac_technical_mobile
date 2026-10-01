@@ -98,4 +98,23 @@ void main() {
     expect(m.text, contains('does not guarantee'));
     expect(m.tone, UploadMessageTone.alarm);
   });
+
+  test('only work orders waiting for the server is a warning, not "nothing"',
+      () {
+    final m = describeUploadRun(const UploadRunResult(
+      attempted: 0, applied: 0, conflicted: 0, rejected: 0, failed: 0,
+      stoppedForSignal: false, waitingForServer: 2,
+    ));
+    expect(m.tone, UploadMessageTone.warning);
+    expect(m.text, '2 work orders waiting — the server is not ready for '
+        'work orders yet.');
+  });
+
+  test('a sent work order is not called a certificate', () {
+    final m = describeUploadRun(const UploadRunResult(
+      attempted: 2, applied: 2, conflicted: 0, rejected: 0, failed: 0,
+      stoppedForSignal: false, appliedWorkOrders: 1,
+    ));
+    expect(m.text, 'Sent 1 certificate and 1 work order.');
+  });
 }
