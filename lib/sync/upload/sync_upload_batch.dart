@@ -137,7 +137,42 @@ class SyncUploadOp {
     });
   }
 
-  /// Attach a signature to a certificate.
+  /// Raise and complete a work order captured on site — runs the server's
+  /// `CaptureWorkOrderWithCard`: the scope, active, on-loan and open-work-order
+  /// checks, the work order, its job card, its two history lines and the
+  /// completion, in one transaction.
+  ///
+  /// **An action, not two row ops.** Writing `Repair` and `RepairDetail` as
+  /// rows would skip every one of those rules — the same trap as a
+  /// certificate marked issued by writing a column.
+  ///
+  /// **No technician field, ever.** The server writes the person it
+  /// authenticated; a device that could name one could file work as somebody
+  /// else.
+  factory SyncUploadOp.capture({
+    required String mobileId,
+    required Map<String, Object?> data,
+  }) {
+    for (final key in _technicianKeys) {
+      if (data.containsKey(key)) {
+        throw ArgumentError.value(
+          data[key],
+          'data',
+          '$key is written by the server from the token, never by the device',
+        );
+      }
+    }
+    return SyncUploadOp._({
+      'table': 'Repair',
+      'mobile_id': mobileId,
+      'action': 'capture',
+      'data': data,
+    });
+  }
+
+  static const _technicianKeys = {'tech', 'tech_id', 'RepairTech', 'RepairTechID'};
+
+  /// Attach a signature to a certificate or, with [table] `Repair`, to a captured work order's job card.
   ///
   /// **An action, not a column, and that is the whole design.** The two
   /// signature columns are `bytea` and are deliberately absent from the row
@@ -160,6 +195,7 @@ class SyncUploadOp {
   /// technician's: a client signature with no record of who signed is not
   /// evidence of anything, and unknown fields are refused rather than dropped.
   factory SyncUploadOp.sign({
+    String table = 'TestCertificate',
     required String mobileId,
     required SignatureSide which,
     required String png,
@@ -196,7 +232,7 @@ class SyncUploadOp {
     }
 
     return SyncUploadOp._({
-      'table': 'TestCertificate',
+      'table': table,
       'mobile_id': mobileId,
       'action': 'sign',
       'data': {

@@ -323,6 +323,12 @@ abstract final class SyncUploadGuarantee {
 
   /// `action: "sign"` attaches a signature through `SaveSignature`.
   static const signAction = 'sign_action';
+
+  /// `capture` on `Repair` runs the desktop's capture on site.
+  static const captureAction = 'capture_action';
+
+  /// `sign` on `Repair` signs the job card.
+  static const jobSignAction = 'job_sign_action';
 }
 
 /// The 422 codes, and what each means for the person holding the device.
@@ -341,6 +347,13 @@ abstract final class UploadRejectionReason {
   static const notFound = 'not_found';
   static const voided = 'void';
   static const invalid = 'invalid';
+
+  static const assetInactive = 'asset_inactive';
+  static const assetOnLoan = 'asset_on_loan';
+
+  /// The machine already has a repair work order open — booked in at the
+  /// counter or captured by somebody else.
+  static const openWorkOrder = 'open_work_order';
 
   /// Whether the technician has already got what they wanted.
   ///
