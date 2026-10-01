@@ -550,7 +550,10 @@ class _EmailDialogState extends State<_EmailDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: _ccController,
-              keyboardType: TextInputType.emailAddress,
+              // Read-only on the user's word (2026-10-01): the CC is the
+              // technician's own, set in Admin ▸ User Access, and is shown so
+              // they know who else receives it — not chosen here.
+              readOnly: true,
               decoration: const InputDecoration(
                 labelText: 'CC',
                 prefixIcon: Icon(Icons.people_outline),
@@ -563,6 +566,7 @@ class _EmailDialogState extends State<_EmailDialog> {
               keyboardType: TextInputType.multiline,
               minLines: 5,
               maxLines: 8,
+              style: const TextStyle(color: brandDark, fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Message',
                 alignLabelWithHint: true,
