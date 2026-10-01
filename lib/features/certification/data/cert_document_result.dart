@@ -160,6 +160,65 @@ CertEmailResult certEmailResultFromResponse(
   );
 }
 
+/// What the email box opens with: the technician's own CC, reply address and
+/// sign-off, off their Admin row.
+///
+/// That row does not sync, so the server is asked when the box opens —
+/// `GET .../email`. The same three fields the server fills a send with when
+/// the device leaves them out.
+class CertEmailDefaults {
+  const CertEmailDefaults({
+    this.cc = '',
+    this.replyTo = '',
+    this.signature = '',
+  });
+  final String cc;
+  final String replyTo;
+  final String signature;
+
+  /// The message box's starting text: two blank lines the cursor starts in,
+  /// then the sign-off — as the office's box opens. Windows line endings
+  /// become a phone text box's.
+  String get initialBody {
+    final sig = signature.replaceAll('\r\n', '\n').trimRight();
+    return sig.isEmpty ? '' : '\n\n$sig';
+  }
+}
+
+/// The defaults, or null when the server did not give them. Null is not an
+/// error: the box opens empty and the send is filled in server-side instead.
+CertEmailDefaults? certEmailDefaultsFromResponse(
+  int status,
+  Map<String, Object?> body,
+) {
+  if (status != 200) return null;
+  return CertEmailDefaults(
+    cc: (body['cc'] as String?) ?? '',
+    replyTo: (body['reply_to'] as String?) ?? '',
+    signature: (body['signature'] as String?) ?? '',
+  );
+}
+
+/// The CC and message a send carries.
+///
+/// **What is in the boxes when Send is pressed is what goes.** The server
+/// fills a field the request leaves out from the Admin row, and keeps one sent
+/// empty empty. So when the defaults were shown, both are sent as they stand —
+/// a CC the technician cleared must not come back. When they never arrived,
+/// an empty box is left out so the server can still sign the mail.
+({String? cc, String? body}) certEmailFields({
+  required bool defaultsShown,
+  required String cc,
+  required String body,
+}) {
+  final ccText = cc.trim();
+  if (defaultsShown) return (cc: ccText, body: body);
+  return (
+    cc: ccText.isEmpty ? null : ccText,
+    body: body.trim().isEmpty ? null : body,
+  );
+}
+
 /// A body a technician can read.
 String _sentenceFrom(String body) {
   final trimmed = body.trim();

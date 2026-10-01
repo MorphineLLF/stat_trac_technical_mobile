@@ -278,12 +278,29 @@ class _CertificateDetailScreenState
   /// exists — that write can fail afterwards and is still answered 200,
   /// because answering "failed" would have the technician send the same
   /// certificate twice.
+  ///
+  /// The CC and message boxes open with the technician's own CC and sign-off,
+  /// asked of the server as the dialog opens — they live on the Admin row,
+  /// which does not sync.
   Future<void> _showEmailDialog(int serverId) async {
     await showDialog<void>(
       context: context,
       builder: (_) => _EmailDialog(
         serverId: serverId,
-        onSend: (email) async {
+        loadDefaults: () async {
+          final credentials = await ref.read(
+            certDocumentCredentialsProvider.future,
+          );
+          if (credentials == null) return null;
+          return ref
+              .read(certDocumentClientProvider)
+              .fetchEmailDefaults(
+                company: credentials.company,
+                deviceToken: credentials.token,
+                certificateId: serverId,
+              );
+        },
+        onSend: (to, cc, body) async {
           final credentials = await ref.read(
             certDocumentCredentialsProvider.future,
           );
@@ -297,7 +314,9 @@ class _CertificateDetailScreenState
                 company: credentials.company,
                 deviceToken: credentials.token,
                 certificateId: serverId,
-                to: email,
+                to: to,
+                cc: cc,
+                body: body,
               );
 
           switch (result) {
@@ -414,9 +433,16 @@ class _CertificateDetailScreenState
 // ── Email dialog ──────────────────────────────────────────────────────────────
 
 class _EmailDialog extends StatefulWidget {
-  const _EmailDialog({required this.serverId, required this.onSend});
+  const _EmailDialog({
+    required this.serverId,
+    required this.loadDefaults,
+    required this.onSend,
+  });
   final int serverId;
-  final Future<void> Function(String email) onSend;
+  final Future<CertEmailDefaults?> Function() loadDefaults;
+
+  /// [cc] and [body] null means "left out" — the server fills them in.
+  final Future<void> Function(String to, String? cc, String? body) onSend;
 
   @override
   State<_EmailDialog> createState() => _EmailDialogState();
@@ -424,11 +450,47 @@ class _EmailDialog extends StatefulWidget {
 
 class _EmailDialogState extends State<_EmailDialog> {
   final _controller = TextEditingController();
+  final _ccController = TextEditingController();
+  final _bodyController = TextEditingController();
   bool _sending = false;
+  bool _loadingDefaults = true;
+
+  /// Whether the technician's CC and sign-off were put in the boxes. Until
+  /// they are, an empty box is left to the server to fill — see
+  /// [certEmailFields].
+  bool _defaultsShown = false;
   String? _error;
 
   bool get _valid =>
       _controller.text.contains('@') && _controller.text.contains('.');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaults();
+  }
+
+  Future<void> _loadDefaults() async {
+    CertEmailDefaults? defaults;
+    try {
+      defaults = await widget.loadDefaults();
+    } catch (_) {
+      // No defaults is not an error: the boxes stay empty and the server
+      // signs the mail instead.
+    }
+    if (!mounted) return;
+    setState(() {
+      _loadingDefaults = false;
+      if (defaults == null) return;
+      // Only boxes still empty — never over something already typed.
+      if (_ccController.text.isEmpty) _ccController.text = defaults.cc;
+      if (_bodyController.text.isEmpty) {
+        _bodyController.text = defaults.initialBody;
+        _bodyController.selection = const TextSelection.collapsed(offset: 0);
+      }
+      _defaultsShown = true;
+    });
+  }
 
   Future<void> _submit() async {
     setState(() {
@@ -436,7 +498,12 @@ class _EmailDialogState extends State<_EmailDialog> {
       _error = null;
     });
     try {
-      await widget.onSend(_controller.text.trim());
+      final fields = certEmailFields(
+        defaultsShown: _defaultsShown,
+        cc: _ccController.text,
+        body: _bodyController.text,
+      );
+      await widget.onSend(_controller.text.trim(), fields.cc, fields.body);
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -455,6 +522,8 @@ class _EmailDialogState extends State<_EmailDialog> {
   @override
   void dispose() {
     _controller.dispose();
+    _ccController.dispose();
+    _bodyController.dispose();
     super.dispose();
   }
 
@@ -462,32 +531,60 @@ class _EmailDialogState extends State<_EmailDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Email Certificate'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _controller,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Recipient email',
-              hintText: 'name@example.com',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-            onChanged: (_) => setState(() {}),
-            enabled: !_sending,
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 12,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _controller,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Recipient email',
+                hintText: 'name@example.com',
+                prefixIcon: Icon(Icons.email_outlined),
               ),
+              onChanged: (_) => setState(() {}),
+              enabled: !_sending,
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _ccController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'CC',
+                prefixIcon: Icon(Icons.people_outline),
+              ),
+              enabled: !_sending,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bodyController,
+              keyboardType: TextInputType.multiline,
+              minLines: 5,
+              maxLines: 8,
+              decoration: const InputDecoration(
+                labelText: 'Message',
+                alignLabelWithHint: true,
+              ),
+              enabled: !_sending,
+            ),
+            if (_loadingDefaults) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(minHeight: 2),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         TextButton(

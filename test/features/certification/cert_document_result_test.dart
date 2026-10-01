@@ -38,8 +38,11 @@ void main() {
         '{"error":"this application is not available to the mobile app"}',
       );
 
-      expect((r as CertPdfRefused).message, 'this application is not '
-          'available to the mobile app');
+      expect(
+        (r as CertPdfRefused).message,
+        'this application is not '
+        'available to the mobile app',
+      );
       expect(r.message, isNot(contains('{')));
     });
 
@@ -103,6 +106,68 @@ void main() {
     // twice. So a 200 means it left, and nothing more is claimed.
     test('a send with no body is still a send', () {
       expect(certEmailResultFromResponse(200, const {}), isA<CertEmailSent>());
+    });
+  });
+
+  // Asked for 2026-10-01: the box opens with the technician's own CC and
+  // sign-off, the way the office's does. They live on the Admin row, which
+  // does not sync, so the server is asked when the box opens.
+  group('what the email box opens with', () {
+    test("the sender's own CC, reply address and sign-off", () {
+      final d = certEmailDefaultsFromResponse(200, const {
+        'cc': 'records@example.com',
+        'reply_to': 'athi@example.com',
+        'signature': 'Regards\r\nAthi',
+      });
+
+      expect(d, isNotNull);
+      expect(d!.cc, 'records@example.com');
+      expect(d.replyTo, 'athi@example.com');
+      // Under two blank lines the cursor starts in, as the office's box, and
+      // in the line endings a text box on a phone uses.
+      expect(d.initialBody, '\n\nRegards\nAthi');
+    });
+
+    test('no sign-off set opens an empty box', () {
+      expect(certEmailDefaultsFromResponse(200, const {})!.initialBody, '');
+    });
+
+    // The box still opens and the send still works — the server fills in
+    // what was left out, as it did before the box showed anything.
+    test('a refusal or a fault is no defaults, not an error', () {
+      expect(certEmailDefaultsFromResponse(503, const {}), isNull);
+      expect(certEmailDefaultsFromResponse(404, const {}), isNull);
+    });
+  });
+
+  // **What is in the boxes when Send is pressed is what goes.** Left out, the
+  // server fills a field from the Admin row; sent empty, it stays empty. So
+  // once the defaults were shown everything is sent as it stands — a CC the
+  // technician cleared must not come back. Not shown, an empty box is left
+  // out so the server still signs it.
+  group('what the send carries', () {
+    test('defaults shown: the boxes as they stand, even empty', () {
+      final f = certEmailFields(defaultsShown: true, cc: ' ', body: '');
+      expect(f.cc, '');
+      expect(f.body, '');
+    });
+
+    test('defaults never arrived: empty boxes are left to the server', () {
+      final f = certEmailFields(defaultsShown: false, cc: '', body: '  ');
+      expect(f.cc, isNull);
+      expect(f.body, isNull);
+    });
+
+    test('whatever was typed goes either way', () {
+      for (final shown in [true, false]) {
+        final f = certEmailFields(
+          defaultsShown: shown,
+          cc: 'boss@example.com',
+          body: 'Attached.',
+        );
+        expect(f.cc, 'boss@example.com');
+        expect(f.body, 'Attached.');
+      }
     });
   });
 }

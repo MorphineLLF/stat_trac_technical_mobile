@@ -12,6 +12,7 @@ import 'cert_document_result.dart';
 /// authenticate with the ninety-day device token as a Bearer.
 ///
 ///   GET  /{company}/certification/e-test/{id}/print.pdf
+///   GET  /{company}/certification/e-test/{id}/email   what the email box opens with
 ///   POST /{company}/certification/e-test/{id}/email
 ///
 /// **Every answer comes back as a result, never as an exception.** A 409 on a
@@ -57,14 +58,42 @@ class CertDocumentClient {
     }
   }
 
+  /// The technician's own CC, reply address and sign-off, for the email box to
+  /// open with. Null when the server could not say — no signal, or a fault —
+  /// and that is not an error: the box opens empty and the send is filled in
+  /// server-side instead.
+  Future<CertEmailDefaults?> fetchEmailDefaults({
+    required String company,
+    required String deviceToken,
+    required int certificateId,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, Object?>>(
+        '/$company/certification/e-test/$certificateId/email',
+        options: Options(
+          headers: {'Authorization': 'Bearer $deviceToken'},
+          validateStatus: (_) => true,
+        ),
+      );
+      return certEmailDefaultsFromResponse(
+        response.statusCode ?? 0,
+        response.data ?? const {},
+      );
+    } on DioException {
+      return null;
+    }
+  }
+
   /// Emails the certificate.
   ///
   /// Only [to] is required — an empty subject becomes the certificate number
   /// server-side.
   ///
-  /// **`from` is the company's and is not ours to set.** [replyTo] is,
-  /// though: send the technician's address when it is known, and when it is
-  /// not a reply reaches the company mailbox, which is at least somebody.
+  /// **`from` is the company's and is not ours to set.** What is left out is
+  /// filled by the server from the technician's Admin row: [body] becomes
+  /// their sign-off, [cc] their CC, [replyTo] their address. **Left out, not
+  /// empty** — a [cc] or [body] sent as `''` stays empty. See
+  /// [certEmailFields].
   ///
   /// **Unknown fields are refused rather than dropped**, so nothing is sent
   /// that the contract does not name — a misspelled `cc` would otherwise be a
@@ -106,9 +135,9 @@ class CertDocumentClient {
   }
 
   static String _transportMessage(DioException e) => switch (e.type) {
-    DioExceptionType.connectionError ||
-    DioExceptionType.unknown => 'Cannot reach the server. Try again when you '
-        'have signal.',
+    DioExceptionType.connectionError || DioExceptionType.unknown =>
+      'Cannot reach the server. Try again when you '
+          'have signal.',
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
     DioExceptionType.receiveTimeout => 'The server timed out. Try again.',

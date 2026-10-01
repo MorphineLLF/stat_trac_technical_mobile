@@ -770,3 +770,33 @@ comment, because this is precisely the mistake that produces a silent orphan.
 
 Everything else in §12 stands: the issue op, the verdict rule, refused unknown
 fields, the 422 codes. Only the line-to-certificate link changed.
+
+## 15. Emailing a certificate — the sender's CC and sign-off, 2026-10-01
+
+The full contract is the Go repository's `docs/sync-client-handover.md`,
+*`POST .../email`*. What this app relies on:
+
+```http
+GET  /{company}/certification/e-test/{id}/email   → {"cc","reply_to","signature"}
+POST /{company}/certification/e-test/{id}/email   → {"sent":true,...} or a reason code
+```
+
+**The GET is what the email box opens with.** CC, reply address and E-mail
+signature come off the technician's own `Admin` row (*Admin ▸ User Access*),
+which does not sync — so the dialog asks when it opens. The message box starts
+with two blank lines and the signature under them, as the office's box does.
+No answer (no signal, a fault) is not an error: the boxes open empty.
+
+**On the POST, left out and empty are different.** The server fills a field
+the request **leaves out** from the same Admin row — `body` → signature, `cc`
+→ their CC, `reply_to` → their address. A `cc` or `body` **sent as `""`
+stays empty.** So:
+
+- defaults shown → this app sends `cc` and `body` exactly as the boxes stand,
+  even empty, so a CC the technician cleared does not come back;
+- defaults never arrived → empty boxes are left out, so the server still
+  signs the mail.
+
+The rule is `certEmailFields` in `cert_document_result.dart`, tested in
+`test/features/certification/cert_document_result_test.dart`. Build 5 sends
+`to` alone and so gets all three filled in server-side.
