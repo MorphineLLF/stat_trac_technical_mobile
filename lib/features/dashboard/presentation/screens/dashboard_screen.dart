@@ -406,7 +406,7 @@ class DashboardModuleGrid extends StatelessWidget {
                   // not built yet (the user, 2026-10-01). Captured work
                   // orders are under Work Order → View.
                   enabled: false,
-                  color: brandTeal,
+                  color: const Color(0xFF2E7D32),
                   actions: [
                     _TileAction(label: 'View', icon: Icons.visibility_outlined),
                   ],
@@ -446,7 +446,7 @@ class DashboardModuleGrid extends StatelessWidget {
                   label: 'PM Work Order',
                   // The PM module is not on the phone yet.
                   enabled: false,
-                  color: const Color(0xFF2E7D32),
+                  color: brandTeal,
                   actions: [
                     _TileAction(
                       label: 'Create',

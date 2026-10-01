@@ -5,11 +5,14 @@ import '../../../../core/theme/app_theme.dart';
 import '../providers/dashboard_providers.dart';
 
 // Lighter shades of the tiles' colours, so they show on the dark header
-// (the user chose these, 2026-10-01): Work Order blue, PM green, Certificate
-// cyan.
+// (the user chose these, 2026-10-01): Work Order blue, PM Work Order
+// teal-blue, Certificate cyan.
 const _wo = Color(0xFF64B5F6);
-const _pm = Color(0xFF81C784);
+const _pm = Color(0xFF5BB8DB);
 const _certs = Color(0xFF4DD0E1);
+
+/// The "All synced" ring — kept green (the user, 2026-10-01).
+const _allSynced = Color(0xFF81C784);
 
 /// The dark block under the app bar: what is still on the phone.
 ///
@@ -24,7 +27,14 @@ class SyncSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final allSynced = stats.total == 0;
     final sections = allSynced
-        ? [PieChartSectionData(value: 1, color: _pm, radius: 12, title: '')]
+        ? [
+            PieChartSectionData(
+              value: 1,
+              color: _allSynced,
+              radius: 12,
+              title: '',
+            ),
+          ]
         : [
             if (stats.woToSync > 0)
               PieChartSectionData(
