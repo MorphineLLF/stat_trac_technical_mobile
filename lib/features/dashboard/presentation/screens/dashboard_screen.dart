@@ -320,17 +320,17 @@ class _HomeBody extends ConsumerWidget {
           stats.when(
             data: (s) => _PendingTasksRow(
               woCount: s.pendingWorkOrders,
-              capturedCount: s.capturedThisMonth,
+              pmCount: 0,
               certsCount: s.pendingCerts,
             ),
             loading: () => const _PendingTasksRow(
               woCount: 0,
-              capturedCount: 0,
+              pmCount: 0,
               certsCount: 0,
             ),
             error: (e, _) => const _PendingTasksRow(
               woCount: 0,
-              capturedCount: 0,
+              pmCount: 0,
               certsCount: 0,
             ),
           ),
@@ -358,11 +358,11 @@ class _ComingSoonBody extends StatelessWidget {
 class _PendingTasksRow extends StatelessWidget {
   const _PendingTasksRow({
     required this.woCount,
-    required this.capturedCount,
+    required this.pmCount,
     required this.certsCount,
   });
   final int woCount;
-  final int capturedCount;
+  final int pmCount;
   final int certsCount;
 
   @override
@@ -381,8 +381,8 @@ class _PendingTasksRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _TaskCountCard(
-              label: 'Captured this month',
-              count: capturedCount,
+              label: 'Pending PM Orders',
+              count: pmCount,
               color: Color(0xFF2E7D32),
             ),
           ),

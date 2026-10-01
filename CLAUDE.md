@@ -438,7 +438,7 @@ Work in this order. Each phase builds on the previous.
 ### Dashboard — complete ✅
 - `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
-- **Top row** — Pending Work Orders (queued), Captured this month, Certs to Sync. Donut and KPI tiles removed 2026-10-01.
+- **Top row** — Pending Work Orders (queued), Pending PM Orders (0 until the PM module — PM work orders are NOT work orders), Certs to Sync. Donut and KPI tiles removed 2026-10-01.
 - **Quick actions grid** (`DashboardModuleGrid`) — four tiles in two rows: Worklist (disabled — its own module, not work orders, not built yet), Work Order (Create → `CreateWorkOrderScreen`, View → `WorkOrderListScreen`, titled "Work Orders"), PM Work Order (disabled — PM not on the phone yet), Certificate (Create → `CreateCertificateScreen`, View → `CertificateListScreen`)
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 
@@ -662,7 +662,7 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 
 ### Infrastructure
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
-- `dashboard_providers.dart` — the middle top card is now "Captured this month" (work orders), not a PM count; a PM count waits for the PM module (Phase 2)
+- `dashboard_providers.dart` — Pending PM Orders is hardcoded 0; a real PM count waits for the PM module (Phase 2). PM work orders and work orders are different things — never put one in the other's card
 
 ## Sync Error Logging ✅ — TO BE RETIRED
 
