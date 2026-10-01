@@ -23,6 +23,8 @@ class CertDetailsStep extends ConsumerStatefulWidget {
     required this.onNext,
     this.nextService,
     required this.onNextServiceChanged,
+    this.jobcardNo,
+    required this.onJobcardChanged,
   });
 
   final TestTemplateName template;
@@ -47,6 +49,13 @@ class CertDetailsStep extends ConsumerStatefulWidget {
   /// at the van when they remembered.
   final DateTime? nextService;
   final ValueChanged<DateTime?> onNextServiceChanged;
+
+  /// The job card number — `TestJobcardNo`, the office's **J/C No** on Start
+  /// a test. Optional, as there (settled 2026-09-02), and 50 characters at
+  /// most, the server's limit. Placed under Next Service Due on the user's
+  /// word, 2026-10-01.
+  final String? jobcardNo;
+  final ValueChanged<String> onJobcardChanged;
 
   final VoidCallback onNext;
 
@@ -317,6 +326,19 @@ class _CertDetailsStepState extends ConsumerState<CertDetailsStep> {
                     onChanged: widget.onNextServiceChanged,
                   ),
                 ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: widget.jobcardNo,
+                  decoration: const InputDecoration(
+                    labelText: 'J/C No',
+                    hintText: 'Job card number (optional)',
+                    prefixIcon: Icon(Icons.assignment_outlined),
+                    counterText: '',
+                  ),
+                  maxLength: 50,
+                  textInputAction: TextInputAction.done,
+                  onChanged: widget.onJobcardChanged,
+                ),
               ],
             ),
           ),

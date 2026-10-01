@@ -66,6 +66,9 @@ class _CreateCertificateScreenState
   /// offering one shows them what will actually happen.
   DateTime? _nextService;
 
+  /// J/C No, typed on the details step. Optional.
+  String _jobcardNo = '';
+
   final _notesController = TextEditingController();
 
   @override
@@ -148,6 +151,7 @@ class _CreateCertificateScreenState
         serviceType: _serviceType,
         serviceId: _serviceId,
         testType: (_selectedTemplate?.customerSigRequired == true) ? 1 : null,
+        jobcardNo: _jobcardNo.trim().isEmpty ? null : _jobcardNo.trim(),
       );
       // Saved locally as before, so the wizard's later steps still have a
       // record to attach signatures to.
@@ -459,6 +463,8 @@ class _CreateCertificateScreenState
                 initialEquipment: _equipment,
                 nextService: _nextService,
                 onNextServiceChanged: (d) => setState(() => _nextService = d),
+                jobcardNo: _jobcardNo,
+                onJobcardChanged: (v) => _jobcardNo = v,
                 onChanged:
                     (
                       date,
