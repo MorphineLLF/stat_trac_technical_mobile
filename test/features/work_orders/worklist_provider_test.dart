@@ -10,6 +10,7 @@ import 'package:stat_trac_technical/features/work_orders/domain/work_order_summa
 import 'package:stat_trac_technical/features/work_orders/presentation/providers/work_order_providers.dart';
 import 'package:stat_trac_technical/sync/upload/upload_providers.dart';
 import 'package:stat_trac_technical/sync/upload/certificate_upload.dart';
+import 'package:stat_trac_technical/sync/upload/upload_archive.dart';
 import 'package:stat_trac_technical/sync/upload/upload_queue.dart';
 import 'package:stat_trac_technical/sync/upload/work_order_upload.dart';
 
@@ -29,12 +30,15 @@ void main() {
 
   late Database db;
   late UploadQueue queue;
+  late UploadArchive archive;
   late _Source source;
 
   setUp(() async {
     db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     await UploadQueue.createTable(db);
+    await UploadArchive.createTable(db);
     queue = UploadQueue(db);
+    archive = UploadArchive(db);
     source = _Source();
     when(() => source.assetsByIds(any())).thenAnswer((_) async => const {});
   });
@@ -45,6 +49,7 @@ void main() {
     final c = ProviderContainer(overrides: [
       authProvider.overrideWith(_SignedIn.new),
       uploadQueueProvider.overrideWith((ref) async => queue),
+      uploadArchiveProvider.overrideWith((ref) async => archive),
       workOrderSourceProvider.overrideWith((ref) async => source),
     ]);
     addTearDown(c.dispose);
@@ -102,5 +107,35 @@ void main() {
 
     expect(list.items, isEmpty);
     expect(list.syncedComplete, isFalse);
+  });
+
+  group('phoneSignatures', () {
+    final wo = WorkOrderUpload(
+      mobileId: 'wo-9',
+      capture: {'asset_id': 100, 'work_type': 1},
+      techPng: 'A', clientPng: 'B', clientName: 'X',
+    );
+
+    test('from the queue while the job waits', () async {
+      await queue.enqueue(wo);
+      final got =
+          await container().read(phoneSignaturesProvider('wo-9').future);
+      expect(got?.mobileId, 'wo-9');
+      expect(got?.techPng, 'A');
+    });
+
+    test('from the archive once it has gone', () async {
+      await archive.record(upload: wo, applied: 0, assigned: const {});
+      final got =
+          await container().read(phoneSignaturesProvider('wo-9').future);
+      expect(got?.clientPng, 'B');
+    });
+
+    test('null when this phone never had them', () async {
+      expect(
+        await container().read(phoneSignaturesProvider('wo-9').future),
+        isNull,
+      );
+    });
   });
 }

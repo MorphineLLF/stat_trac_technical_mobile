@@ -94,9 +94,13 @@ Future<UploadQueueEntry?> queuedWorkOrder(Ref ref, String mobileId) async {
 /// (signed elsewhere) or the archive has rolled past it.
 @riverpod
 Future<WorkOrderUpload?> phoneSignatures(Ref ref, String mobileId) async {
-  final queued = await ref.watch(queuedWorkOrderProvider(mobileId).future);
+  // Both watched before the first await — a ref.watch after one throws once
+  // the provider has been disposed while it waited.
+  final queuedFuture = ref.watch(queuedWorkOrderProvider(mobileId).future);
+  final archiveFuture = ref.watch(uploadArchiveProvider.future);
+  final queued = await queuedFuture;
   if (queued?.upload case final WorkOrderUpload w) return w;
-  final archive = await ref.watch(uploadArchiveProvider.future);
+  final archive = await archiveFuture;
   final sent = await archive.latestFor(mobileId);
   return sent is WorkOrderUpload ? sent : null;
 }
