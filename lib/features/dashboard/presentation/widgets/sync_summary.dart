@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/dashboard_providers.dart';
 
-// The same colours as the module tiles: Work Order, PM Work Order and
-// Certificate.
-const _wo = Color(0xFF1565C0);
-const _pm = Color(0xFF2E7D32);
-const _certs = Color(0xFF00838F);
+// Lighter shades of the tiles' colours, so they show on the dark header
+// (the user chose these, 2026-10-01): Work Order blue, PM green, Certificate
+// cyan.
+const _wo = Color(0xFF64B5F6);
+const _pm = Color(0xFF81C784);
+const _certs = Color(0xFF4DD0E1);
 
 /// The dark block under the app bar: what is still on the phone.
 ///
