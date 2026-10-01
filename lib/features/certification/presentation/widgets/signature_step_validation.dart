@@ -16,13 +16,14 @@ String? signatureStepError({
   required bool requiresCustomerSig,
   required bool clientSigned,
   required String clientName,
+  String clientLabel = 'Facility',
 }) {
   if (!techSigned) {
     return 'Technician signature is required';
   }
 
   if (requiresCustomerSig && !clientSigned) {
-    return 'Facility signature is required';
+    return '$clientLabel signature is required';
   }
 
   // Only when somebody actually signed. A certificate with no facility
@@ -30,8 +31,8 @@ String? signatureStepError({
   // with a signature that exists, because that signature cannot be sent
   // without one and would otherwise be thrown away in silence.
   if (clientSigned && clientName.trim().isEmpty) {
-    return 'Add the facility contact name before saving — the signature '
-        'cannot be sent without it';
+    return 'Add the ${clientLabel.toLowerCase()} contact name before saving — '
+        'the signature cannot be sent without it';
   }
 
   return null;

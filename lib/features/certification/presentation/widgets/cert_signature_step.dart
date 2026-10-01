@@ -12,12 +12,26 @@ class CertSignatureStep extends StatefulWidget {
     required this.requiresCustomerSig,
     required this.onSigned,
     this.onClose,
+    this.submitLabel = 'Issue Certificate',
+    this.clientLabel = 'Facility',
+    this.initialClientName,
   });
   final bool requiresCustomerSig;
   final ValueChanged<SignatureResult> onSigned;
 
   /// Leaves without signing, after asking. Null shows no Close button.
   final VoidCallback? onClose;
+
+  /// The button that finishes the step — a certificate is issued, a work
+  /// order is saved.
+  final String submitLabel;
+
+  /// Who signs opposite the technician: the facility on a certificate, the
+  /// client on a work order.
+  final String clientLabel;
+
+  /// Pre-fills the contact name — a work order already asked for it.
+  final String? initialClientName;
 
   @override
   State<CertSignatureStep> createState() => _CertSignatureStepState();
@@ -55,6 +69,12 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
   final _clientNameController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _clientNameController.text = widget.initialClientName ?? '';
+  }
+
+  @override
   void dispose() {
     _techController.dispose();
     _clientController.dispose();
@@ -72,6 +92,7 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
       requiresCustomerSig: widget.requiresCustomerSig,
       clientSigned: _clientController.isNotEmpty,
       clientName: _clientNameController.text,
+      clientLabel: widget.clientLabel,
     );
     if (problem != null) {
       if (!mounted) return;
@@ -147,7 +168,7 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     final issue = FilledButton.icon(
       onPressed: _submit,
       icon: const Icon(Icons.check),
-      label: const Text('Issue Certificate'),
+      label: Text(widget.submitLabel),
     );
 
     return ListView(
@@ -171,26 +192,27 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
         if (widget.requiresCustomerSig) ...[
           const SizedBox(height: 24),
           Text(
-            'Facility Contact',
+            '${widget.clientLabel} Contact',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _clientNameController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               // White like the pads — unfilled, it showed the grey page
               // through.
               filled: true,
               fillColor: Colors.white,
-              labelText: 'Facility Contact Name',
-              hintText: 'Required when the facility signs',
+              labelText: '${widget.clientLabel} Contact Name',
+              hintText:
+                  'Required when the ${widget.clientLabel.toLowerCase()} signs',
             ),
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
           ),
           const SizedBox(height: 16),
           _SignaturePad(
-            title: 'Facility Signature',
+            title: '${widget.clientLabel} Signature',
             controller: _clientController,
           ),
         ],
