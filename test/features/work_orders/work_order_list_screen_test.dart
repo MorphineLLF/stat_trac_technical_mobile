@@ -41,4 +41,26 @@ void main() {
     await pump(tester, const Worklist([], syncedComplete: true));
     expect(find.text('No work orders yet'), findsOneWidget);
   });
+
+  testWidgets('pull to retry fires on a short list', (tester) async {
+    var builds = 0;
+    tester.view.physicalSize = const Size(1080, 2316);
+    tester.view.devicePixelRatio = 1080 / 384;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        worklistProvider.overrideWith((ref) async {
+          builds++;
+          return const Worklist([], syncedComplete: false);
+        }),
+      ],
+      child: MaterialApp(theme: appTheme, home: const WorkOrderListScreen()),
+    ));
+    await tester.pumpAndSettle();
+    expect(builds, 1);
+
+    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+    expect(builds, 2);
+  });
 }

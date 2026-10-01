@@ -151,8 +151,9 @@ class _Queued extends ConsumerWidget {
         ],
       ),
     );
-    if (sure != true) return;
+    if (sure != true || !context.mounted) return;
     await (await ref.read(uploadQueueProvider.future)).discard(mobileId);
+    if (!context.mounted) return;
     ref.invalidate(worklistProvider);
     if (context.mounted) Navigator.of(context).pop();
   }

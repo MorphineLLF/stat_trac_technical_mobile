@@ -19,14 +19,28 @@ class WorkOrderListScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(worklistProvider.future),
         child: list.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ListView(children: const [
+          // Every state is a ListView that can always be dragged: a list that
+          // does not overflow cannot be overscrolled, so without this the
+          // "pull to retry" in the short states could never fire.
+          loading: () => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          ),
+          error: (e, _) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
             Padding(
               padding: EdgeInsets.all(24),
               child: Text('Work orders could not be read — pull to retry'),
             ),
           ]),
           data: (w) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               if (!w.syncedComplete)
                 const Padding(
