@@ -114,6 +114,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       final result = await worker.drain();
       if (result.attempted > 0 && mounted) {
         ref.invalidate(pendingUploadCountProvider);
+        // The work-order tiles count the outbox too; a job that just went up
+        // must leave "Pending" without waiting for the next restart.
+        ref.invalidate(dashboardStatsProvider);
       }
     } catch (e, st) {
       // Never surfaced here. A failed drain leaves the work queued, which is

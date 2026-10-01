@@ -104,15 +104,51 @@ void main() {
     expect(r.failed, 0);
   });
 
-  test('once the server is known not to take them, it is not asked again',
-      () async {
+  // Asked once per drain, not never again: a server updated after the gate
+  // closed must be found out without anyone reinstalling the app.
+  test('once the server is known not to take them, it is asked once per '
+      'drain', () async {
     await queue.enqueue(_wo('wo-1'));
     answers(const UploadClientError('no', enforces: ['batch_atomic']));
     await worker.drain();
     await worker.drain();
 
-    expect(sends(), 1);
+    expect(sends(), 2);
     expect((await queue.all()).single.status, UploadStatus.pending);
+  });
+
+  test('a closed gate sends one probe per drain, however many are held',
+      () async {
+    await queue.enqueue(_wo('wo-1'));
+    answers(const UploadClientError('no', enforces: ['batch_atomic']));
+    await worker.drain();
+    await queue.enqueue(_wo('wo-2'));
+    clearInteractions(client);
+
+    final r = await worker.drain();
+
+    expect(sends(), 1);
+    expect(r.waitingForServer, 2);
+    final left = await queue.all();
+    expect(left, hasLength(2));
+    expect(left.every((e) => e.status == UploadStatus.pending), isTrue);
+  });
+
+  test('a server updated after the gate closed takes the held work orders',
+      () async {
+    await queue.enqueue(_wo('wo-1'));
+    await queue.enqueue(_wo('wo-2'));
+    answers(const UploadClientError('no', enforces: ['batch_atomic']));
+    await worker.drain();
+    expect(await queue.count(), 2);
+
+    answers(const UploadApplied(applied: 0, assigned: {}, issued: [],
+        enforces: _ready));
+    final r = await worker.drain();
+
+    expect(r.appliedWorkOrders, 2);
+    expect(r.waitingForServer, 0);
+    expect(await queue.count(), 0);
   });
 
   test('a 400 from a server that does take them is a real failure', () async {
@@ -208,8 +244,20 @@ void main() {
       certificate: const {'TestAssetID': 1},
       lines: const [],
     ));
-    answers(const UploadApplied(applied: 1, assigned: {'cert-1': 77},
-        issued: [], enforces: ['batch_atomic']));
+    when(
+      () => client.upload(
+        company: any(named: 'company'),
+        deviceToken: any(named: 'deviceToken'),
+        upload: any(named: 'upload'),
+      ),
+    ).thenAnswer((i) async {
+      final u = i.namedArguments[#upload] as dynamic;
+      // The work order is probed again and the server still refuses it.
+      return u is WorkOrderUpload
+          ? const UploadClientError('no', enforces: ['batch_atomic'])
+          : const UploadApplied(applied: 1, assigned: {'cert-1': 77},
+              issued: [], enforces: ['batch_atomic']);
+    });
 
     final r = await worker.drain();
 

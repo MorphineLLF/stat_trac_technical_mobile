@@ -436,7 +436,7 @@ Work in this order. Each phase builds on the previous.
 - `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
 - **Top row** — Pending Work Orders (queued), Captured this month, Certs to Sync. Donut and KPI tiles removed 2026-10-01.
-- **Quick actions grid** — 5-tile 2-column grid (`childAspectRatio: 1.8`), all brandTeal: Worklist (→ `WorkOrderListScreen`), Create Work Order (→ `CreateWorkOrderScreen`), Create PM Order (coming soon), Create Certificate (→ `CreateCertificateScreen`), View Certificates (→ `CertificateListScreen`)
+- **Quick actions grid** (`DashboardModuleGrid`) — four tiles in two rows: Worklist (View → `WorkOrderListScreen`), Work Order (Create → `CreateWorkOrderScreen`, View → `WorkOrderListScreen`), PM Work Order (disabled — PM not on the phone yet), Certificate (Create → `CreateCertificateScreen`, View → `CertificateListScreen`)
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 
 ### Sync engine ✅
@@ -464,7 +464,7 @@ Work in this order. Each phase builds on the previous.
 - Badge on sync icon → count of unresolved errors; **tap opens `_SyncErrorSheet`** (human-readable operation labels, error message, time ago, Retry button); tapping sync icon with no errors triggers sync directly
 
 ### Database foundation
-- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 18** (the single source of truth is `_dbVersion` in that file — this line and the table above have both been stale before, so check the constant rather than the prose); `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
+- `lib/database/database_helper.dart` — singleton, migration runner; **current DB version: 19** (the single source of truth is `_dbVersion` in that file — this line and the table above have both been stale before, so check the constant rather than the prose); `_onUpgrade` replays missing migrations for stale installs; WAL is default on API 28+ so no PRAGMA needed
 - `lib/database/migrations/migration_001_work_orders.dart` — §5.1 tables + `change_log`
 - `lib/database/migrations/migration_002_assets.dart` — original `assets` table (superseded by migration_003)
 - `lib/database/migrations/migration_003_assets_v2.dart` — rebuilds `assets` with correct schema (`asset_id UNIQUE`, barcode/hospital indexes, provisional rescue)
@@ -659,7 +659,7 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 
 ### Infrastructure
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired
-- `dashboard_providers.dart` — PM Work Order count is hardcoded `0`; wire real query once PM tables exist (Phase 2)
+- `dashboard_providers.dart` — the middle top card is now "Captured this month" (work orders), not a PM count; a PM count waits for the PM module (Phase 2)
 
 ## Sync Error Logging ✅ — TO BE RETIRED
 

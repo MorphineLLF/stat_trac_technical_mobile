@@ -121,6 +121,7 @@ class UploadWorker {
   /// Static for the same reason [_running] is: every worker talks to one
   /// server. Unknown means "ask": an older server refuses `capture` outright
   /// and applies nothing, so asking costs one round trip and loses nothing.
+  /// A known "no" is still asked once per drain, by the first work order.
   static List<String>? _lastEnforces;
 
   @visibleForTesting
@@ -153,13 +154,25 @@ class UploadWorker {
     var shortApplied = 0, unguaranteed = 0;
     var waitingForServer = 0, appliedWorkOrders = 0;
 
+    // Whether this drain has already asked the server about work orders.
+    // A closed gate is re-asked once per drain, never more: the first held
+    // work order goes as a probe and its answer decides for the rest. Without
+    // it, a server updated after the gate closed was never asked again, and
+    // every work order waited until the app was restarted.
+    var probed = false;
+
     for (final entry in pending) {
       final upload = entry.upload;
       final cert = upload is CertificateUpload ? upload : null;
-      if (upload is WorkOrderUpload && !_takesWorkOrders(_lastEnforces)) {
-        await _queue.markRetryable(upload.queueKey, serverNotReady);
-        waitingForServer++;
-        continue;
+      if (upload is WorkOrderUpload) {
+        if (!_takesWorkOrders(_lastEnforces) && probed) {
+          await _queue.markRetryable(upload.queueKey, serverNotReady);
+          waitingForServer++;
+          continue;
+        }
+        // Sent — as a probe or because the gate is open — so this drain has
+        // its answer either way.
+        probed = true;
       }
       attempted++;
       final result = await _client.upload(

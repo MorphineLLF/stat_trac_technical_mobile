@@ -16,6 +16,9 @@ import '../../../assets/presentation/widgets/asset_picker_dialog.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../certification/presentation/widgets/cert_signature_step.dart';
+// The certificate wizard's precedent: the dashboard's counts are refreshed by
+// the screen that changed them.
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/work_order_job.dart';
 import '../providers/work_order_providers.dart';
 import '../widgets/work_order_form.dart';
@@ -163,6 +166,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     }
     if (!mounted) return;
     ref.invalidate(worklistProvider);
+    ref.invalidate(dashboardStatsProvider);
 
     UploadRunResult? result;
     try {
@@ -172,6 +176,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     }
     if (!mounted) return;
     ref.invalidate(worklistProvider);
+    ref.invalidate(dashboardStatsProvider);
 
     // Saved either way. Only a run that needs saying louder replaces the
     // plain message.
@@ -184,8 +189,10 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     Navigator.of(context).pop();
   }
 
-  /// Back steps back. Only the first step leaves — and a resend, which has
-  /// no first step, asks, because leaving abandons the fix.
+  /// Back steps back. Only the first step leaves, and it asks once a machine
+  /// has been chosen: nothing is written until Save, so leaving a started card
+  /// throws all of it away. A resend, which has no first step, asks too,
+  /// because leaving abandons the fix.
   Future<void> _back() async {
     if (_step == 2) {
       setState(() => _step = 1);
@@ -195,12 +202,18 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       setState(() => _step = 0);
       return;
     }
+    final resend = widget.resend != null;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave without resending?'),
-        content: const Text(
-          'The work order stays set aside. Your changes here are not kept.',
+        title: Text(
+          resend ? 'Leave without resending?' : 'Leave without saving?',
+        ),
+        content: Text(
+          resend
+              ? 'The work order stays set aside. Your changes here are not '
+                    'kept.'
+              : 'This work order has not been saved.',
         ),
         actions: [
           TextButton(
@@ -220,9 +233,10 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   @override
   Widget build(BuildContext context) {
     // Navigator.pop (Save, Leave) is not stopped by canPop — only the back
-    // gesture and the AppBar arrow are, and those step back instead.
+    // gesture and the AppBar arrow are, and those step back instead. The
+    // first step leaves freely only while nothing has been started.
     return PopScope(
-      canPop: _step == 0,
+      canPop: _step == 0 && _job == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
@@ -378,6 +392,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         'datein' || 'timein' => a.started != b.started,
         'dateout' || 'timeout' => a.finished != b.finished,
         'equiphrs' => a.equipHrs != b.equipHrs,
+        'nop' => a.nop != b.nop,
         'jobfault' => a.fault != b.fault,
         'jobwork' => a.work != b.work,
         'jobnote' => a.note != b.note,

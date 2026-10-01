@@ -7,6 +7,7 @@ WorkOrderJob job({
   DateTime? started,
   DateTime? finished,
   int? equipHrs,
+  int? nop,
   String fault = '',
   String note = '',
   String clientName = 'Sister Dlamini',
@@ -17,6 +18,7 @@ WorkOrderJob job({
   started: started ?? DateTime(2026, 10, 1, 8, 15),
   finished: finished ?? DateTime(2026, 10, 1, 10, 40),
   equipHrs: equipHrs,
+  nop: nop,
   fault: fault,
   note: note,
   clientName: clientName,
@@ -59,6 +61,16 @@ void main() {
     ));
     test('negative hours', () => refuses(
       job(equipHrs: -1), 'equiphrs', 'Equipment hours cannot be negative'));
+    // Stricter than the server here, and deliberately: the server checks
+    // only for a negative, and a larger number fails the database's integer
+    // column as a 500 that holds the whole queue for ever.
+    test('hours too large', () => refuses(
+      job(equipHrs: 1000000000), 'equiphrs', 'Equipment hours is too large'));
+    test('N.O.P too large', () => refuses(
+      job(nop: 1000000000), 'nop', 'N.O.P is too large'));
+    test('the largest nine-digit values are allowed', () {
+      expect(job(equipHrs: 999999999, nop: 999999999).validate(), isNull);
+    });
     test('fault too long', () => refuses(
       job(fault: 'x' * 201), 'jobfault', 'The fault is longer than 200 characters'));
     test('notes too long', () => refuses(

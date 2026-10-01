@@ -275,4 +275,88 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller!.text, hasLength(50));
   });
+
+  // The work-order screen keeps the signature step mounted once reached, so
+  // a name corrected on the card afterwards arrives as a new widget, not a
+  // new state. Seeded only once, the step kept the old name and Save sent it.
+  testWidgets('the signature step takes a client name corrected on the card '
+      'after it was first shown', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2316);
+    tester.view.devicePixelRatio = 1080 / 384;
+    addTearDown(tester.view.reset);
+    var name = 'Sister Dlamini';
+    late StateSetter rebuild;
+    await tester.pumpWidget(MaterialApp(
+      theme: appTheme,
+      home: Scaffold(
+        body: StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return CertSignatureStep(
+              requiresCustomerSig: true,
+              clientLabel: 'Client',
+              initialClientName: name,
+              clientNameMaxLength: 50,
+              onSigned: (_) {},
+            );
+          },
+        ),
+      ),
+    ));
+    TextEditingController box() =>
+        tester.widget<TextField>(find.byType(TextField)).controller!;
+    expect(box().text, 'Sister Dlamini');
+
+    rebuild(() => name = 'Sister Mbeki');
+    await tester.pumpAndSettle();
+    expect(box().text, 'Sister Mbeki');
+
+    // A rebuild that does not change the card's name leaves what was typed
+    // on the step alone.
+    await tester.enterText(find.byType(TextFormField), 'Sr Mbeki');
+    rebuild(() {});
+    await tester.pumpAndSettle();
+    expect(box().text, 'Sr Mbeki');
+  });
+
+  // With no machine chosen there is nothing to lose, so back simply leaves.
+  // The "Leave without saving?" question once a machine is chosen needs the
+  // asset picker, which reads the PowerSync database — that half is the
+  // phone check.
+  testWidgets('a new capture with nothing started leaves without asking',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2316);
+    tester.view.devicePixelRatio = 1080 / 384;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [authProvider.overrideWith(_SignedIn.new)],
+      child: MaterialApp(
+        theme: appTheme,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CreateWorkOrderScreen(),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1 of 3 — Machine'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Leave without saving?'), findsNothing);
+    expect(find.byType(CreateWorkOrderScreen), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+  });
 }

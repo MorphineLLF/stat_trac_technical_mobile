@@ -79,6 +79,19 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
     _clientNameController.text = widget.initialClientName ?? '';
   }
 
+  /// A work order keeps this step mounted while the technician goes back to
+  /// the card. A name corrected there arrives here as a new widget, and
+  /// seeding only in [initState] kept the old name and saved it. Only a
+  /// changed name re-seeds, so a rebuild for any other reason leaves what was
+  /// typed in this box alone. A certificate passes null both times.
+  @override
+  void didUpdateWidget(CertSignatureStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialClientName != oldWidget.initialClientName) {
+      _clientNameController.text = widget.initialClientName ?? '';
+    }
+  }
+
   @override
   void dispose() {
     _techController.dispose();

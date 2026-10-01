@@ -8,6 +8,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../sync/upload/upload_providers.dart';
 import '../../../../sync/upload/upload_queue.dart';
 import '../../../../sync/upload/work_order_upload.dart';
+// As the certificate wizard does: the screen that changes a count refreshes it.
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/work_order_job.dart';
 import '../providers/work_order_providers.dart';
 import 'create_work_order_screen.dart';
@@ -155,6 +157,7 @@ class _Queued extends ConsumerWidget {
     await (await ref.read(uploadQueueProvider.future)).discard(mobileId);
     if (!context.mounted) return;
     ref.invalidate(worklistProvider);
+    ref.invalidate(dashboardStatsProvider);
     if (context.mounted) Navigator.of(context).pop();
   }
 }

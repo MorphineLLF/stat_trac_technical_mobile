@@ -13,7 +13,8 @@ class WorkOrderFieldError {
 ///
 /// **The checks are the server's, word for word** (`JobCardInput.Validate`,
 /// captured), and never stricter: a device check the server would not make
-/// stops a technician finishing a job that was fine.
+/// stops a technician finishing a job that was fine. The one exception is the
+/// nine-digit cap on hours and N.O.P — see [validate].
 class WorkOrderJob {
   const WorkOrderJob({
     required this.assetId,
@@ -58,6 +59,10 @@ class WorkOrderJob {
   static const maxWork = 200;
   static const maxNote = 100;
 
+  /// Equipment hours and N.O.P: nine digits, inside a Postgres `integer`.
+  static const maxCount = 999999999;
+  static const maxCountDigits = 9;
+
   WorkOrderFieldError? validate() {
     if (workType == null) {
       return const WorkOrderFieldError('jobworktype', 'Choose the type of work');
@@ -80,6 +85,16 @@ class WorkOrderJob {
         'equiphrs',
         'Equipment hours cannot be negative',
       );
+    }
+    // The one check the server does not make. It refuses only a negative;
+    // anything past the database's integer column fails the insert as a 500,
+    // which the outbox reads as no signal — and the job then blocks every
+    // upload behind it for ever. Nine digits is the form's limit too.
+    if ((equipHrs ?? 0) > maxCount) {
+      return const WorkOrderFieldError('equiphrs', 'Equipment hours is too large');
+    }
+    if ((nop ?? 0) > maxCount) {
+      return const WorkOrderFieldError('nop', 'N.O.P is too large');
     }
     for (final (field, label, value, max) in [
       ('jobcardno', 'The job card no', jobCardNo, maxJobCardNo),
