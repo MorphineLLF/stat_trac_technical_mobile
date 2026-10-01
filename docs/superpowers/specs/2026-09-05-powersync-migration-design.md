@@ -11,7 +11,7 @@
 **The backend, schema, tenancy, sync rules and conflict policy are decided in the
 Go repository, not here:**
 
-> `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md`
+> `E:\Stat_Trac_Go\docs\sync-design.md`
 
 That document is authoritative and current. This spec covers **only the Flutter
 technician application** — the work that lives in this repository. Where the two
@@ -214,8 +214,8 @@ assumption to build on.
 
 ## References
 
-- `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md` — **authoritative**
-- `C:\Delphi\GitHub_Stat_Trac_Go\docs\android-supabase-design.md` — the Supabase
+- `E:\Stat_Trac_Go\docs\sync-design.md` — **authoritative**
+- `E:\Stat_Trac_Go\docs\android-supabase-design.md` — the Supabase
   episode, superseded, kept for its reasoning
 - [PowerSync self-hosted configuration](https://docs.powersync.com/configuration/powersync-service/self-hosted-instances)
 - [PowerSync JWKS example](https://github.com/powersync-ja/powersync-jwks-example)

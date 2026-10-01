@@ -7,7 +7,7 @@
 > and removed on the same day — it is not a sync engine. Do not reintroduce it.**
 >
 > The authoritative backend design lives in the **Go repository**, not here:
-> `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md`
+> `E:\Stat_Trac_Go\docs\sync-design.md`
 >
 > **Delphi, UniGUI and Horse — the applications — are retired. The `Stat_Trac`
 > database is not.** The existing Stat Trac schema (84 PascalCase tables)
@@ -24,8 +24,9 @@
 > The Flutter package cache is on E: too — user environment variable
 > `PUB_CACHE=E:\PubCache`. Keep them on the same drive: with the project on E:
 > and the cache on C:, Kotlin's incremental compiler failed on every Android
-> build ("different roots"). The upload keystore, Flutter SDK, Android SDK and
-> the Go repo stay on C:; a verified copy of the upload key folder is at
+> build ("different roots"). The upload keystore, Flutter SDK and Android SDK
+> stay on C:. **The Go repository is on E: — `E:\Stat_Trac_Go`** (the old
+> `C:\Delphi\GitHub_Stat_Trac_Go` path no longer exists). A verified copy of the upload key folder is at
 > `E:\keys\stat_trac_technical\` (separate physical drive). The old C: copy
 > of the project was deleted on 2026-09-30 at the user's word, after `master`
 > was pushed to GitHub.
@@ -91,7 +92,7 @@
 > **The only authorities are:**
 >
 > 1. `lib/sync/powersync_schema.dart` — generated from the live database
-> 2. The Go repository — `C:\Delphi\GitHub_Stat_Trac_Go`
+> 2. The Go repository — `E:\Stat_Trac_Go`
 > 3. `docs/sync-client-handover.md` — the agreed contract with the Go side
 >
 > If a field's meaning is unclear, ask the Go session or read the Go source.
@@ -167,7 +168,7 @@ Key sections:
 - **State management:** Riverpod 3 with code-generated providers (`riverpod_annotation ^4`, `riverpod_generator ^4`)
 - **Connectivity:** `connectivity_plus ^6` — used in sync notifier to skip sync when offline
 - **Local database:** SQLite via sqflite (offline-first), **encrypted at rest** (from 2026-09-30) — see "Encryption at rest" below
-- **Backend API:** Go application (repo: `C:\Delphi\GitHub_Stat_Trac_Go`), device-token auth + JWKS
+- **Backend API:** Go application (repo: `E:\Stat_Trac_Go`), device-token auth + JWKS
 - **Offline sync:** PowerSync (`journeyapps/powersync-service:1.24.0`), self-hosted against plain Postgres
 - **Server database:** PostgreSQL 17.11, plain (no Supabase), `wal_level=logical`, database-per-company
 - **Hosting:** Secure on-premise Windows server in South Africa (POPIA data residency)

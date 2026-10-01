@@ -1,7 +1,7 @@
 # Sync Client Handover — Technician App
 
 **From:** the Flutter technician application (`Stat_Trac-Technical-app`)
-**To:** the Go application / sync layer (`C:\Delphi\GitHub_Stat_Trac_Go`)
+**To:** the Go application / sync layer (`E:\Stat_Trac_Go`)
 **Date:** 2026-09-05
 **Status:** Input document. Nothing here is built.
 
@@ -34,7 +34,7 @@ table names.** Provenance is at the end.
 > **The only authorities are:**
 >
 > 1. `lib/sync/powersync_schema.dart` — generated from the live database
-> 2. The Go repository — `C:\Delphi\GitHub_Stat_Trac_Go`
+> 2. The Go repository — `E:\Stat_Trac_Go`
 > 3. `docs/sync-client-handover.md` — the agreed contract with the Go side
 >
 > If a field's meaning is unclear, ask the Go session or read the Go source.
@@ -281,7 +281,7 @@ Derived on 2026-09-05 from:
 - `lib/features/certification/data/` — for what is written versus read
 - `pubspec.yaml` — confirming no uuid/nanoid dependency exists
 
-Cross-referenced against `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md`,
+Cross-referenced against `E:\Stat_Trac_Go\docs\sync-design.md`,
 which is authoritative for every backend decision. Where this document and that
 one disagree, that one wins.
 
@@ -505,7 +505,7 @@ the second one mattered.
 
 The mistake: `sync_push.go` is in **`C:\Users\HomePC\stat_trac_api_go`** — the
 **rep API** on :9000, which serves the sales handsets. The technician upload
-path is in `C:\Delphi\GitHub_Stat_Trac_Go`, the same server that mints the
+path is in `E:\Stat_Trac_Go`, the same server that mints the
 device token. Two Go codebases; I read a filename and assumed one.
 
 ### The route — it exists and has since 2026-09-05

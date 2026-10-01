@@ -1,6 +1,6 @@
 > # SUPERSEDED before execution — 2026-09-05
 >
-> **Read `C:\Delphi\GitHub_Stat_Trac_Go\docs\sync-design.md` instead.**
+> **Read `E:\Stat_Trac_Go\docs\sync-design.md` instead.**
 >
 > This plan was written against an assumed greenfield database. That assumption
 > was wrong. The Go repository already holds 84 PascalCase tables, 18
