@@ -92,6 +92,22 @@ class UploadArchive {
     ];
   }
 
+  /// The last archived payload sent under [mobileId], if it is still kept.
+  Future<QueuedUpload?> latestFor(String mobileId) async {
+    final rows = await _db.query(
+      table,
+      columns: ['payload'],
+      where: 'mobile_id = ?',
+      whereArgs: [mobileId],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return fromQueuedJson(
+      jsonDecode(rows.first['payload']! as String) as Map<String, Object?>,
+    );
+  }
+
   /// The most recent uploads the server did not apply in full.
   Future<List<UploadArchiveEntry>> shortApplies() async =>
       (await all()).where((e) => e.isShort).toList();
