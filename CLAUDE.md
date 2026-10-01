@@ -298,7 +298,7 @@ plain. `test/database/database_encryption_test.dart` fails first if it does.
 - Existing master tables consumed read-only: accounts, contacts, assets, asset_usage
 - All other tables (work_orders, pm_*, parts_*, certificates_*, etc.) are read-write
 - Migration runner: `lib/database/database_helper.dart` — add new `migration_00N_*.dart` files and register in `_onUpgrade`
-- **Current DB version: 18** — tables below
+- **Current DB version: 19** — tables below
 - `assets` table includes `is_provisional INTEGER NOT NULL DEFAULT 0` — provisional records created in the field pending admin registration in master DB
 
 | Migration | DB version | Tables / changes |
@@ -320,6 +320,7 @@ plain. `test/database/database_encryption_test.dart` fails first if it does.
 | 016 → v16 | 16 | NEW `upload_queue` — the outbox a finished certificate waits in. **The CREATE lives in `UploadQueue.createTable`, not in the migration**, so the code that reads the table and the code that creates it cannot drift, and the tests build the same table in memory |
 | 017 → v17 | 17 | NEW `upload_archive` — what was sent and what the server said it applied, written BEFORE the queue row is deleted. Deleting first is what left the lost certificate with no record of what went. Definition in `UploadArchive.createTable`, same reason as 016 |
 | 018 → v18 | 18 | `test_certificates` — adds `mobile_id TEXT` + index. The uuid a certificate travels under; the server names it by this and by nothing else, and writes its own key back against it |
+| 019 → v19 | 19 | DROP work_orders, work_order_status_history, work_order_photos, work_order_signatures; upload_queue + field TEXT |
 
 ## API — SUPERSEDED (Horse REST, retired 2026-09-05)
 
@@ -434,9 +435,7 @@ Work in this order. Each phase builds on the previous.
 ### Dashboard — complete ✅
 - `lib/features/dashboard/presentation/screens/dashboard_screen.dart` — `WidgetsBindingObserver` + `addPostFrameCallback` sync triggers; AppBar with `_SyncStatusLabel` (dual-ring progress circle / green tick+timestamp / red error), `Badge` on sync icon (count of unresolved errors, tappable → `_SyncErrorSheet`), logout; single-screen layout (no tabs)
 - `lib/features/dashboard/presentation/providers/dashboard_providers.dart` — `lastSyncedAtProvider`, `DashboardStats`, `dashboardStatsProvider` (live SQL query from WO table)
-- **Top row** — two side-by-side `_TaskCountCard` tiles: "Pending Work Orders" (brandTeal) and "Pending PM Work Orders" (dark green)
-- **Donut chart** — `fl_chart` `PieChart`, Overdue (brandError) / Pending (amber) / WIP (brandTeal) sections with legend + percentages; grey ring when total = 0
-- **KPI row** — three `_KpiTile` cards: Overdue, Pending, WIP counts in matching colours
+- **Top row** — Pending Work Orders (queued), Captured this month, Certs to Sync. Donut and KPI tiles removed 2026-10-01.
 - **Quick actions grid** — 5-tile 2-column grid (`childAspectRatio: 1.8`), all brandTeal: Worklist (→ `WorkOrderListScreen`), Create Work Order (→ `CreateWorkOrderScreen`), Create PM Order (coming soon), Create Certificate (→ `CreateCertificateScreen`), View Certificates (→ `CertificateListScreen`)
 - **Bottom `NavigationBar`** — Home, Assets, Inventory, Meter; Assets tab → `AssetListScreen`; others show "coming soon"
 
@@ -483,22 +482,12 @@ Work in this order. Each phase builds on the previous.
 - On sync, the server registers the asset and returns a `server_id`; app patches `is_provisional = 0` and `server_id`
 - ~~Provisional asset badge~~ — dead, see the removed rule above. Nothing sets `is_provisional` any more.
 
-### Work Orders — domain + data + list + detail + create screens
-- `lib/features/work_orders/domain/entities/work_order_enums.dart` — `WoType`, `WoPriority`, `WoStatus`, `WoOrigin`, `WoOutcome`, `BillingFlag`, `PhotoStage`, `SignerRole`
-- `lib/features/work_orders/domain/entities/work_order.dart` — `WorkOrder`, `WorkOrderStatusHistory`
-- `lib/features/work_orders/domain/repositories/work_order_repository.dart`
-- `lib/features/work_orders/data/models/work_order_model.dart` — SQLite map ↔ entity DTO
-- `lib/features/work_orders/data/datasources/wo_local_data_source.dart` — sqflite CRUD, today's query, `getStatusHistory(workOrderId)`, change-log writes
-- `lib/features/work_orders/data/datasources/wo_remote_data_source.dart` — Dio stubs for all §6.1 endpoints
-- `lib/features/work_orders/data/repositories/work_order_repository_impl.dart` — wires local + remote, writes status history + change log on every mutation
-- `lib/features/work_orders/presentation/providers/work_order_providers.dart` + `.g.dart` — `TodaysWorkOrders`, `workOrderDetailProvider(id)`, `workOrderStatusHistoryProvider(id)`, `WorkOrderActions` notifier
-- `lib/features/work_orders/presentation/screens/work_order_list_screen.dart` — priority-grouped list, SLA countdown, type/status chips; taps navigate to detail
-- `lib/features/work_orders/presentation/screens/work_order_detail_screen.dart` — header card (type/priority/WO#/asset/SLA), description, timing, resolution narrative, status history timeline, `_TransitionBar` with contextual buttons per status
-- `lib/features/work_orders/presentation/screens/create_work_order_screen.dart` — "New Work Order"; 6-type grid selector (CM/PM/INS/INST/DEC/UPG) with icons; P1–P4 priority chips; two-step asset picker; description field; type-aware info banner; "Create & Start Work" (CM) or "Submit Work Order" (others)
-
-**WO creation business rule** (§BR-9):
-- CM created by technician: `initialStatus = WoStatus.inProgress`, `startedAt = now` (no dispatcher approval)
-- All other types: `initialStatus = WoStatus.created` (goes to dispatcher queue)
+### Work Orders — capture on site (2026-10-01)
+- **Capture only.** Book-in is desktop-only. The phone shows only the Work Order tab (job card) — no WO Request, no WO Progress.
+- Create: machine → job card → both signatures (required) → `upload_queue` as a `WorkOrderUpload` (`lib/sync/upload/work_order_upload.dart`): one batch, `capture` + `sign` tech + `sign` client on `Repair`.
+- Sent only when the server's `enforces` lists `capture_action` and `job_sign_action`; otherwise it waits as "server not ready". Go side: `docs/go-requirements-work-order-capture.md`.
+- Worklist: the technician's captured work orders (`RepairTechID`, `RepairDetailType = 3`) from PowerSync, no joins, plus jobs still queued. Set-aside jobs are never deleted except by Discard.
+- Spec: `docs/superpowers/specs/2026-10-01-work-orders-capture-design.md`.
 
 ### Certification module ✅
 
@@ -667,11 +656,6 @@ Login authenticates against the `"Admin"` table (NOT a `users` table — that do
 ### Auth
 - `auth_providers.dart` — replace `_unknownUser` placeholder with real user from login response (already in `response.data['user']`)
 - `auth_repository_impl.dart` — implement `getCurrentUser()` once `/auth/me` endpoint is in spec §6
-
-### Work orders
-- `work_order_repository_impl.dart` — inject real current user ID from auth state (currently hardcoded `0`)
-- `wo_local_data_source.dart` — inject real device ID (currently hardcoded `'device'`)
-- `work_order_repository_impl.dart` — implement `syncFromRemote()` with since-cursor
 
 ### Infrastructure
 - `app_theme.dart` — extract inline supporting colours (condition/maintenance/manual entry) into named constants if desired

@@ -379,7 +379,7 @@ final class PhoneSignaturesProvider
   }
 }
 
-String _$phoneSignaturesHash() => r'5e051897489cf01960eff7cb9507b5eef7ad4b06';
+String _$phoneSignaturesHash() => r'd74ba606a906d205cb8afd019cf6fc7ff38bf80c';
 
 /// The signatures this phone captured for a job — from the queue while it
 /// waits, from the archive after it went. Null when this phone never had them

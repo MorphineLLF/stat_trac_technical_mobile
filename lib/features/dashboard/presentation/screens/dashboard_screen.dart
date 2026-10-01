@@ -10,6 +10,8 @@ import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../assets/presentation/screens/asset_list_screen.dart';
 import '../../../certification/presentation/screens/create_certificate_screen.dart';
 import '../../../certification/presentation/screens/certificate_list_screen.dart';
+import '../../../work_orders/presentation/screens/create_work_order_screen.dart';
+import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
@@ -315,13 +317,21 @@ class _HomeBody extends ConsumerWidget {
           stats.when(
             data: (s) => _PendingTasksRow(
               woCount: s.pendingWorkOrders,
-              pmCount: 0,
+              capturedCount: s.capturedThisMonth,
               certsCount: s.pendingCerts,
             ),
             loading: () =>
-                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
+                const _PendingTasksRow(
+                  woCount: 0,
+                  capturedCount: 0,
+                  certsCount: 0,
+                ),
             error: (e, _) =>
-                const _PendingTasksRow(woCount: 0, pmCount: 0, certsCount: 0),
+                const _PendingTasksRow(
+                  woCount: 0,
+                  capturedCount: 0,
+                  certsCount: 0,
+                ),
           ),
           const SizedBox(height: 16),
           const DashboardModuleGrid(),
@@ -347,11 +357,11 @@ class _ComingSoonBody extends StatelessWidget {
 class _PendingTasksRow extends StatelessWidget {
   const _PendingTasksRow({
     required this.woCount,
-    required this.pmCount,
+    required this.capturedCount,
     required this.certsCount,
   });
   final int woCount;
-  final int pmCount;
+  final int capturedCount;
   final int certsCount;
 
   @override
@@ -370,8 +380,8 @@ class _PendingTasksRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _TaskCountCard(
-              label: 'Pending PM Orders',
-              count: pmCount,
+              label: 'Captured this month',
+              count: capturedCount,
               color: Color(0xFF2E7D32),
             ),
           ),
@@ -465,11 +475,13 @@ class DashboardModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.list_alt_outlined,
                   label: 'Worklist',
-                  // Off until work orders read the synced Repair data.
-                  enabled: false,
                   color: brandTeal,
                   actions: [
-                    _TileAction(label: 'View', icon: Icons.visibility_outlined),
+                    _TileAction(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      destination: (_) => const WorkOrderListScreen(),
+                    ),
                   ],
                 ),
               ),
@@ -478,15 +490,18 @@ class DashboardModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.build_outlined,
                   label: 'Work Order',
-                  // Off until work orders read the synced Repair data.
-                  enabled: false,
                   color: const Color(0xFF1565C0),
                   actions: [
                     _TileAction(
                       label: 'Create',
                       icon: Icons.add_circle_outline,
+                      destination: (_) => const CreateWorkOrderScreen(),
                     ),
-                    _TileAction(label: 'View', icon: Icons.visibility_outlined),
+                    _TileAction(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      destination: (_) => const WorkOrderListScreen(),
+                    ),
                   ],
                 ),
               ),
@@ -502,7 +517,7 @@ class DashboardModuleGrid extends StatelessWidget {
                 child: _ModuleTile(
                   icon: Icons.assignment_outlined,
                   label: 'PM Work Order',
-                  // Off until work orders read the synced Repair data.
+                  // The PM module is not on the phone yet.
                   enabled: false,
                   color: const Color(0xFF2E7D32),
                   actions: [

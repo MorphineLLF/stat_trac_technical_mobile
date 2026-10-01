@@ -7,9 +7,9 @@ import 'package:stat_trac_technical/features/dashboard/presentation/screens/dash
 // width between two icon buttons, so on a Galaxy S23 Ultra (384 dp wide,
 // font scale 1.15) "Create" broke mid-word into "Crea / te".
 void main() {
-  // Work orders are not wired to the synced Repair data yet, so their screens
-  // show nothing. Until they are, only Certificate may be opened.
-  testWidgets('only the certificate actions can be pressed', (tester) async {
+  // PM work orders belong to the PM module, which the phone does not do yet.
+  testWidgets('work order and certificate actions can be pressed; PM cannot',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2316);
     tester.view.devicePixelRatio = 1080 / 384;
     addTearDown(tester.view.reset);
@@ -37,14 +37,14 @@ void main() {
 
     // Tree order — View: Worklist, Work Order, PM, Certificate.
     // Create: Work Order, PM, Certificate.
-    expect(pressable('View', 0), isFalse, reason: 'Worklist');
-    expect(pressable('View', 1), isFalse, reason: 'Work Order');
+    expect(pressable('View', 0), isTrue, reason: 'Worklist');
+    expect(pressable('View', 1), isTrue, reason: 'Work Order');
     expect(pressable('View', 2), isFalse, reason: 'PM Work Order');
     expect(pressable('View', 3), isTrue, reason: 'Certificate');
-    expect(pressable('Create', 0), isFalse, reason: 'Work Order');
+    expect(pressable('Create', 0), isTrue, reason: 'Work Order');
     expect(pressable('Create', 1), isFalse, reason: 'PM Work Order');
     expect(pressable('Create', 2), isTrue, reason: 'Certificate');
-    expect(find.text('Coming soon'), findsNWidgets(3));
+    expect(find.text('Coming soon'), findsOneWidget);
   });
 
   for (final scale in [1.0, 1.15, 1.3]) {
