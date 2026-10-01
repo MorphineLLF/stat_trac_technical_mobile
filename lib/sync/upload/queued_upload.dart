@@ -1,5 +1,6 @@
 import 'certificate_upload.dart';
 import 'sync_upload_batch.dart';
+import 'work_order_upload.dart';
 
 /// Something that waits in the outbox and becomes exactly one batch.
 ///
@@ -27,5 +28,6 @@ abstract interface class QueuedUpload {
 /// was one, and they are still on technicians' phones.
 QueuedUpload fromQueuedJson(Map<String, Object?> j) => switch (j['kind']) {
   null || CertificateUpload.kindName => CertificateUpload.fromJson(j),
+  WorkOrderUpload.kindName => WorkOrderUpload.fromJson(j),
   final other => throw FormatException('Unknown queued upload kind: $other'),
 };
