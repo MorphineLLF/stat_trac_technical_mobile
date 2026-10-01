@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/upload/upload_providers.dart';
+import '../../../../sync/upload/upload_run_message.dart';
+import '../../../../sync/upload/upload_worker.dart';
 import '../../../../sync/upload/work_order_upload.dart';
 import '../../../assets/data/powersync_asset_data_source.dart';
 import '../../../assets/domain/entities/asset.dart';
@@ -50,6 +52,14 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   WorkOrderFieldError? _serverError;
   bool _saving = false;
 
+  /// Bumped when the machine changes, so the form starts again from the new
+  /// job rather than showing the old machine's boxes.
+  int _formGeneration = 0;
+
+  /// The signature step is kept alive once reached: going back to correct the
+  /// card must not throw away signatures somebody has already drawn.
+  bool _signReached = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,14 +79,28 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     return auth is AuthAuthenticated ? auth.user.name : '';
   }
 
+  void _say(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _pickMachine() async {
     final ds = PowerSyncAssetDataSource(
       await ref.read(syncDatabaseProvider.future),
     );
     if (!mounted) return;
     final asset = await showAssetPicker(context, ds);
-    if (asset == null || asset.assetId == null) return;
-    final detail = await ds.getAssetDetail(asset.assetId!);
+    if (!mounted || asset == null || asset.assetId == null) return;
+    // The hours are a convenience. A machine whose detail cannot be read is
+    // still the machine the technician chose.
+    int? hours;
+    try {
+      hours = (await ds.getAssetDetail(asset.assetId!))?.hours;
+    } catch (e) {
+      debugPrint('[work-order] asset detail unavailable: $e');
+    }
+    if (!mounted) return;
     final now = DateTime.now();
     setState(() {
       _asset = asset;
@@ -84,64 +108,157 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         assetId: asset.assetId!,
         started: now,
         finished: now,
-        equipHrs: detail?.hours,
+        equipHrs: hours,
       );
+      _formGeneration++;
+      // Signatures given against another machine are not this job's.
+      _signReached = false;
     });
   }
 
-  Future<void> _save({required String techPng, required String clientPng,
-      required String clientName}) async {
-    final job = _job!;
+  Future<void> _save({
+    required String techPng,
+    required String clientPng,
+    required String clientName,
+  }) async {
     if (_saving) return;
+    final name = clientName.trim();
+    if (name.isEmpty) {
+      _say(
+        'Add the client contact name — the signature cannot be sent '
+        'without it',
+      );
+      return;
+    }
+    // The name signed against is the name on the card, and it is checked as
+    // the card is: refused here, while the client is still in the room,
+    // rather than by the server after they have gone.
+    final job = _job!.copyWith(clientName: name);
+    final problem = job.validate();
+    if (problem != null) {
+      _say(problem.message);
+      return;
+    }
     setState(() => _saving = true);
-    final upload = WorkOrderUpload(
-      mobileId: _mobileId,
-      // The name signed against is the name on the card.
-      capture: job.copyWith(clientName: clientName).toWire(),
-      techPng: techPng,
-      clientPng: clientPng,
-      clientName: clientName,
-    );
-    final queue = await ref.read(uploadQueueProvider.future);
-    // Replaces a set-aside row under the same id rather than adding one.
-    await queue.enqueue(upload);
-    ref.invalidate(worklistProvider);
+
     try {
-      await (await ref.read(uploadWorkerProvider.future)).drain();
+      final upload = WorkOrderUpload(
+        mobileId: _mobileId,
+        capture: job.toWire(),
+        techPng: techPng,
+        clientPng: clientPng,
+        clientName: name,
+      );
+      final queue = await ref.read(uploadQueueProvider.future);
+      // Replaces a set-aside row under the same id rather than adding one.
+      await queue.enqueue(upload);
+    } catch (e) {
+      // Nothing reached the outbox. Everything is still on this screen, so
+      // the technician can simply press Save again.
+      debugPrint('[work-order] outbox write failed: $e');
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _say('Could not save — try again. Nothing was lost on this screen.');
+      return;
+    }
+    if (!mounted) return;
+    ref.invalidate(worklistProvider);
+
+    UploadRunResult? result;
+    try {
+      result = await (await ref.read(uploadWorkerProvider.future)).drain();
     } catch (e) {
       debugPrint('[upload] send after work order save failed: $e');
     }
-    ref.invalidate(worklistProvider);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saved — waiting to sync')),
-    );
+    ref.invalidate(worklistProvider);
+
+    // Saved either way. Only a run that needs saying louder replaces the
+    // plain message.
+    final run = result == null ? null : describeUploadRun(result);
+    final loud =
+        run != null &&
+        (run.tone == UploadMessageTone.warning ||
+            run.tone == UploadMessageTone.alarm);
+    _say(loud ? run.text : 'Saved — waiting to sync');
     Navigator.of(context).pop();
+  }
+
+  /// Back steps back. Only the first step leaves — and a resend, which has
+  /// no first step, asks, because leaving abandons the fix.
+  Future<void> _back() async {
+    if (_step == 2) {
+      setState(() => _step = 1);
+      return;
+    }
+    if (_step == 1 && widget.resend == null) {
+      setState(() => _step = 0);
+      return;
+    }
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave without resending?'),
+        content: const Text(
+          'The work order stays set aside. Your changes here are not kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+    if (leave == true && mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.resend == null ? 'New Work Order' : 'Fix and resend'),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Text(
-                'Step ${_step + 1} of 3 — '
-                '${const ['Machine', 'Work order', 'Signatures'][_step]}',
-                style: Theme.of(context).textTheme.titleSmall,
+    // Navigator.pop (Save, Leave) is not stopped by canPop — only the back
+    // gesture and the AppBar arrow are, and those step back instead.
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.resend == null ? 'New Work Order' : 'Fix and resend',
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Text(
+                  'Step ${_step + 1} of 3 — '
+                  '${const ['Machine', 'Work order', 'Signatures'][_step]}',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ),
-            ),
-            Expanded(child: switch (_step) {
-              0 => _machineStep(),
-              1 => _formStep(),
-              _ => _signStep(),
-            }),
-          ],
+              Expanded(
+                // Every reached step stays mounted, so stepping back keeps
+                // the boxes and the drawn signatures as they were.
+                child: IndexedStack(
+                  index: _step,
+                  children: [
+                    widget.resend == null
+                        ? _machineStep()
+                        : const SizedBox.shrink(),
+                    _job == null ? const SizedBox.shrink() : _formStep(),
+                    _signReached ? _signStep() : const SizedBox.shrink(),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -180,6 +297,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       children: [
         Expanded(
           child: WorkOrderForm(
+            key: ValueKey(_formGeneration),
             job: job,
             technicianName: _techName,
             serverError: _serverError,
@@ -196,7 +314,12 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed: valid ? () => setState(() => _step = 2) : null,
+            onPressed: valid
+                ? () => setState(() {
+                    _step = 2;
+                    _signReached = true;
+                  })
+                : null,
             child: const Text('Next'),
           ),
         ),
@@ -207,8 +330,10 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   Widget _signStep() {
     final resend = widget.resend;
     if (resend != null) {
-      // A set-aside job was signed when it was captured. The client may be long
-      // gone; the signatures stand.
+      // A set-aside job was signed when it was captured. The client may be
+      // long gone; the signatures stand. The name is the card's as corrected:
+      // fixing how a name is written does not change who signed.
+      final name = _job!.clientName.trim();
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -216,7 +341,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
             child: ListTile(
               leading: const Icon(Icons.verified_outlined, color: brandTeal),
               title: const Text('Signatures kept'),
-              subtitle: Text('Signed by the technician and ${resend.clientName}'),
+              subtitle: Text('Signed by the technician and $name'),
             ),
           ),
           const SizedBox(height: 24),
@@ -226,7 +351,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                 : () => _save(
                     techPng: resend.techPng,
                     clientPng: resend.clientPng,
-                    clientName: resend.clientName,
+                    clientName: name,
                   ),
             child: const Text('Save work order'),
           ),
@@ -238,6 +363,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       clientLabel: 'Client',
       submitLabel: 'Save work order',
       initialClientName: _job!.clientName,
+      clientNameMaxLength: WorkOrderJob.maxClient,
       onSigned: (s) => _save(
         techPng: base64Encode(s.techSignatureBytes),
         clientPng: base64Encode(s.clientSignatureBytes!),

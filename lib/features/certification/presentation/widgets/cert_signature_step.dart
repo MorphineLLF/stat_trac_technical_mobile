@@ -15,6 +15,7 @@ class CertSignatureStep extends StatefulWidget {
     this.submitLabel = 'Issue Certificate',
     this.clientLabel = 'Facility',
     this.initialClientName,
+    this.clientNameMaxLength,
   });
   final bool requiresCustomerSig;
   final ValueChanged<SignatureResult> onSigned;
@@ -32,6 +33,10 @@ class CertSignatureStep extends StatefulWidget {
 
   /// Pre-fills the contact name — a work order already asked for it.
   final String? initialClientName;
+
+  /// The longest contact name the receiving record holds. Null leaves the box
+  /// unlimited, as a certificate has it.
+  final int? clientNameMaxLength;
 
   @override
   State<CertSignatureStep> createState() => _CertSignatureStepState();
@@ -198,6 +203,7 @@ class _CertSignatureStepState extends State<CertSignatureStep> {
           const SizedBox(height: 8),
           TextFormField(
             controller: _clientNameController,
+            maxLength: widget.clientNameMaxLength,
             decoration: InputDecoration(
               // White like the pads — unfilled, it showed the grey page
               // through.

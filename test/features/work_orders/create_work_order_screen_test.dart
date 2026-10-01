@@ -7,6 +7,7 @@ import 'package:stat_trac_technical/core/theme/app_theme.dart';
 import 'package:stat_trac_technical/features/auth/domain/entities/user.dart';
 import 'package:stat_trac_technical/features/auth/presentation/providers/auth_providers.dart';
 import 'package:stat_trac_technical/features/auth/presentation/providers/auth_state.dart';
+import 'package:stat_trac_technical/features/certification/presentation/widgets/cert_signature_step.dart';
 import 'package:stat_trac_technical/features/work_orders/data/powersync_work_order_data_source.dart';
 import 'package:stat_trac_technical/features/work_orders/presentation/providers/work_order_providers.dart';
 import 'package:stat_trac_technical/features/work_orders/presentation/screens/create_work_order_screen.dart';
@@ -19,6 +20,8 @@ class _Source extends Mock implements PowerSyncWorkOrderDataSource {}
 
 class _Worker extends Mock implements UploadWorker {}
 
+class _Queue extends Mock implements UploadQueue {}
+
 class _SignedIn extends AuthNotifier {
   @override
   AuthState build() => const AuthAuthenticated(User(
@@ -27,81 +30,116 @@ class _SignedIn extends AuthNotifier {
   ));
 }
 
-void main() {
-  sqfliteFfiInit();
-  setUpAll(() => registerFallbackValue(<int>{}));
+WorkOrderUpload _original({String client = 'X'}) => WorkOrderUpload(
+  mobileId: 'wo-1',
+  capture: {'asset_id': 100, 'work_type': 1,
+      'date_in': '2026-10-01', 'time_in': '08:00',
+      'date_out': '2026-10-01', 'time_out': '09:00',
+      'fault': '', 'work': '', 'note': '', 'client_name': client,
+      'job_card_no': ''},
+  techPng: 'AAAA', clientPng: 'BBBB', clientName: 'X',
+);
 
-  testWidgets('fix and resend keeps the id and the signatures, replaces the '
-      'row', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2316);
-    tester.view.devicePixelRatio = 1080 / 384;
-    addTearDown(tester.view.reset);
+/// A real in-memory outbox holding [original], as a set-aside job would be.
+Future<(Database, UploadQueue)> _queueWith(
+  WidgetTester tester,
+  WorkOrderUpload original,
+) async {
+  final db = await tester.runAsync(
+      () => databaseFactoryFfi.openDatabase(inMemoryDatabasePath));
+  await tester.runAsync(() => UploadQueue.createTable(db!));
+  final queue = UploadQueue(db!);
+  await tester.runAsync(() => queue.enqueue(original));
+  return (db, queue);
+}
 
-    final db = await tester.runAsync(
-        () => databaseFactoryFfi.openDatabase(inMemoryDatabasePath));
-    await tester.runAsync(() => UploadQueue.createTable(db!));
-    final queue = UploadQueue(db!);
-    final original = WorkOrderUpload(
-      mobileId: 'wo-1',
-      capture: const {'asset_id': 100, 'work_type': 1,
-          'date_in': '2026-10-01', 'time_in': '08:00',
-          'date_out': '2026-10-01', 'time_out': '09:00',
-          'fault': '', 'work': '', 'note': '', 'client_name': 'X',
-          'job_card_no': ''},
-      techPng: 'AAAA', clientPng: 'BBBB', clientName: 'X',
-    );
-    await tester.runAsync(() => queue.enqueue(original));
+/// The resend screen, pushed over a home as the app opens it: Save and Leave
+/// pop back to where the technician came from, and that pop is under test.
+Future<void> _open(
+  WidgetTester tester, {
+  required UploadQueue queue,
+  required WorkOrderUpload original,
+  String field = 'jobfault',
+  String message = 'Add the fault',
+}) async {
+  tester.view.physicalSize = const Size(1080, 2316);
+  tester.view.devicePixelRatio = 1080 / 384;
+  addTearDown(tester.view.reset);
 
-    final source = _Source();
-    when(() => source.assetsByIds(any())).thenAnswer((_) async => const {});
-    when(() => source.openRepairOn(any())).thenAnswer((_) async => null);
-    final worker = _Worker();
-    when(() => worker.drain()).thenAnswer((_) async => const UploadRunResult(
-        attempted: 0, applied: 0, conflicted: 0, rejected: 0, failed: 0,
-        stoppedForSignal: false));
+  final source = _Source();
+  when(() => source.assetsByIds(any())).thenAnswer((_) async => const {});
+  when(() => source.openRepairOn(any())).thenAnswer((_) async => null);
+  final worker = _Worker();
+  when(() => worker.drain()).thenAnswer((_) async => const UploadRunResult(
+      attempted: 0, applied: 0, conflicted: 0, rejected: 0, failed: 0,
+      stoppedForSignal: false));
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        authProvider.overrideWith(_SignedIn.new),
-        uploadQueueProvider.overrideWith((ref) async => queue),
-        uploadWorkerProvider.overrideWith((ref) async => worker),
-        workOrderSourceProvider.overrideWith((ref) async => source),
-      ],
-      child: MaterialApp(
-        theme: appTheme,
-        // Behind a pushed route, as the app opens it: Save pops back to
-        // where the technician came from, and that pop is under test.
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => CreateWorkOrderScreen(resend: original,
-                        resendField: 'jobfault',
-                        resendMessage: 'Add the fault'),
-                  ),
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      authProvider.overrideWith(_SignedIn.new),
+      uploadQueueProvider.overrideWith((ref) async => queue),
+      uploadWorkerProvider.overrideWith((ref) async => worker),
+      workOrderSourceProvider.overrideWith((ref) async => source),
+    ],
+    child: MaterialApp(
+      theme: appTheme,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CreateWorkOrderScreen(resend: original,
+                      resendField: field, resendMessage: message),
                 ),
-                child: const Text('Open'),
               ),
+              child: const Text('Open'),
             ),
           ),
         ),
       ),
-    ));
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
+    ),
+  ));
+  await tester.tap(find.text('Open'));
+  await tester.pumpAndSettle();
+}
+
+/// The client box sits below the fold of the form's lazy list.
+Future<void> _toClient(WidgetTester tester) async {
+  final client = find.byKey(const Key('wo-client'));
+  await tester.dragUntilVisible(client, find.byType(ListView),
+      const Offset(0, -200));
+  await tester.pumpAndSettle();
+}
+
+/// Taps Save and lets the real sqflite I/O behind it finish.
+Future<void> _save(WidgetTester tester) async {
+  await tester.tap(find.text('Save work order'));
+  await tester.runAsync(() async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  });
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  sqfliteFfiInit();
+  setUpAll(() {
+    registerFallbackValue(<int>{});
+    registerFallbackValue(_original());
+  });
+
+  testWidgets('fix and resend keeps the id and the signatures, replaces the '
+      'row', (tester) async {
+    final original = _original();
+    final (db, queue) = await _queueWith(tester, original);
+    await _open(tester, queue: queue, original: original);
 
     expect(find.text('Add the fault'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('wo-fault')), 'Beeps');
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     expect(find.text('Signatures kept'), findsOneWidget);
-    await tester.tap(find.text('Save work order'));
-    await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pumpAndSettle();
+    await _save(tester);
     expect(find.byType(CreateWorkOrderScreen), findsNothing);
     expect(find.text('Open'), findsOneWidget);
 
@@ -110,8 +148,131 @@ void main() {
     final saved = rows!.single.upload as WorkOrderUpload;
     expect(saved.mobileId, 'wo-1');
     expect(saved.techPng, 'AAAA');
+    expect(saved.clientPng, 'BBBB');
     expect(saved.capture['fault'], 'Beeps');
     expect(rows.single.status, UploadStatus.pending);
     await tester.runAsync(db.close);
+  });
+
+  testWidgets('a client name set aside as too long is held on the form, and '
+      'the corrected name is what is queued', (tester) async {
+    final long = 'N' * 60;
+    final original = _original(client: long);
+    final (db, queue) = await _queueWith(tester, original);
+    await _open(tester, queue: queue, original: original,
+        field: 'client', message: 'Too long');
+
+    // Refused on the device: Next stays off, nothing can reach the outbox.
+    final next = find.widgetWithText(FilledButton, 'Next');
+    expect(tester.widget<FilledButton>(next).onPressed, isNull);
+
+    await _toClient(tester);
+    await tester.enterText(find.byKey(const Key('wo-client')), 'Sister Mbeki');
+    await tester.pumpAndSettle();
+    await tester.tap(next);
+    await tester.pumpAndSettle();
+    // The kept signatures carry the corrected name.
+    expect(find.text('Signed by the technician and Sister Mbeki'),
+        findsOneWidget);
+    await _save(tester);
+
+    final rows = await tester.runAsync(queue.all);
+    expect(rows, hasLength(1));
+    final saved = rows!.single.upload as WorkOrderUpload;
+    expect(saved.capture['client_name'], 'Sister Mbeki');
+    expect(saved.clientName, 'Sister Mbeki');
+    expect(saved.clientPng, 'BBBB');
+    await tester.runAsync(db.close);
+  });
+
+  testWidgets('a resend with the client name cleared is refused on Save and '
+      'the queued row is left as it was', (tester) async {
+    final original = _original();
+    final (db, queue) = await _queueWith(tester, original);
+    await _open(tester, queue: queue, original: original);
+
+    await tester.enterText(find.byKey(const Key('wo-fault')), 'Beeps');
+    await _toClient(tester);
+    await tester.enterText(find.byKey(const Key('wo-client')), '');
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await _save(tester);
+
+    expect(find.textContaining('Add the client contact name'), findsOneWidget);
+    expect(find.byType(CreateWorkOrderScreen), findsOneWidget);
+    final rows = await tester.runAsync(queue.all);
+    expect(rows, hasLength(1));
+    final kept = rows!.single.upload as WorkOrderUpload;
+    expect(kept.capture['fault'], '');
+    expect(kept.capture['client_name'], 'X');
+    await tester.runAsync(db.close);
+  });
+
+  testWidgets('a failed outbox write says so and leaves Save usable',
+      (tester) async {
+    final queue = _Queue();
+    when(() => queue.enqueue(any())).thenThrow(Exception('disk full'));
+    await _open(tester, queue: queue, original: _original());
+
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await _save(tester);
+
+    expect(find.textContaining('Could not save'), findsOneWidget);
+    expect(find.byType(CreateWorkOrderScreen), findsOneWidget);
+    final save = find.widgetWithText(FilledButton, 'Save work order');
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+  });
+
+  testWidgets('back from the signatures steps back, then asks before leaving '
+      'a resend', (tester) async {
+    final original = _original();
+    final (db, queue) = await _queueWith(tester, original);
+    await _open(tester, queue: queue, original: original);
+
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 3 of 3 — Signatures'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Step 2 of 3 — Work order'), findsOneWidget);
+    expect(find.text('Leave without resending?'), findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Leave without resending?'), findsOneWidget);
+    await tester.tap(find.text('Stay'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateWorkOrderScreen), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Leave'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateWorkOrderScreen), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+    await tester.runAsync(db.close);
+  });
+
+  testWidgets('the client name on the signature step is held to the card '
+      'limit', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2316);
+    tester.view.devicePixelRatio = 1080 / 384;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      theme: appTheme,
+      home: Scaffold(
+        body: CertSignatureStep(
+          requiresCustomerSig: true,
+          clientLabel: 'Client',
+          clientNameMaxLength: 50,
+          onSigned: (_) {},
+        ),
+      ),
+    ));
+    await tester.enterText(find.byType(TextFormField), 'N' * 60);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, hasLength(50));
   });
 }
