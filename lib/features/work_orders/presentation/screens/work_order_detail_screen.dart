@@ -12,6 +12,7 @@ import '../../../../sync/upload/work_order_upload.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/work_order_job.dart';
 import '../providers/work_order_providers.dart';
+import '../widgets/work_order_document_actions.dart';
 import 'create_work_order_screen.dart';
 
 /// One work order, read-only. A synced one by [trackId]; one still on the
@@ -28,6 +29,7 @@ class WorkOrderDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(id == null ? 'Work order — pending' : 'WO $id'),
+        actions: [WorkOrderDocumentActions(trackId: id)],
       ),
       body: id != null
           ? _Synced(trackId: id, mobileId: mobileId)
