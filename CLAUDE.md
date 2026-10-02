@@ -33,8 +33,9 @@
 >
 > **Start here next session:** `docs/STATE-2026-10-02.md` — work order email
 > is built and working on `demo`, and the no-signal path was proved on the
-> emulator. Parts used was built the same day. Next up: the
-> empty-fault question on WO 7144. Then `docs/STATE-2026-10-01.md`. Work
+> emulator. Parts and charged rates were built and work the same day. Next
+> up: the dashboard rework review, then the Barcode tab. Then
+> `docs/STATE-2026-10-01.md`. Work
 > orders (capture on site) are live on `demo`; the dashboard was reworked to
 > one screen. Then `docs/STATE-2026-09-30.md` and `docs/STATE-2026-09-29.md` /
 > `docs/STATE-2026-09-06.md` for the untested paths, which are still untested.
@@ -721,9 +722,9 @@ proved on 2026-09-06 was proved with signal, one certificate at a time.
    them, and let `techSignatureState` use the server's answer rather than only
    the phone's copy. Still to decide with the user: whether the chip shows
    technician, facility, or both.
-5. **Work orders (2026-10-01).** Live on `demo` (WO 7144). Next: email a work
-   order to the client; parts used (Go live, phone plan to write); the empty
-   fault on 7144. See `docs/STATE-2026-10-01.md`.
+5. **Work orders (2026-10-01).** Live on `demo` (WO 7144). Email to the
+   client, parts and charged rates are done (2026-10-02). See
+   `docs/STATE-2026-10-02.md`.
 6. Then resume feature work: Service Reports.
 
 **With the user, not with either repository:** migration 026 on `safeline` and
