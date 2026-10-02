@@ -59,8 +59,8 @@ void main() {
                     label: 'Inventory',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.speed),
-                    label: 'Meter',
+                    icon: Icon(Icons.qr_code_scanner),
+                    label: 'Barcode',
                   ),
                 ],
               ),

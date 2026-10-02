@@ -163,7 +163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       return;
     }
     if (index > 1) {
-      const labels = ['', '', 'Inventory', 'Meter'];
+      const labels = ['', '', 'Inventory', 'Barcode'];
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${labels[index]} — coming soon')));
@@ -297,8 +297,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             label: 'Inventory',
           ),
           NavigationDestination(
-            icon: Icon(Icons.speed_outlined),
-            label: 'Meter',
+            icon: Icon(Icons.qr_code_scanner),
+            label: 'Barcode',
           ),
         ],
       ),
