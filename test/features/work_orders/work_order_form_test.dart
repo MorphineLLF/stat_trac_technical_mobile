@@ -24,6 +24,7 @@ void main() {
               finished: DateTime(2026, 10, 1, 10),
             ),
             technicianName: 'Athi',
+            searchParts: (_) async => const [],
             serverError: serverError,
             onChanged: changes.add,
           ),

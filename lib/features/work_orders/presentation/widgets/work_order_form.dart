@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/register_part.dart';
 import '../../domain/work_order_job.dart';
 import '../../domain/work_type.dart';
+import 'parts_used_section.dart';
 
 /// Step 2 — the desktop's Work Order tab, the fields agreed 2026-10-01.
 ///
@@ -16,12 +18,16 @@ class WorkOrderForm extends StatefulWidget {
     required this.job,
     required this.onChanged,
     required this.technicianName,
+    required this.searchParts,
     this.serverError,
   });
 
   final WorkOrderJob job;
   final ValueChanged<WorkOrderJob> onChanged;
   final String technicianName;
+
+  /// The parts register search, for the picker.
+  final Future<List<RegisterPart>> Function(String) searchParts;
 
   /// The server's refusal, shown under the box it names.
   final WorkOrderFieldError? serverError;
@@ -59,7 +65,12 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
 
   /// Built fresh from the boxes rather than copied, so a cleared number box
   /// becomes null rather than keeping its old value.
-  void _emit({WorkType? workType, DateTime? started, DateTime? finished}) {
+  void _emit({
+    WorkType? workType,
+    DateTime? started,
+    DateTime? finished,
+    List<PartUsed>? parts,
+  }) {
     final j = widget.job;
     widget.onChanged(
       WorkOrderJob(
@@ -74,7 +85,7 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
         note: _note.text,
         clientName: _client.text,
         jobCardNo: _jobCard.text,
-        parts: j.parts,
+        parts: parts ?? j.parts,
       ),
     );
   }
@@ -248,6 +259,13 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
           _jobCard,
           'jobcardno',
           max: WorkOrderJob.maxJobCardNo,
+        ),
+        gap,
+        PartsUsedSection(
+          parts: widget.job.parts,
+          search: widget.searchParts,
+          error: widget.serverError ?? widget.job.validate(),
+          onChanged: (p) => _emit(parts: p),
         ),
       ],
     );

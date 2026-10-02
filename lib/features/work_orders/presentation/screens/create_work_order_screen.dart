@@ -331,6 +331,8 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
             key: ValueKey(_formGeneration),
             job: job,
             technicianName: _techName,
+            searchParts: (q) async =>
+                (await ref.read(partSearchProvider.future))(q),
             serverError: _serverError,
             onChanged: (j) => setState(() {
               _job = j;
@@ -415,6 +417,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         'jobnote' => a.note != b.note,
         'client' => a.clientName != b.clientName,
         'jobcardno' => a.jobCardNo != b.jobCardNo,
+        _ when field.startsWith('parts[') => a.parts != b.parts,
         _ => true,
       };
 }
