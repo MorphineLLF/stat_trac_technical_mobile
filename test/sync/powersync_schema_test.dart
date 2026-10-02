@@ -28,6 +28,37 @@ void main() {
       );
     });
 
+    // Parts used on a captured work order (2026-10-02). No price column may
+    // reach a device — the user's rule.
+    test('declares the parts register and parts used, without prices', () {
+      expect(_columnNames('Part'), [
+        'PartID',
+        'PartType',
+        'PartNumber',
+        'PartDescription',
+      ]);
+      expect(
+        _columnNames('RepairPart'),
+        containsAll([
+          'RepairPartTrackID',
+          'RepairPartNo',
+          'RepairPartDescription',
+          'RepairPartQty',
+          'RepairPartID',
+        ]),
+      );
+      for (final t in ['Part', 'RepairPart']) {
+        expect(
+          _columnNames(t).where(
+            (c) =>
+                c.contains('Cost') || c.contains('Price') || c.contains('Total'),
+          ),
+          isEmpty,
+          reason: '$t carries a price',
+        );
+      }
+    });
+
     // PowerSync gives every table a text `id` and the sync rules alias the
     // real key to it. Declaring one would collide with that.
     test('never declares an id column', () {

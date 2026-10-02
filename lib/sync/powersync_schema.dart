@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // COPIED VERBATIM from the Go repository. Do not hand-edit this file.
 //
-//   source: C:\Delphi\GitHub_Stat_Trac_Go\docslutter-sync-schema.dart
-//   copied: 2026-09-05
+//   source: E:/Stat_Trac_Go/docs/flutter-sync-schema.dart
+//   copied: 2026-10-02
 //
 // It is generated from the live database and a captured sync stream. If a
 // column changes, regenerate it there and re-copy — do not patch it here, or
@@ -231,6 +231,26 @@ const schema = Schema([
     Column.text('ProgressMobileID'), // character varying
   ]),
 
+  // RepairPart — the parts used on a job card (bucket: by_hospital)
+  // key RepairPartSerialID, 13 columns; added 2026-10-01 with migration 042.
+  // RepairPartCost and RepairPartTotal are left out by the sync rule: no price
+  // reaches a device.
+  Table('RepairPart', [
+    Column.integer('RepairPartSerialID'), // integer
+    Column.integer('RepairPartTrackID'), // integer
+    Column.integer('RepairPartAssetID'), // integer
+    Column.integer('RepairPartJobID'), // integer
+    Column.integer('RepairPartRequestID'), // integer
+    Column.text('RepairPartNo'), // character varying
+    Column.text('RepairPartDescription'), // character varying
+    Column.text('RepairPartQty'), // numeric
+    Column.integer('RepairPartType'), // integer
+    Column.integer('RepairPartTechID'), // integer
+    Column.integer('RepairPartID'), // integer
+    Column.text('SyncUpdatedAt'), // timestamp with time zone
+    Column.text('SyncHospital'), // character varying
+  ]),
+
   // TestCertificate — the technician's work (bucket: by_hospital)
   // key TestCertificateID, 44 columns + 2 computed signed flags; 2 bytea omitted: TestTechSignature, TestClientSignature
   Table('TestCertificate', [
@@ -357,6 +377,16 @@ const schema = Schema([
     Column.integer('StatusID'), // integer
     Column.text('StatusDescription'), // character varying
     Column.text('StatusPriority'), // character varying
+  ]),
+
+  // Part — the parts register (bucket: global)
+  // key PartID, 4 columns; added 2026-10-01. No stock and no prices: the sync
+  // rule names these four and nothing else.
+  Table('Part', [
+    Column.integer('PartID'), // integer
+    Column.integer('PartType'), // integer
+    Column.text('PartNumber'), // character varying
+    Column.text('PartDescription'), // character varying
   ]),
 
   // ComboHospital — shared with the rep app (bucket: by_hospital)
