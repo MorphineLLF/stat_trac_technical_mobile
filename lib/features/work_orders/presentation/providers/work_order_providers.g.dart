@@ -236,6 +236,126 @@ final class WorkOrderRecordFamily extends $Family
   String toString() => r'workOrderRecordProvider';
 }
 
+@ProviderFor(repairParts)
+final repairPartsProvider = RepairPartsFamily._();
+
+final class RepairPartsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PartUsed>?>,
+          List<PartUsed>?,
+          FutureOr<List<PartUsed>?>
+        >
+    with $FutureModifier<List<PartUsed>?>, $FutureProvider<List<PartUsed>?> {
+  RepairPartsProvider._({
+    required RepairPartsFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'repairPartsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$repairPartsHash();
+
+  @override
+  String toString() {
+    return r'repairPartsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<PartUsed>?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<PartUsed>?> create(Ref ref) {
+    final argument = this.argument as int;
+    return repairParts(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RepairPartsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$repairPartsHash() => r'8fb0bbc3eccf504369b1b51de021b04edc1b1cd6';
+
+final class RepairPartsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<PartUsed>?>, int> {
+  RepairPartsFamily._()
+    : super(
+        retry: null,
+        name: r'repairPartsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  RepairPartsProvider call(int trackId) =>
+      RepairPartsProvider._(argument: trackId, from: this);
+
+  @override
+  String toString() => r'repairPartsProvider';
+}
+
+/// The register search the parts picker calls as the technician types.
+
+@ProviderFor(partSearch)
+final partSearchProvider = PartSearchProvider._();
+
+/// The register search the parts picker calls as the technician types.
+
+final class PartSearchProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Future<List<RegisterPart>> Function(String)>,
+          Future<List<RegisterPart>> Function(String),
+          FutureOr<Future<List<RegisterPart>> Function(String)>
+        >
+    with
+        $FutureModifier<Future<List<RegisterPart>> Function(String)>,
+        $FutureProvider<Future<List<RegisterPart>> Function(String)> {
+  /// The register search the parts picker calls as the technician types.
+  PartSearchProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'partSearchProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$partSearchHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<Future<List<RegisterPart>> Function(String)>
+  $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Future<List<RegisterPart>> Function(String)> create(Ref ref) {
+    return partSearch(ref);
+  }
+}
+
+String _$partSearchHash() => r'bbed92d0757e1687c5df26774231071acd22f609';
+
 @ProviderFor(queuedWorkOrder)
 final queuedWorkOrderProvider = QueuedWorkOrderFamily._();
 

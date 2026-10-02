@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../../sync/powersync_types.dart';
+import '../domain/part_used.dart';
+import '../domain/register_part.dart';
 import '../domain/work_order_record.dart';
 import '../domain/work_order_summary.dart';
 import '../domain/work_type.dart';
@@ -182,6 +184,53 @@ class PowerSyncWorkOrderDataSource {
       jobCardNo: c['RepairDetailJobCard'] as String? ?? '',
       tech: c['RepairDetailTech'] as String? ?? '',
     );
+  }
+
+  /// The parts register, parts only (`PartType` 1 or blank), matched on number
+  /// or description, sorted by number. No stock and no price reach a device.
+  Future<List<RegisterPart>> searchParts(String query, {int limit = 50}) async {
+    final like = '%${query.trim()}%';
+    final rows = await _read(
+      'SELECT "PartID", "PartNumber", "PartDescription" FROM "Part" '
+      'WHERE coalesce("PartType", 1) = 1 '
+      'AND ("PartNumber" LIKE ? OR "PartDescription" LIKE ?) '
+      'ORDER BY "PartNumber" LIMIT ?',
+      [like, like, limit],
+    ).timeout(timeout);
+    return [
+      for (final r in rows)
+        if (psInt(r['PartID']) case final id?)
+          RegisterPart(
+            id: id,
+            number: (r['PartNumber'] as String? ?? '').trim(),
+            description: (r['PartDescription'] as String? ?? '').trim(),
+          ),
+    ];
+  }
+
+  /// The parts used on a synced work order. Null when they could not be read
+  /// in time — the screen says so rather than showing none.
+  Future<List<PartUsed>?> partsOn(int trackId) async {
+    try {
+      final rows = await _read(
+        'SELECT "RepairPartID", "RepairPartNo", "RepairPartDescription", '
+        '"RepairPartQty" FROM "RepairPart" WHERE "RepairPartTrackID" = ? '
+        'ORDER BY "RepairPartSerialID"',
+        [trackId],
+      ).timeout(timeout);
+      return [
+        for (final r in rows)
+          PartUsed(
+            partId: psInt(r['RepairPartID']),
+            partNo: (r['RepairPartNo'] as String? ?? '').trim(),
+            description: (r['RepairPartDescription'] as String? ?? '').trim(),
+            qty: psNum(r['RepairPartQty']) ?? 0,
+          ),
+      ];
+    } catch (e) {
+      debugPrint('[work orders] parts unreadable: $e');
+      return null;
+    }
   }
 
   Future<Map<int, String>> _statusNames(Set<int> ids) async {

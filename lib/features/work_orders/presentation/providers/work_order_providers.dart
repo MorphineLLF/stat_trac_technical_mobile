@@ -7,6 +7,7 @@ import '../../../../sync/upload/work_order_upload.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/providers/auth_state.dart';
 import '../../data/powersync_work_order_data_source.dart';
+import '../../domain/register_part.dart';
 import '../../domain/work_order_job.dart';
 import '../../domain/work_order_record.dart';
 import '../../domain/work_order_summary.dart';
@@ -83,6 +84,17 @@ Future<int?> openRepairOnAsset(Ref ref, int assetId) async =>
 @riverpod
 Future<WorkOrderRecord?> workOrderRecord(Ref ref, int trackId) async =>
     (await ref.watch(workOrderSourceProvider.future)).record(trackId);
+
+@riverpod
+Future<List<PartUsed>?> repairParts(Ref ref, int trackId) async =>
+    (await ref.watch(workOrderSourceProvider.future)).partsOn(trackId);
+
+/// The register search the parts picker calls as the technician types.
+@riverpod
+Future<Future<List<RegisterPart>> Function(String)> partSearch(Ref ref) async {
+  final source = await ref.watch(workOrderSourceProvider.future);
+  return source.searchParts;
+}
 
 @riverpod
 Future<UploadQueueEntry?> queuedWorkOrder(Ref ref, String mobileId) async {
