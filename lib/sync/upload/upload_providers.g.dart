@@ -185,29 +185,35 @@ final class UploadWorkerProvider
 
 String _$uploadWorkerHash() => r'53db74c3bb57e089abd20b949e5fddc911d6e16a';
 
-/// How many certificates are waiting to reach the server.
+/// How many jobs — certificates and work orders — are waiting to reach the
+/// server.
 ///
 /// This is the number a technician needs before leaving a site, so it counts
 /// everything still on the device — including the ones held for a conflict or
 /// a rejection, because those are exactly the ones somebody has to act on.
+/// Certificates alone showed "1" over two jobs not sent.
 
 @ProviderFor(pendingUploadCount)
 final pendingUploadCountProvider = PendingUploadCountProvider._();
 
-/// How many certificates are waiting to reach the server.
+/// How many jobs — certificates and work orders — are waiting to reach the
+/// server.
 ///
 /// This is the number a technician needs before leaving a site, so it counts
 /// everything still on the device — including the ones held for a conflict or
 /// a rejection, because those are exactly the ones somebody has to act on.
+/// Certificates alone showed "1" over two jobs not sent.
 
 final class PendingUploadCountProvider
     extends $FunctionalProvider<AsyncValue<int>, int, FutureOr<int>>
     with $FutureModifier<int>, $FutureProvider<int> {
-  /// How many certificates are waiting to reach the server.
+  /// How many jobs — certificates and work orders — are waiting to reach the
+  /// server.
   ///
   /// This is the number a technician needs before leaving a site, so it counts
   /// everything still on the device — including the ones held for a conflict or
   /// a rejection, because those are exactly the ones somebody has to act on.
+  /// Certificates alone showed "1" over two jobs not sent.
   PendingUploadCountProvider._()
     : super(
         from: null,
@@ -234,4 +240,4 @@ final class PendingUploadCountProvider
 }
 
 String _$pendingUploadCountHash() =>
-    r'69c6d07b47e262b81a64376563cb9805451c87d4';
+    r'666879d226cb3fee6bc4a117e8cf3ab36477c0fc';

@@ -78,12 +78,15 @@ Future<UploadWorker> uploadWorker(Ref ref) async {
   );
 }
 
-/// How many certificates are waiting to reach the server.
+/// How many jobs — certificates and work orders — are waiting to reach the
+/// server.
 ///
 /// This is the number a technician needs before leaving a site, so it counts
 /// everything still on the device — including the ones held for a conflict or
 /// a rejection, because those are exactly the ones somebody has to act on.
+/// Certificates alone showed "1" over two jobs not sent.
 @riverpod
 Future<int> pendingUploadCount(Ref ref) async {
-  return (await ref.watch(uploadQueueProvider.future)).certificateCount();
+  final queue = await ref.watch(uploadQueueProvider.future);
+  return await queue.certificateCount() + await queue.workOrderCount();
 }

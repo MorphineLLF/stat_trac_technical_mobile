@@ -771,7 +771,7 @@ class _PendingUploads extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Center(
         child: Tooltip(
-          message: '$count certificate${count == 1 ? '' : 's'} not yet sent',
+          message: '$count waiting to send',
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

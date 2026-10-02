@@ -176,6 +176,7 @@ class _Queued extends ConsumerWidget {
     if (!context.mounted) return;
     ref.invalidate(worklistProvider);
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(pendingUploadCountProvider);
     if (context.mounted) Navigator.of(context).pop();
   }
 }

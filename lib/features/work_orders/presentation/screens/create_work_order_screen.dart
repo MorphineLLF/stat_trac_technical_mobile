@@ -179,6 +179,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     if (!mounted) return;
     ref.invalidate(worklistProvider);
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(pendingUploadCountProvider);
 
     UploadRunResult? result;
     try {
@@ -189,6 +190,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     if (!mounted) return;
     ref.invalidate(worklistProvider);
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(pendingUploadCountProvider);
 
     _say(
       workOrderSaveMessage(result == null ? null : describeUploadRun(result)),
