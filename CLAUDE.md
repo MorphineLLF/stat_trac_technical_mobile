@@ -545,7 +545,9 @@ Work in this order. Each phase builds on the previous.
 ### Google Play (from 2026-09-29)
 - Package `com.proteusmedical.stat_trac_technical`, Play App Signing on. Build 3 (1.0.0) **approved and live** 2026-09-30.
 - Build 4 (`1.0.0+4`, artwork only) went to **internal testing 2026-09-29 17:15**.
-- Build 5 (`1.0.0+5`) — **uploaded 2026-09-30, in production review** (straight to production, not internal testing). Next upload is `1.0.0+6`. Contents: encryption at rest, one technician per phone, logout fixes, radio results and certificate layout, signed chips, gear icon and v2 store artwork. See `docs/STATE-2026-09-30.md`.
+- Build 5 (`1.0.0+5`) — uploaded 2026-09-30; **live in production and on internal testing** (seen in Play Console 2026-10-02).
+- Build 6 (`1.0.0+6`) — built and signed 2026-10-02 (signer `CN=Stat Trac Technical`), **saved as a draft on the Production track**; rollout and Google review still to do. Contents: work order capture, email, parts and charged rates, open-work-order block, new home screen, Offline chip, Barcode tab. Release notes in `docs/STATE-2026-10-02.md`. Next upload is `1.0.0+7`.
+- Play's "actions recommended" for build 5 (edge-to-edge, bitmap downsampling, R8) are suggestions, left for a later build. Contents: encryption at rest, one technician per phone, logout fixes, radio results and certificate layout, signed chips, gear icon and v2 store artwork. See `docs/STATE-2026-09-30.md`.
 - **Bump `version:` in `pubspec.yaml` before every upload**, then `flutter build appbundle --release`.
 - Adaptive launcher icon ("ST" + gear) in `res/mipmap-*` + `mipmap-anydpi-v26/`; store artwork (current set is the `-v2` files) and screenshots in `docs/play-store/`; corrected privacy policy draft in `docs/privacy-policy.html`.
 
