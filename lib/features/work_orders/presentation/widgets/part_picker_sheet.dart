@@ -3,24 +3,28 @@ import 'package:flutter/material.dart';
 import '../../domain/part_used.dart';
 import '../../domain/register_part.dart';
 
-/// Picks a part from the register, or takes one typed, then asks the quantity.
+/// Picks a part — or with [charged] a charged rate — from the register, or
+/// takes one typed, then asks the quantity. A typed charged rate is
+/// [PartUsed.chargedKind]; a picked line keeps the register's kind.
 /// Null when the technician backs out. Everything it has to say stays inside
 /// the sheet — a SnackBar from a sheet renders behind it.
 Future<PartUsed?> showPartPicker(
   BuildContext context, {
   required Future<List<RegisterPart>> Function(String) search,
+  bool charged = false,
 }) => showModalBottomSheet<PartUsed>(
   context: context,
   isScrollControlled: true,
   builder: (sheet) => Padding(
     padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
-    child: _PartPicker(search: search),
+    child: _PartPicker(search: search, charged: charged),
   ),
 );
 
 class _PartPicker extends StatefulWidget {
-  const _PartPicker({required this.search});
+  const _PartPicker({required this.search, required this.charged});
   final Future<List<RegisterPart>> Function(String) search;
+  final bool charged;
 
   @override
   State<_PartPicker> createState() => _PartPickerState();
@@ -62,11 +66,13 @@ class _PartPickerState extends State<_PartPicker> {
             partNo: _picked!.number,
             description: _picked!.description,
             qty: _qtyValue!,
+            kind: _picked!.kind,
           )
         : PartUsed(
             partNo: _code.text,
             description: _desc.text,
             qty: _qtyValue!,
+            kind: widget.charged ? PartUsed.chargedKind : PartUsed.partKind,
           ),
   );
 
@@ -85,7 +91,10 @@ class _PartPickerState extends State<_PartPicker> {
   Widget _chooser() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Add part', style: Theme.of(context).textTheme.titleMedium),
+      Text(
+        widget.charged ? 'Add charged rate' : 'Add part',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
       const SizedBox(height: 12),
       TextField(
         key: const Key('part-search'),
@@ -113,7 +122,11 @@ class _PartPickerState extends State<_PartPicker> {
             if (parts.isEmpty) {
               return Center(
                 child: Text(
-                  _query.isEmpty ? 'No parts on this phone yet' : 'No match',
+                  _query.isNotEmpty
+                      ? 'No match'
+                      : widget.charged
+                      ? 'No charged rates on this phone yet'
+                      : 'No parts on this phone yet',
                 ),
               );
             }

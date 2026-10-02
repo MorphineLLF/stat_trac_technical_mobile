@@ -248,7 +248,8 @@ class _Field extends StatelessWidget {
 String _at(DateTime? d) =>
     d == null ? '' : DateFormat('dd MMM yyyy  HH:mm').format(d);
 
-/// The parts used. Null means they could not be read — said, not shown as none.
+/// Parts and charged rates, under their own headings as on the job card.
+/// Null means they could not be read — said, not shown as none.
 class _PartsList extends StatelessWidget {
   const _PartsList({required this.parts});
   final List<PartUsed>? parts;
@@ -259,19 +260,26 @@ class _PartsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Parts used', style: Theme.of(context).textTheme.titleSmall),
-        if (p == null)
-          const Text('Parts not loaded')
-        else if (p.isEmpty)
-          const Text('None')
-        else
-          for (final line in p)
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(line.label),
-              trailing: Text('× ${line.qtyText}'),
-            ),
+        for (final charged in [false, true]) ...[
+          Text(
+            charged ? 'Charged rates' : 'Parts',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          if (p == null)
+            const Text('Not loaded')
+          else if (!p.any((l) => l.isCharged == charged))
+            const Text('None')
+          else
+            for (final line in p)
+              if (line.isCharged == charged)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(line.label),
+                  trailing: Text('× ${line.qtyText}'),
+                ),
+          const SizedBox(height: 8),
+        ],
       ],
     );
   }

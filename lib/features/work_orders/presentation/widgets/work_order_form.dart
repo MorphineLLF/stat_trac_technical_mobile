@@ -26,8 +26,9 @@ class WorkOrderForm extends StatefulWidget {
   final ValueChanged<WorkOrderJob> onChanged;
   final String technicianName;
 
-  /// The parts register search, for the picker.
-  final Future<List<RegisterPart>> Function(String) searchParts;
+  /// The register search for the pickers: parts, or with `charged` the
+  /// charged rates.
+  final Future<List<RegisterPart>> Function(String, {bool charged}) searchParts;
 
   /// The server's refusal, shown under the box it names.
   final WorkOrderFieldError? serverError;
@@ -260,13 +261,16 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
           'jobcardno',
           max: WorkOrderJob.maxJobCardNo,
         ),
-        gap,
-        PartsUsedSection(
-          parts: widget.job.parts,
-          search: widget.searchParts,
-          error: widget.serverError ?? widget.job.validate(),
-          onChanged: (p) => _emit(parts: p),
-        ),
+        for (final charged in [false, true]) ...[
+          gap,
+          PartsUsedSection(
+            parts: widget.job.parts,
+            charged: charged,
+            search: (q) => widget.searchParts(q, charged: charged),
+            error: widget.serverError ?? widget.job.validate(),
+            onChanged: (p) => _emit(parts: p),
+          ),
+        ],
       ],
     );
   }

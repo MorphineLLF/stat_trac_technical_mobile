@@ -102,12 +102,21 @@ void main() {
       job: _job(
         parts: [
           {'part_no': 'FUSE-5A', 'description': 'Fuse 5A', 'qty': 2.0},
+          {'part_no': '', 'description': 'Travel 40 km', 'qty': 1.0, 'kind': 2},
         ],
       ),
     );
     await _open(t, q);
-    await t.scrollUntilVisible(find.text('FUSE-5A — Fuse 5A'), 200);
+    await t.scrollUntilVisible(find.text('Travel 40 km'), 200);
     expect(find.text('× 2'), findsOneWidget);
+    // Each line under its own heading, as on the job card.
+    final parts = t.getTopLeft(find.text('Parts')).dy;
+    final rates = t.getTopLeft(find.text('Charged rates')).dy;
+    expect(
+      t.getTopLeft(find.text('FUSE-5A — Fuse 5A')).dy,
+      inExclusiveRange(parts, rates),
+    );
+    expect(t.getTopLeft(find.text('Travel 40 km')).dy, greaterThan(rates));
   });
 
   testWidgets('invalid: Fix and resend and Discard both offered', (t) async {
@@ -132,6 +141,7 @@ void main() {
     final q = await _queue(t, 'open_work_order');
     await _open(t, q);
     // Below the fold on a phone; the list scrolls to it.
+    await t.scrollUntilVisible(find.text('Discard'), 200);
     await t.ensureVisible(find.text('Discard'));
     await t.pumpAndSettle();
 

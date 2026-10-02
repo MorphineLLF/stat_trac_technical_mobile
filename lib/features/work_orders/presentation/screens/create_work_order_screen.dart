@@ -330,8 +330,9 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
             key: ValueKey(_formGeneration),
             job: job,
             technicianName: _techName,
-            searchParts: (q) async =>
-                (await ref.read(partSearchProvider.future))(q),
+            searchParts: (q, {charged = false}) async => (await ref.read(
+              partSearchProvider.future,
+            ))(q, charged: charged),
             serverError: _serverError,
             onChanged: (j) => setState(() {
               _job = j;

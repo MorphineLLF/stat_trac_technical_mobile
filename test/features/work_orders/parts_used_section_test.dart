@@ -14,10 +14,20 @@ Future<List<RegisterPart>> _search(String q) async => [
       p,
 ];
 
+Future<List<RegisterPart>> _rates(String q) async => const [
+  RegisterPart(
+    id: 9,
+    number: 'LAB-HR',
+    description: 'Labour per hour',
+    kind: 2,
+  ),
+];
+
 Future<List<List<PartUsed>>> _pump(
   WidgetTester t, {
   List<PartUsed> parts = const [],
   WorkOrderFieldError? error,
+  bool charged = false,
 }) async {
   t.view.physicalSize = const Size(1080, 2316);
   t.view.devicePixelRatio = 1080 / 384;
@@ -32,7 +42,8 @@ Future<List<List<PartUsed>>> _pump(
             children: [
               PartsUsedSection(
                 parts: changes.isEmpty ? parts : changes.last,
-                search: _search,
+                search: charged ? _rates : _search,
+                charged: charged,
                 error: error,
                 onChanged: (p) => set(() => changes.add(p)),
               ),
@@ -119,5 +130,69 @@ void main() {
       error: const WorkOrderFieldError('parts[1].qty', 'Too many'),
     );
     expect(find.text('Too many'), findsOneWidget);
+  });
+
+  group('charged rates', () {
+    const mixed = [
+      PartUsed(description: 'Fuse', qty: 1),
+      PartUsed(description: 'Travel', qty: 1, kind: 2),
+    ];
+
+    testWidgets('shows only its own lines', (t) async {
+      await _pump(t, parts: mixed, charged: true);
+      expect(find.text('Charged rates'), findsOneWidget);
+      expect(find.text('Travel'), findsOneWidget);
+      expect(find.text('Fuse'), findsNothing);
+    });
+
+    testWidgets('a typed charged rate is kind 2; parts are kept', (t) async {
+      final changes = await _pump(t, parts: mixed, charged: true);
+      await t.tap(find.text('Add charged rate'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Type it instead'));
+      await t.pumpAndSettle();
+      await t.enterText(find.byKey(const Key('part-desc')), 'Mileage 80 km');
+      await t.enterText(find.byKey(const Key('part-qty')), '1');
+      await t.pump();
+      await t.tap(find.text('Add'));
+      await t.pumpAndSettle();
+
+      final all = changes.last;
+      expect(all.length, 3);
+      expect(all.last.kind, PartUsed.chargedKind);
+      expect(all.first.description, 'Fuse');
+    });
+
+    testWidgets('a picked rate keeps the register kind', (t) async {
+      final changes = await _pump(t, charged: true);
+      await t.tap(find.text('Add charged rate'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('LAB-HR'));
+      await t.pumpAndSettle();
+      await t.enterText(find.byKey(const Key('part-qty')), '2');
+      await t.pump();
+      await t.tap(find.text('Add'));
+      await t.pumpAndSettle();
+      expect(changes.last.single.kind, 2);
+      expect(changes.last.single.partId, 9);
+    });
+
+    testWidgets('removing a rate leaves the parts alone', (t) async {
+      final changes = await _pump(t, parts: mixed, charged: true);
+      await t.tap(find.byTooltip('Remove'));
+      await t.pumpAndSettle();
+      expect(changes.last.single.description, 'Fuse');
+    });
+
+    // The server names the line by its place in the whole list.
+    testWidgets('a refusal finds its line across both sections', (t) async {
+      await _pump(
+        t,
+        parts: mixed,
+        charged: true,
+        error: const WorkOrderFieldError('parts[1].qty', 'Too many'),
+      );
+      expect(find.text('Too many'), findsOneWidget);
+    });
   });
 }
