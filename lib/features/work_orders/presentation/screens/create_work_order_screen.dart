@@ -21,6 +21,7 @@ import '../../../certification/presentation/widgets/cert_signature_step.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/work_order_job.dart';
 import '../providers/work_order_providers.dart';
+import '../widgets/machine_next.dart';
 import '../widgets/work_order_form.dart';
 
 /// What Save tells the technician. The job is in the outbox either way; the
@@ -310,11 +311,9 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
             ].whereType<String>().join(' · '),
           ),
           const SizedBox(height: 12),
-          _OpenRepairWarning(assetId: asset.assetId!),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: () => setState(() => _step = 1),
-            child: const Text('Next'),
+          MachineNext(
+            assetId: asset.assetId!,
+            onNext: () => setState(() => _step = 1),
           ),
         ],
       ],
@@ -420,30 +419,4 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         _ when field.startsWith('parts[') => a.parts != b.parts,
         _ => true,
       };
-}
-
-/// Amber, and a warning only: the phone's copy is as old as its last sync.
-class _OpenRepairWarning extends ConsumerWidget {
-  const _OpenRepairWarning({required this.assetId});
-  final int assetId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final open = ref.watch(openRepairOnAssetProvider(assetId)).value;
-    if (open == null) return const SizedBox.shrink();
-    return Card(
-      color: const Color(0xFFFFF8E1),
-      child: ListTile(
-        leading: const Icon(
-          Icons.warning_amber_rounded,
-          color: Color(0xFFE65100),
-        ),
-        title: Text(
-          'Work order $open is still open on this machine '
-          '(as of last sync).',
-        ),
-        subtitle: const Text('The server will refuse a second one.'),
-      ),
-    );
-  }
 }
