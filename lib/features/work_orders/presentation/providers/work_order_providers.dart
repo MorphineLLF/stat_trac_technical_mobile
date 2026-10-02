@@ -89,11 +89,14 @@ Future<WorkOrderRecord?> workOrderRecord(Ref ref, int trackId) async =>
 Future<List<PartUsed>?> repairParts(Ref ref, int trackId) async =>
     (await ref.watch(workOrderSourceProvider.future)).partsOn(trackId);
 
-/// The register search the parts picker calls as the technician types.
+/// The register search the pickers call as the technician types: parts, or
+/// with `charged` the charged rates.
 @riverpod
-Future<Future<List<RegisterPart>> Function(String)> partSearch(Ref ref) async {
+Future<Future<List<RegisterPart>> Function(String, {bool charged})> partSearch(
+  Ref ref,
+) async {
   final source = await ref.watch(workOrderSourceProvider.future);
-  return source.searchParts;
+  return (q, {bool charged = false}) => source.searchParts(q, charged: charged);
 }
 
 @riverpod

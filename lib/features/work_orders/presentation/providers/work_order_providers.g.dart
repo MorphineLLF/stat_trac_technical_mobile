@@ -311,24 +311,33 @@ final class RepairPartsFamily extends $Family
   String toString() => r'repairPartsProvider';
 }
 
-/// The register search the parts picker calls as the technician types.
+/// The register search the pickers call as the technician types: parts, or
+/// with `charged` the charged rates.
 
 @ProviderFor(partSearch)
 final partSearchProvider = PartSearchProvider._();
 
-/// The register search the parts picker calls as the technician types.
+/// The register search the pickers call as the technician types: parts, or
+/// with `charged` the charged rates.
 
 final class PartSearchProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Future<List<RegisterPart>> Function(String)>,
-          Future<List<RegisterPart>> Function(String),
-          FutureOr<Future<List<RegisterPart>> Function(String)>
+          AsyncValue<
+            Future<List<RegisterPart>> Function(String, {bool charged})
+          >,
+          Future<List<RegisterPart>> Function(String, {bool charged}),
+          FutureOr<Future<List<RegisterPart>> Function(String, {bool charged})>
         >
     with
-        $FutureModifier<Future<List<RegisterPart>> Function(String)>,
-        $FutureProvider<Future<List<RegisterPart>> Function(String)> {
-  /// The register search the parts picker calls as the technician types.
+        $FutureModifier<
+          Future<List<RegisterPart>> Function(String, {bool charged})
+        >,
+        $FutureProvider<
+          Future<List<RegisterPart>> Function(String, {bool charged})
+        > {
+  /// The register search the pickers call as the technician types: parts, or
+  /// with `charged` the charged rates.
   PartSearchProvider._()
     : super(
         from: null,
@@ -345,16 +354,20 @@ final class PartSearchProvider
 
   @$internal
   @override
-  $FutureProviderElement<Future<List<RegisterPart>> Function(String)>
+  $FutureProviderElement<
+    Future<List<RegisterPart>> Function(String, {bool charged})
+  >
   $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Future<List<RegisterPart>> Function(String)> create(Ref ref) {
+  FutureOr<Future<List<RegisterPart>> Function(String, {bool charged})> create(
+    Ref ref,
+  ) {
     return partSearch(ref);
   }
 }
 
-String _$partSearchHash() => r'bbed92d0757e1687c5df26774231071acd22f609';
+String _$partSearchHash() => r'b74c9df0bbe4dd05d985e3c7d05d0addf3d7110e';
 
 @ProviderFor(queuedWorkOrder)
 final queuedWorkOrderProvider = QueuedWorkOrderFamily._();

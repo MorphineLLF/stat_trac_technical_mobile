@@ -49,6 +49,14 @@ void main() {
       expect((await ds.searchParts('mains')).single.id, 4);
       expect(await ds.searchParts('labour'), isEmpty);
     });
+
+    // Charged rates are everything that is not a part, as the desktop's
+    // Inventory splits the register.
+    test('charged rates: everything but parts, with their kind', () async {
+      final rates = await ds.searchParts('', charged: true);
+      expect([for (final p in rates) p.number], ['LABOUR']);
+      expect(rates.single.kind, 2);
+    });
   });
 
   group('partsOn', () {
@@ -74,8 +82,20 @@ void main() {
         final lines = (await ds.partsOn(7144))!;
         expect(lines.single.label, 'FUSE-5A — Fuse 5A');
         expect(lines.single.qty, 2);
+        expect(lines.single.isCharged, isFalse);
       },
     );
+
+    test('a charged line on a synced work order keeps its kind', () async {
+      await db.insert('RepairPart', {
+        'RepairPartSerialID': 12,
+        'RepairPartTrackID': 7144,
+        'RepairPartNo': 'LABOUR',
+        'RepairPartQty': '1.50',
+        'RepairPartType': 2,
+      });
+      expect((await ds.partsOn(7144))!.single.isCharged, isTrue);
+    });
 
     // A slow or missing table: the detail screen says "parts not loaded"
     // rather than losing the whole work order.

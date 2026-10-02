@@ -186,13 +186,19 @@ class PowerSyncWorkOrderDataSource {
     );
   }
 
-  /// The parts register, parts only (`PartType` 1 or blank), matched on number
-  /// or description, sorted by number. No stock and no price reach a device.
-  Future<List<RegisterPart>> searchParts(String query, {int limit = 50}) async {
+  /// The register, matched on number or description, sorted by number: parts
+  /// (`PartType` 1 or blank), or with [charged] everything else — labour,
+  /// travel — as the desktop's Inventory splits it. No stock and no price
+  /// reach a device.
+  Future<List<RegisterPart>> searchParts(
+    String query, {
+    bool charged = false,
+    int limit = 50,
+  }) async {
     final like = '%${query.trim()}%';
     final rows = await _read(
-      'SELECT "PartID", "PartNumber", "PartDescription" FROM "Part" '
-      'WHERE coalesce("PartType", 1) = 1 '
+      'SELECT "PartID", "PartType", "PartNumber", "PartDescription" '
+      'FROM "Part" WHERE coalesce("PartType", 1) ${charged ? '<>' : '='} 1 '
       'AND ("PartNumber" LIKE ? OR "PartDescription" LIKE ?) '
       'ORDER BY "PartNumber" LIMIT ?',
       [like, like, limit],
@@ -204,6 +210,7 @@ class PowerSyncWorkOrderDataSource {
             id: id,
             number: (r['PartNumber'] as String? ?? '').trim(),
             description: (r['PartDescription'] as String? ?? '').trim(),
+            kind: psInt(r['PartType']) ?? 1,
           ),
     ];
   }
@@ -214,7 +221,8 @@ class PowerSyncWorkOrderDataSource {
     try {
       final rows = await _read(
         'SELECT "RepairPartID", "RepairPartNo", "RepairPartDescription", '
-        '"RepairPartQty" FROM "RepairPart" WHERE "RepairPartTrackID" = ? '
+        '"RepairPartQty", "RepairPartType" FROM "RepairPart" '
+        'WHERE "RepairPartTrackID" = ? '
         'ORDER BY "RepairPartSerialID"',
         [trackId],
       ).timeout(timeout);
@@ -225,6 +233,7 @@ class PowerSyncWorkOrderDataSource {
             partNo: (r['RepairPartNo'] as String? ?? '').trim(),
             description: (r['RepairPartDescription'] as String? ?? '').trim(),
             qty: psNum(r['RepairPartQty']) ?? 0,
+            kind: psInt(r['RepairPartType']) ?? PartUsed.partKind,
           ),
       ];
     } catch (e) {
