@@ -58,7 +58,9 @@ Future<List<List<PartUsed>>> _pump(
 }
 
 void main() {
-  testWidgets('pick from the register, then a quantity', (t) async {
+  // No second screen: tapping a register part adds it at one, and − and +
+  // on the card change it (the user's call, 2026-10-02).
+  testWidgets('picking a part adds it straight away, at one', (t) async {
     final changes = await _pump(t);
     await t.tap(find.text('Add part'));
     await t.pumpAndSettle();
@@ -66,14 +68,11 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('FUSE-5A'));
     await t.pumpAndSettle();
-    await t.enterText(find.byKey(const Key('part-qty')), '2');
-    await t.pump();
-    await t.tap(find.text('Add'));
-    await t.pumpAndSettle();
 
     final p = changes.last.single;
     expect(p.partId, 1);
-    expect(p.qty, 2);
+    expect(p.qty, 1);
+    expect(find.byKey(const Key('part-search')), findsNothing);
     expect(find.text('Fuse 5A'), findsOneWidget);
     expect(find.text('FUSE-5A'), findsOneWidget);
     expect(find.byKey(const Key('qty-0')), findsOneWidget);
@@ -97,12 +96,13 @@ void main() {
     expect(p.qty, 1.5);
   });
 
-  testWidgets('a quantity of nought cannot be added', (t) async {
+  testWidgets('a typed line cannot be added at nought', (t) async {
     await _pump(t);
     await t.tap(find.text('Add part'));
     await t.pumpAndSettle();
-    await t.tap(find.text('FUSE-5A'));
+    await t.tap(find.text('Type it instead'));
     await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('part-desc')), 'Cable tie');
     await t.enterText(find.byKey(const Key('part-qty')), '0');
     await t.pump();
     expect(
@@ -256,10 +256,6 @@ void main() {
       await t.tap(find.text('Add rate'));
       await t.pumpAndSettle();
       await t.tap(find.text('LAB-HR'));
-      await t.pumpAndSettle();
-      await t.enterText(find.byKey(const Key('part-qty')), '2');
-      await t.pump();
-      await t.tap(find.text('Add'));
       await t.pumpAndSettle();
       expect(changes.last.single.kind, 2);
       expect(changes.last.single.partId, 9);

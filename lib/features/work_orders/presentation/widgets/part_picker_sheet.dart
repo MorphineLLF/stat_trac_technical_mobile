@@ -31,15 +31,14 @@ class _PartPicker extends StatefulWidget {
 }
 
 class _PartPickerState extends State<_PartPicker> {
-  /// Null while choosing, or when the line is typed.
-  RegisterPart? _picked;
+  /// Typing a line rather than picking one from the list.
   bool _typing = false;
   String _query = '';
   late Future<List<RegisterPart>> _results = widget.search('');
 
   final _code = TextEditingController();
   final _desc = TextEditingController();
-  final _qty = TextEditingController();
+  final _qty = TextEditingController(text: '1');
 
   @override
   void dispose() {
@@ -51,34 +50,24 @@ class _PartPickerState extends State<_PartPicker> {
 
   double? get _qtyValue {
     final q = PartUsed.parseQty(_qty.text);
-    return q != null && q > 0 ? q : null;
+    return q != null && q > 0 && q.isFinite ? q : null;
   }
 
   bool get _named =>
-      _picked != null ||
-      _code.text.trim().isNotEmpty ||
-      _desc.text.trim().isNotEmpty;
+      _code.text.trim().isNotEmpty || _desc.text.trim().isNotEmpty;
 
   void _add() => Navigator.of(context).pop(
-    _picked != null
-        ? PartUsed(
-            partId: _picked!.id,
-            partNo: _picked!.number,
-            description: _picked!.description,
-            qty: _qtyValue!,
-            kind: _picked!.kind,
-          )
-        : PartUsed(
-            partNo: _code.text,
-            description: _desc.text,
-            qty: _qtyValue!,
-            kind: widget.charged ? PartUsed.chargedKind : PartUsed.partKind,
-          ),
+    PartUsed(
+      partNo: _code.text,
+      description: _desc.text,
+      qty: _qtyValue!,
+      kind: widget.charged ? PartUsed.chargedKind : PartUsed.partKind,
+    ),
   );
 
   @override
   Widget build(BuildContext context) {
-    final choosing = _picked == null && !_typing;
+    final choosing = !_typing;
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.75,
       child: Padding(
@@ -136,7 +125,16 @@ class _PartPickerState extends State<_PartPicker> {
                   ListTile(
                     title: Text(p.number),
                     subtitle: Text(p.description),
-                    onTap: () => setState(() => _picked = p),
+                    // Added at once, at one — − and + on the card change it.
+                    onTap: () => Navigator.of(context).pop(
+                      PartUsed(
+                        partId: p.id,
+                        partNo: p.number,
+                        description: p.description,
+                        qty: 1,
+                        kind: p.kind,
+                      ),
+                    ),
                   ),
               ],
             );
@@ -153,35 +151,26 @@ class _PartPickerState extends State<_PartPicker> {
   Widget _details() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (_picked != null)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(_picked!.number),
-          subtitle: Text(_picked!.description),
-        )
-      else ...[
-        TextField(
-          key: const Key('part-code'),
-          controller: _code,
-          maxLength: PartUsed.maxPartNo,
-          decoration: const InputDecoration(labelText: 'Item code'),
-          onChanged: (_) => setState(() {}),
-        ),
-        TextField(
-          key: const Key('part-desc'),
-          controller: _desc,
-          maxLength: PartUsed.maxDescription,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Description'),
-          onChanged: (_) => setState(() {}),
-        ),
-        if (!_named) const Text('An item code or a description is needed'),
-      ],
+      TextField(
+        key: const Key('part-code'),
+        controller: _code,
+        maxLength: PartUsed.maxPartNo,
+        decoration: const InputDecoration(labelText: 'Item code'),
+        onChanged: (_) => setState(() {}),
+      ),
+      TextField(
+        key: const Key('part-desc'),
+        controller: _desc,
+        maxLength: PartUsed.maxDescription,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(labelText: 'Description'),
+        onChanged: (_) => setState(() {}),
+      ),
+      if (!_named) const Text('An item code or a description is needed'),
       const SizedBox(height: 12),
       TextField(
         key: const Key('part-qty'),
         controller: _qty,
-        autofocus: _picked != null,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: const InputDecoration(labelText: 'Quantity'),
         onChanged: (_) => setState(() {}),
