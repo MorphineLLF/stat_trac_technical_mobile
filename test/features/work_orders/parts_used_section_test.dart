@@ -58,20 +58,22 @@ Future<List<List<PartUsed>>> _pump(
 }
 
 void main() {
-  // No second screen: tapping a register part adds it at one, and − and +
-  // on the card change it (the user's call, 2026-10-02).
-  testWidgets('picking a part adds it straight away, at one', (t) async {
+  // The quantity is set on the list itself, and Add puts the part on the
+  // work order — no second screen (the user's call, 2026-10-02).
+  testWidgets('a quantity on the list row, then Add', (t) async {
     final changes = await _pump(t);
     await t.tap(find.text('Add part'));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('part-search')), 'fuse');
     await t.pumpAndSettle();
-    await t.tap(find.text('FUSE-5A'));
+    await t.enterText(find.byKey(const Key('pick-qty-1')), '2');
+    await t.pump();
+    await t.tap(find.byKey(const Key('pick-add-1')));
     await t.pumpAndSettle();
 
     final p = changes.last.single;
     expect(p.partId, 1);
-    expect(p.qty, 1);
+    expect(p.qty, 2);
     expect(find.byKey(const Key('part-search')), findsNothing);
     expect(find.text('Fuse 5A'), findsOneWidget);
     expect(find.text('FUSE-5A'), findsOneWidget);
@@ -94,6 +96,28 @@ void main() {
     expect(p.picked, isFalse);
     expect(p.description, 'Cable tie');
     expect(p.qty, 1.5);
+  });
+
+  testWidgets('the list quantity starts at one', (t) async {
+    final changes = await _pump(t);
+    await t.tap(find.text('Add part'));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('pick-add-2')));
+    await t.pumpAndSettle();
+    expect(changes.last.single.qty, 1);
+    expect(changes.last.single.partId, 2);
+  });
+
+  testWidgets('a list row at nought cannot be added', (t) async {
+    await _pump(t);
+    await t.tap(find.text('Add part'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('pick-qty-1')), '0');
+    await t.pump();
+    expect(
+      t.widget<TextButton>(find.byKey(const Key('pick-add-1'))).onPressed,
+      isNull,
+    );
   });
 
   testWidgets('a typed line cannot be added at nought', (t) async {
@@ -255,7 +279,7 @@ void main() {
       final changes = await _pump(t, charged: true);
       await t.tap(find.text('Add rate'));
       await t.pumpAndSettle();
-      await t.tap(find.text('LAB-HR'));
+      await t.tap(find.byKey(const Key('pick-add-9')));
       await t.pumpAndSettle();
       expect(changes.last.single.kind, 2);
       expect(changes.last.single.partId, 9);

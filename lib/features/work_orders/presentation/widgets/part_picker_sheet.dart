@@ -40,11 +40,25 @@ class _PartPickerState extends State<_PartPicker> {
   final _desc = TextEditingController();
   final _qty = TextEditingController(text: '1');
 
+  /// Each list row's own quantity box, by register id, starting at 1.
+  final _rowQty = <int, TextEditingController>{};
+
+  TextEditingController _qtyFor(int id) =>
+      _rowQty.putIfAbsent(id, () => TextEditingController(text: '1'));
+
+  static double? _valid(String text) {
+    final q = PartUsed.parseQty(text);
+    return q != null && q > 0 && q.isFinite ? q : null;
+  }
+
   @override
   void dispose() {
     _code.dispose();
     _desc.dispose();
     _qty.dispose();
+    for (final c in _rowQty.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -119,25 +133,7 @@ class _PartPickerState extends State<_PartPicker> {
                 ),
               );
             }
-            return ListView(
-              children: [
-                for (final p in parts)
-                  ListTile(
-                    title: Text(p.number),
-                    subtitle: Text(p.description),
-                    // Added at once, at one — − and + on the card change it.
-                    onTap: () => Navigator.of(context).pop(
-                      PartUsed(
-                        partId: p.id,
-                        partNo: p.number,
-                        description: p.description,
-                        qty: 1,
-                        kind: p.kind,
-                      ),
-                    ),
-                  ),
-              ],
-            );
+            return ListView(children: [for (final p in parts) _row(p)]);
           },
         ),
       ),
@@ -147,6 +143,54 @@ class _PartPickerState extends State<_PartPicker> {
       ),
     ],
   );
+
+  /// A register row: its quantity box and Add. Add puts the part on the work
+  /// order at that quantity and closes the list.
+  Widget _row(RegisterPart p) {
+    final qty = _qtyFor(p.id);
+    final value = _valid(qty.text);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(p.number),
+      subtitle: Text(p.description),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 56,
+            child: TextField(
+              key: Key('pick-qty-${p.id}'),
+              controller: qty,
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          TextButton(
+            key: Key('pick-add-${p.id}'),
+            onPressed: value == null
+                ? null
+                : () => Navigator.of(context).pop(
+                    PartUsed(
+                      partId: p.id,
+                      partNo: p.number,
+                      description: p.description,
+                      qty: value,
+                      kind: p.kind,
+                    ),
+                  ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _details() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
