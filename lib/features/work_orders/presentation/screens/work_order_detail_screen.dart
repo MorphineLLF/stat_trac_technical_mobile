@@ -68,6 +68,16 @@ class _Synced extends ConsumerWidget {
                     _Field('Notes', r.note),
                     _Field('Client name', r.clientName),
                     _Field('Job card no', r.jobCardNo),
+                    const SizedBox(height: 12),
+                    _PartsList(
+                      parts: ref
+                          .watch(repairPartsProvider(trackId))
+                          .when(
+                            data: (p) => p,
+                            loading: () => const [],
+                            error: (_, _) => null,
+                          ),
+                    ),
                     const SizedBox(height: 16),
                     _Signatures(mobileId: r.mobileId ?? mobileId),
                   ],
@@ -120,6 +130,8 @@ class _Queued extends ConsumerWidget {
                 _Field('Notes', job.note),
                 _Field('Client name', job.clientName),
                 _Field('Job card no', job.jobCardNo),
+                const SizedBox(height: 12),
+                _PartsList(parts: job.parts),
                 const SizedBox(height: 16),
                 _Signatures(mobileId: mobileId),
                 if (setAside) ...[
@@ -235,3 +247,32 @@ class _Field extends StatelessWidget {
 
 String _at(DateTime? d) =>
     d == null ? '' : DateFormat('dd MMM yyyy  HH:mm').format(d);
+
+/// The parts used. Null means they could not be read — said, not shown as none.
+class _PartsList extends StatelessWidget {
+  const _PartsList({required this.parts});
+  final List<PartUsed>? parts;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = parts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Parts used', style: Theme.of(context).textTheme.titleSmall),
+        if (p == null)
+          const Text('Parts not loaded')
+        else if (p.isEmpty)
+          const Text('None')
+        else
+          for (final line in p)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(line.label),
+              trailing: Text('× ${line.qtyText}'),
+            ),
+      ],
+    );
+  }
+}

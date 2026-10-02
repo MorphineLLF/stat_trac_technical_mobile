@@ -9,7 +9,7 @@ import 'package:stat_trac_technical/sync/upload/upload_providers.dart';
 import 'package:stat_trac_technical/sync/upload/upload_queue.dart';
 import 'package:stat_trac_technical/sync/upload/work_order_upload.dart';
 
-WorkOrderUpload _job() => WorkOrderUpload(
+WorkOrderUpload _job({List<Map<String, Object?>>? parts}) => WorkOrderUpload(
   mobileId: 'wo-1',
   capture: {
     'asset_id': 100,
@@ -23,6 +23,7 @@ WorkOrderUpload _job() => WorkOrderUpload(
     'note': '',
     'client_name': 'X',
     'job_card_no': '',
+    'parts': ?parts,
   },
   techPng: 'AAAA',
   clientPng: 'BBBB',
@@ -30,14 +31,18 @@ WorkOrderUpload _job() => WorkOrderUpload(
 );
 
 /// A real in-memory outbox with [_job] set aside for [reason].
-Future<UploadQueue> _queue(WidgetTester tester, String reason) async {
+Future<UploadQueue> _queue(
+  WidgetTester tester,
+  String reason, {
+  WorkOrderUpload? job,
+}) async {
   final db = await tester.runAsync(
     () => databaseFactoryFfi.openDatabase(inMemoryDatabasePath),
   );
   await tester.runAsync(() => UploadQueue.createTable(db!));
   final queue = UploadQueue(db!);
   await tester.runAsync(() async {
-    await queue.enqueue(_job());
+    await queue.enqueue(job ?? _job());
     await queue.markRejected(
       'wo-1',
       reason: reason,
@@ -90,6 +95,21 @@ Future<void> _open(
 }
 
 void main() {
+  testWidgets('a queued job lists its parts', (t) async {
+    final q = await _queue(
+      t,
+      'invalid',
+      job: _job(
+        parts: [
+          {'part_no': 'FUSE-5A', 'description': 'Fuse 5A', 'qty': 2.0},
+        ],
+      ),
+    );
+    await _open(t, q);
+    await t.scrollUntilVisible(find.text('FUSE-5A — Fuse 5A'), 200);
+    expect(find.text('× 2'), findsOneWidget);
+  });
+
   testWidgets('invalid: Fix and resend and Discard both offered', (t) async {
     final q = await _queue(t, 'invalid');
     await _open(t, q);
@@ -104,12 +124,16 @@ void main() {
     final q = await _queue(t, 'open_work_order');
     await _open(t, q);
     expect(find.text('Fix and resend'), findsNothing);
+    await t.scrollUntilVisible(find.text('Discard'), 200);
     expect(find.text('Discard'), findsOneWidget);
   });
 
   testWidgets('Keep leaves the row; Discard removes it', (t) async {
     final q = await _queue(t, 'open_work_order');
     await _open(t, q);
+    // Below the fold on a phone; the list scrolls to it.
+    await t.ensureVisible(find.text('Discard'));
+    await t.pumpAndSettle();
 
     await t.tap(find.text('Discard'));
     await t.pumpAndSettle();
