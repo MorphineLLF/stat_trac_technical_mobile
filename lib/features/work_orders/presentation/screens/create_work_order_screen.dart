@@ -23,6 +23,16 @@ import '../../domain/work_order_job.dart';
 import '../providers/work_order_providers.dart';
 import '../widgets/work_order_form.dart';
 
+/// What Save tells the technician. The job is in the outbox either way; the
+/// send that follows decides the sentence. **A job that went straight away
+/// says so** — "waiting to sync" over a job already sent had the technician
+/// looking for a count that was rightly 0. Only "nothing was sent" keeps the
+/// plain message.
+String workOrderSaveMessage(UploadRunMessage? run) =>
+    run == null || run.tone == UploadMessageTone.quiet
+    ? 'Saved — waiting to sync'
+    : run.text;
+
 /// Capture on site, in three steps: the machine, the Work Order tab, both
 /// signatures. Nothing is written until Save, and Save writes only to the
 /// outbox — the server raises and completes the work order when it arrives.
@@ -180,14 +190,9 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     ref.invalidate(worklistProvider);
     ref.invalidate(dashboardStatsProvider);
 
-    // Saved either way. Only a run that needs saying louder replaces the
-    // plain message.
-    final run = result == null ? null : describeUploadRun(result);
-    final loud =
-        run != null &&
-        (run.tone == UploadMessageTone.warning ||
-            run.tone == UploadMessageTone.alarm);
-    _say(loud ? run.text : 'Saved — waiting to sync');
+    _say(
+      workOrderSaveMessage(result == null ? null : describeUploadRun(result)),
+    );
     Navigator.of(context).pop();
   }
 
