@@ -46,6 +46,15 @@ class PartUsed {
   String get qtyText =>
       qty == qty.truncateToDouble() ? qty.toInt().toString() : qty.toString();
 
+  /// The same line with another quantity — the job card's − and +.
+  PartUsed withQty(double q) => PartUsed(
+    partId: partId,
+    partNo: partNo,
+    description: description,
+    qty: q,
+    kind: kind,
+  );
+
   /// A quantity as typed. A comma is a decimal point — South African keyboards.
   static double? parseQty(String text) =>
       double.tryParse(text.trim().replaceAll(',', '.'));

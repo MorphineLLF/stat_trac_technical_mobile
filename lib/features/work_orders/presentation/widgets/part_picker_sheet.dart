@@ -203,3 +203,140 @@ class _PartPickerState extends State<_PartPicker> {
     ],
   );
 }
+
+/// What the edit sheet decided: a changed line, or the line removed.
+class PartEdit {
+  const PartEdit.changed(PartUsed this.part);
+  const PartEdit.removed() : part = null;
+
+  final PartUsed? part;
+  bool get removed => part == null;
+}
+
+/// Opens a line to edit. A picked line changes its quantity only — the
+/// register owns its name; a typed line changes its code, description and
+/// quantity. Null when the technician cancels.
+Future<PartEdit?> showPartEditor(BuildContext context, PartUsed part) =>
+    showModalBottomSheet<PartEdit>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheet) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
+        child: _PartEditor(part: part),
+      ),
+    );
+
+class _PartEditor extends StatefulWidget {
+  const _PartEditor({required this.part});
+  final PartUsed part;
+
+  @override
+  State<_PartEditor> createState() => _PartEditorState();
+}
+
+class _PartEditorState extends State<_PartEditor> {
+  late final _code = TextEditingController(text: widget.part.partNo);
+  late final _desc = TextEditingController(text: widget.part.description);
+  late final _qty = TextEditingController(text: widget.part.qtyText);
+
+  @override
+  void dispose() {
+    _code.dispose();
+    _desc.dispose();
+    _qty.dispose();
+    super.dispose();
+  }
+
+  double? get _qtyValue {
+    final q = PartUsed.parseQty(_qty.text);
+    return q != null && q > 0 && q.isFinite ? q : null;
+  }
+
+  bool get _named =>
+      widget.part.picked ||
+      _code.text.trim().isNotEmpty ||
+      _desc.text.trim().isNotEmpty;
+
+  void _save() {
+    final p = widget.part;
+    Navigator.of(context).pop(
+      PartEdit.changed(
+        PartUsed(
+          partId: p.partId,
+          partNo: p.picked ? p.partNo : _code.text,
+          description: p.picked ? p.description : _desc.text,
+          qty: _qtyValue!,
+          kind: p.kind,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.part;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (p.picked)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(p.description.isEmpty ? p.partNo : p.description),
+              subtitle: p.description.isEmpty ? null : Text(p.partNo),
+            )
+          else ...[
+            TextField(
+              key: const Key('part-code'),
+              controller: _code,
+              maxLength: PartUsed.maxPartNo,
+              decoration: const InputDecoration(labelText: 'Item code'),
+              onChanged: (_) => setState(() {}),
+            ),
+            TextField(
+              key: const Key('part-desc'),
+              controller: _desc,
+              maxLength: PartUsed.maxDescription,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Description'),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (!_named) const Text('An item code or a description is needed'),
+          ],
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('part-qty'),
+            controller: _qty,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'Quantity'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(const PartEdit.removed()),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                child: const Text('Remove'),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: _named && _qtyValue != null ? _save : null,
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

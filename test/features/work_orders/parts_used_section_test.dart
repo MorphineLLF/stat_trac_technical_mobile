@@ -74,8 +74,9 @@ void main() {
     final p = changes.last.single;
     expect(p.partId, 1);
     expect(p.qty, 2);
-    expect(find.text('FUSE-5A — Fuse 5A'), findsOneWidget);
-    expect(find.text('× 2'), findsOneWidget);
+    expect(find.text('Fuse 5A'), findsOneWidget);
+    expect(find.text('FUSE-5A'), findsOneWidget);
+    expect(find.byKey(const Key('qty-0')), findsOneWidget);
   });
 
   testWidgets('type it instead, with a comma quantity', (t) async {
@@ -115,9 +116,96 @@ void main() {
       t,
       parts: const [PartUsed(description: 'Cable tie', qty: 1)],
     );
-    await t.tap(find.byTooltip('Remove'));
+    await t.tap(find.text('Cable tie'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Remove'));
     await t.pumpAndSettle();
     expect(changes.last, isEmpty);
+  });
+
+  testWidgets('the heading counts its lines', (t) async {
+    await _pump(
+      t,
+      parts: const [
+        PartUsed(description: 'a', qty: 1),
+        PartUsed(description: 'b', qty: 1),
+        PartUsed(description: 'c', qty: 1, kind: 2),
+      ],
+    );
+    expect(find.text('2'), findsWidgets);
+    expect(find.byKey(const Key('count')), findsOneWidget);
+    expect(t.widget<Text>(find.byKey(const Key('count'))).data, '2');
+  });
+
+  testWidgets('+ and − change the quantity by one, never to nought', (t) async {
+    final changes = await _pump(
+      t,
+      parts: const [PartUsed(description: 'Cable tie', qty: 1.5)],
+    );
+    await t.tap(find.byTooltip('More'));
+    await t.pumpAndSettle();
+    expect(changes.last.single.qty, 2.5);
+    await t.tap(find.byTooltip('Less'));
+    await t.pumpAndSettle();
+    expect(changes.last.single.qty, 1.5);
+    await t.tap(find.byTooltip('Less'));
+    await t.pumpAndSettle();
+    expect(changes.last.single.qty, 0.5);
+    // Below one it would reach nought: − is off.
+    expect(
+      t
+          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.remove))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('a typed line opens to edit; Save replaces it', (t) async {
+    final changes = await _pump(
+      t,
+      parts: const [PartUsed(description: 'Cable tie', qty: 1)],
+    );
+    await t.tap(find.text('Cable tie'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('part-desc')), 'Cable tie 300 mm');
+    await t.enterText(find.byKey(const Key('part-qty')), '4');
+    await t.pump();
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    expect(changes.last.single.description, 'Cable tie 300 mm');
+    expect(changes.last.single.qty, 4);
+  });
+
+  // The register owns a picked line's name: only the quantity changes.
+  testWidgets('a picked line edits its quantity only', (t) async {
+    final changes = await _pump(
+      t,
+      parts: const [
+        PartUsed(partId: 1, partNo: 'FUSE-5A', description: 'Fuse 5A', qty: 1),
+      ],
+    );
+    await t.tap(find.text('Fuse 5A'));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('part-desc')), findsNothing);
+    await t.enterText(find.byKey(const Key('part-qty')), '3');
+    await t.pump();
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    expect(changes.last.single.qty, 3);
+    expect(changes.last.single.partId, 1);
+  });
+
+  testWidgets('Cancel changes nothing', (t) async {
+    final changes = await _pump(
+      t,
+      parts: const [PartUsed(description: 'Cable tie', qty: 1)],
+    );
+    await t.tap(find.text('Cable tie'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('part-qty')), '9');
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(changes, isEmpty);
   });
 
   testWidgets('a refusal shows on its line', (t) async {
@@ -147,7 +235,7 @@ void main() {
 
     testWidgets('a typed charged rate is kind 2; parts are kept', (t) async {
       final changes = await _pump(t, parts: mixed, charged: true);
-      await t.tap(find.text('Add charged rate'));
+      await t.tap(find.text('Add rate'));
       await t.pumpAndSettle();
       await t.tap(find.text('Type it instead'));
       await t.pumpAndSettle();
@@ -165,7 +253,7 @@ void main() {
 
     testWidgets('a picked rate keeps the register kind', (t) async {
       final changes = await _pump(t, charged: true);
-      await t.tap(find.text('Add charged rate'));
+      await t.tap(find.text('Add rate'));
       await t.pumpAndSettle();
       await t.tap(find.text('LAB-HR'));
       await t.pumpAndSettle();
@@ -179,7 +267,9 @@ void main() {
 
     testWidgets('removing a rate leaves the parts alone', (t) async {
       final changes = await _pump(t, parts: mixed, charged: true);
-      await t.tap(find.byTooltip('Remove'));
+      await t.tap(find.text('Travel'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Remove'));
       await t.pumpAndSettle();
       expect(changes.last.single.description, 'Fuse');
     });

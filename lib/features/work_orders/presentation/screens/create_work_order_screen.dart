@@ -323,40 +323,45 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   Widget _formStep() {
     final job = _job!;
     final valid = job.validate() == null;
-    return Column(
-      children: [
-        Expanded(
-          child: WorkOrderForm(
-            key: ValueKey(_formGeneration),
-            job: job,
-            technicianName: _techName,
-            searchParts: (q, {charged = false}) async => (await ref.read(
-              partSearchProvider.future,
-            ))(q, charged: charged),
-            serverError: _serverError,
-            onChanged: (j) => setState(() {
-              _job = j;
-              // The server's complaint stands until the box it named changes.
-              if (_serverError != null &&
-                  _changed(_serverError!.field, job, j)) {
-                _serverError = null;
-              }
-            }),
+    // White behind the job card (the user's call, 2026-10-02), so the Parts
+    // and Charged rates cards sit on it as in the mockup.
+    return ColoredBox(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Expanded(
+            child: WorkOrderForm(
+              key: ValueKey(_formGeneration),
+              job: job,
+              technicianName: _techName,
+              searchParts: (q, {charged = false}) async => (await ref.read(
+                partSearchProvider.future,
+              ))(q, charged: charged),
+              serverError: _serverError,
+              onChanged: (j) => setState(() {
+                _job = j;
+                // The server's complaint stands until the box it named changes.
+                if (_serverError != null &&
+                    _changed(_serverError!.field, job, j)) {
+                  _serverError = null;
+                }
+              }),
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton(
-            onPressed: valid
-                ? () => setState(() {
-                    _step = 2;
-                    _signReached = true;
-                  })
-                : null,
-            child: const Text('Next'),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: FilledButton(
+              onPressed: valid
+                  ? () => setState(() {
+                      _step = 2;
+                      _signReached = true;
+                    })
+                  : null,
+              child: const Text('Next'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
