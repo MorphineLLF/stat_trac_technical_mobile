@@ -31,10 +31,10 @@
 > of the project was deleted on 2026-09-30 at the user's word, after `master`
 > was pushed to GitHub.
 >
-> **Start here next session:** `docs/STATE-2026-10-01.md` — emailing a work
-> order to the client was **built 2026-10-02** (View PDF + Email on a synced
-> work order; try it on WO 7144). Next up: the parts-used
-> plan (Go side already live) and the empty-fault question on WO 7144. Work
+> **Start here next session:** `docs/STATE-2026-10-02.md` — work order email
+> is built and working on `demo`, and the no-signal path was proved on the
+> emulator. Next up: the parts-used plan (Go side already live) and the
+> empty-fault question on WO 7144. Then `docs/STATE-2026-10-01.md`. Work
 > orders (capture on site) are live on `demo`; the dashboard was reworked to
 > one screen. Then `docs/STATE-2026-09-30.md` and `docs/STATE-2026-09-29.md` /
 > `docs/STATE-2026-09-06.md` for the untested paths, which are still untested.
