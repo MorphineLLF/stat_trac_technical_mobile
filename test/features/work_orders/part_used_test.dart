@@ -89,6 +89,18 @@ void main() {
       );
     });
 
+    // The server takes a picked line's number and description from the
+    // register and trims them itself; a long register name must not block a
+    // line the technician cannot edit.
+    test('a picked line is not held to the typed limits', () {
+      expect(
+        _job([
+          PartUsed(partId: 7, partNo: 'x' * 60, description: 'y' * 120, qty: 1),
+        ]).validate(),
+        isNull,
+      );
+    });
+
     test('good lines pass', () {
       expect(_job(const [PartUsed(partNo: 'A1', qty: 0.5)]).validate(), isNull);
     });

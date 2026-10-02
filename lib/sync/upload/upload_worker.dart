@@ -247,6 +247,14 @@ class UploadWorker {
           conflicted++;
 
         case UploadRejected(:final rejections):
+          // A server that cannot take this job refuses what it does not know
+          // as a 422 — the pre-parts build decodes the capture strictly and
+          // rejects "parts". That is not ready yet, never a refusal to park.
+          if (upload is WorkOrderUpload && !_takes(upload, result.enforces)) {
+            await _queue.markRetryable(upload.queueKey, serverNotReady);
+            waitingForServer++;
+            break;
+          }
           final r = rejections.isEmpty ? null : rejections.first;
           final reason = r?.reason ?? UploadRejectionReason.invalid;
 

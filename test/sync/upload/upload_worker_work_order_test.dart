@@ -405,5 +405,57 @@ void main() {
         expect(r.failed, 0);
       },
     );
+
+    // What the pre-parts server really sends: the capture decoder refuses the
+    // unknown field and the batch comes back a 422 rejection. Alone in the
+    // queue, the job with parts is the probe — it must wait, not be parked.
+    test(
+      'a 422 for parts from an older server keeps the job pending',
+      () async {
+        await queue.enqueue(withParts('wo-2'));
+        answers(
+          const UploadRejected([
+            UploadRejection(
+              table: 'Repair',
+              mobileId: 'wo-2',
+              reason: 'invalid',
+              message: 'json: unknown field "parts"',
+            ),
+          ], enforces: _ready),
+        );
+
+        final r = await worker.drain();
+
+        final e = (await queue.all()).single;
+        expect(e.status, UploadStatus.pending);
+        expect(e.lastError, UploadWorker.serverNotReady);
+        expect(r.waitingForServer, 1);
+        expect(r.rejected, 0);
+      },
+    );
+
+    // A current server refusing a line is a real refusal and is parked.
+    test('a 422 from a server that takes parts is still a refusal', () async {
+      await queue.enqueue(withParts('wo-2'));
+      answers(
+        const UploadRejected(
+          [
+            UploadRejection(
+              table: 'Repair',
+              mobileId: 'wo-2',
+              reason: 'invalid',
+              message: 'a part needs a quantity above nought',
+              field: 'parts[0].qty',
+            ),
+          ],
+          enforces: [..._ready, 'capture_parts'],
+        ),
+      );
+
+      final r = await worker.drain();
+
+      expect((await queue.all()).single.status, UploadStatus.rejected);
+      expect(r.rejected, 1);
+    });
   });
 }

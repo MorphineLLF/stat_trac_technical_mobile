@@ -128,13 +128,16 @@ class WorkOrderJob {
     }
     for (var i = 0; i < parts.length; i++) {
       final p = parts[i];
-      if (p.partNo.trim().runes.length > PartUsed.maxPartNo) {
+      // Limits are for typed lines. A picked line's number and description
+      // come from the register, and the server trims them itself.
+      if (!p.picked && p.partNo.trim().runes.length > PartUsed.maxPartNo) {
         return WorkOrderFieldError(
           'parts[$i].part_no',
           'The item code is longer than ${PartUsed.maxPartNo} characters',
         );
       }
-      if (p.description.trim().runes.length > PartUsed.maxDescription) {
+      if (!p.picked &&
+          p.description.trim().runes.length > PartUsed.maxDescription) {
         return WorkOrderFieldError(
           'parts[$i].description',
           'The description is longer than ${PartUsed.maxDescription} characters',
