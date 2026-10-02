@@ -12,7 +12,7 @@ import '../../../auth/presentation/providers/auth_state.dart';
 import '../../data/models/certificate_summary.dart';
 import '../../domain/entities/test_output.dart';
 import '../../../../sync/upload/upload_providers.dart';
-import '../../data/cert_document_result.dart';
+import '../../../../core/documents/document_result.dart';
 import '../providers/cert_document_providers.dart';
 import '../providers/certificate_providers.dart';
 import '../widgets/add_facility_signature_sheet.dart';
@@ -227,21 +227,21 @@ class _CertificateDetailScreenState
             );
 
         switch (result) {
-          case CertPdfBytes(:final bytes):
+          case DocPdfBytes(:final bytes):
             await File(filePath).writeAsBytes(bytes);
           // Not a failure: the certificate has not reached the server yet, so
           // there is nothing to render. Saying so is the difference between
           // "wait for signal" and "something is broken".
-          case CertPdfNotReady():
+          case DocPdfNotReady():
             _sayPdf(
               'This certificate has not reached the server yet — it needs a '
               'moment of signal first.',
             );
             return;
-          case CertPdfRefused(:final message):
+          case DocPdfRefused(:final message):
             _sayPdf(message, isError: true);
             return;
-          case CertPdfUnavailable(:final message):
+          case DocPdfUnavailable(:final message):
             _sayPdf(message);
             return;
         }
@@ -320,14 +320,14 @@ class _CertificateDetailScreenState
               );
 
           switch (result) {
-            case CertEmailSent():
+            case DocEmailSent():
               return;
             // Both are shown to the technician as the server's own sentence.
             // A refusal will never succeed and a fault might, but neither is
             // retried behind their back from a dialog they are looking at.
-            case CertEmailRefused(:final message):
+            case DocEmailRefused(:final message):
               throw StateError(message);
-            case CertEmailUnavailable(:final message):
+            case DocEmailUnavailable(:final message):
               throw StateError(message);
           }
         },
@@ -439,7 +439,7 @@ class _EmailDialog extends StatefulWidget {
     required this.onSend,
   });
   final int serverId;
-  final Future<CertEmailDefaults?> Function() loadDefaults;
+  final Future<DocEmailDefaults?> Function() loadDefaults;
 
   /// [cc] and [body] null means "left out" — the server fills them in.
   final Future<void> Function(String to, String? cc, String? body) onSend;
@@ -457,7 +457,7 @@ class _EmailDialogState extends State<_EmailDialog> {
 
   /// Whether the technician's CC and sign-off were put in the boxes. Until
   /// they are, an empty box is left to the server to fill — see
-  /// [certEmailFields].
+  /// [docEmailFields].
   bool _defaultsShown = false;
   String? _error;
 
@@ -471,7 +471,7 @@ class _EmailDialogState extends State<_EmailDialog> {
   }
 
   Future<void> _loadDefaults() async {
-    CertEmailDefaults? defaults;
+    DocEmailDefaults? defaults;
     try {
       defaults = await widget.loadDefaults();
     } catch (_) {
@@ -498,7 +498,7 @@ class _EmailDialogState extends State<_EmailDialog> {
       _error = null;
     });
     try {
-      final fields = certEmailFields(
+      final fields = docEmailFields(
         defaultsShown: _defaultsShown,
         cc: _ccController.text,
         body: _bodyController.text,

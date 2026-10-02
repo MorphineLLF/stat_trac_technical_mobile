@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
-import 'cert_document_result.dart';
+import '../../../core/documents/document_result.dart';
 
 /// The certificate document: fetching the PDF, and emailing it.
 ///
@@ -29,7 +29,7 @@ class CertDocumentClient {
   /// `responseType: bytes` because this route returns a PDF, not JSON — and
   /// `validateStatus` accepts everything so a refusal is read rather than
   /// thrown, including the JSON one a Bearer caller gets.
-  Future<CertPdfResult> fetchPdf({
+  Future<DocPdfResult> fetchPdf({
     required String company,
     required String deviceToken,
     required int certificateId,
@@ -48,13 +48,13 @@ class CertDocumentClient {
       final body = response.data ?? const <int>[];
 
       if (status == 200) {
-        return CertPdfBytes(Uint8List.fromList(body));
+        return DocPdfBytes(Uint8List.fromList(body));
       }
-      return certPdfResultFromResponse(status, String.fromCharCodes(body));
+      return docPdfResultFromResponse(status, String.fromCharCodes(body));
     } on DioException catch (e) {
       // No signal, or the request never completed. Worth trying again when
       // there is.
-      return CertPdfUnavailable(0, _transportMessage(e));
+      return DocPdfUnavailable(0, _transportMessage(e));
     }
   }
 
@@ -62,7 +62,7 @@ class CertDocumentClient {
   /// open with. Null when the server could not say — no signal, or a fault —
   /// and that is not an error: the box opens empty and the send is filled in
   /// server-side instead.
-  Future<CertEmailDefaults?> fetchEmailDefaults({
+  Future<DocEmailDefaults?> fetchEmailDefaults({
     required String company,
     required String deviceToken,
     required int certificateId,
@@ -75,7 +75,7 @@ class CertDocumentClient {
           validateStatus: (_) => true,
         ),
       );
-      return certEmailDefaultsFromResponse(
+      return docEmailDefaultsFromResponse(
         response.statusCode ?? 0,
         response.data ?? const {},
       );
@@ -93,12 +93,12 @@ class CertDocumentClient {
   /// filled by the server from the technician's Admin row: [body] becomes
   /// their sign-off, [cc] their CC, [replyTo] their address. **Left out, not
   /// empty** — a [cc] or [body] sent as `''` stays empty. See
-  /// [certEmailFields].
+  /// [docEmailFields].
   ///
   /// **Unknown fields are refused rather than dropped**, so nothing is sent
   /// that the contract does not name — a misspelled `cc` would otherwise be a
   /// copy nobody receives and nobody is told about.
-  Future<CertEmailResult> email({
+  Future<DocEmailResult> email({
     required String company,
     required String deviceToken,
     required int certificateId,
@@ -125,12 +125,12 @@ class CertDocumentClient {
         ),
       );
 
-      return certEmailResultFromResponse(
+      return docEmailResultFromResponse(
         response.statusCode ?? 0,
         response.data ?? const {},
       );
     } on DioException catch (e) {
-      return CertEmailUnavailable('unavailable', _transportMessage(e));
+      return DocEmailUnavailable('unavailable', _transportMessage(e));
     }
   }
 

@@ -1,21 +1,21 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-/// What the Go application answers when asked for a certificate document.
+/// What the Go application answers when asked for a document — a certificate
+/// or a work order sheet. The two routes answer in the same shapes.
 ///
-/// Written for that server and nothing else. The retired Horse endpoint
-/// returned a base64 PDF inside JSON; this route returns the bytes, and its
-/// refusals arrive in two shapes rather than one.
-sealed class CertPdfResult {
-  const CertPdfResult();
+/// Written for that server and nothing else. These routes return the bytes,
+/// and their refusals arrive in two shapes rather than one.
+sealed class DocPdfResult {
+  const DocPdfResult();
 
   /// Whether asking again could ever give a different answer.
   bool get isRetryable;
 }
 
 /// The document, as bytes.
-class CertPdfBytes extends CertPdfResult {
-  const CertPdfBytes(this.bytes);
+class DocPdfBytes extends DocPdfResult {
+  const DocPdfBytes(this.bytes);
   final Uint8List bytes;
 
   @override
@@ -27,8 +27,8 @@ class CertPdfBytes extends CertPdfResult {
 /// A 409, and the most useful answer on this route: it distinguishes "not
 /// uploaded yet" from "failed", so the technician can be told they need a
 /// moment of signal rather than shown a blank failure.
-class CertPdfNotReady extends CertPdfResult {
-  const CertPdfNotReady(this.message);
+class DocPdfNotReady extends DocPdfResult {
+  const DocPdfNotReady(this.message);
   final String message;
 
   @override
@@ -39,8 +39,8 @@ class CertPdfNotReady extends CertPdfResult {
 ///
 /// Out of the technician's places answers as missing rather than forbidden —
 /// the convention on that server — so 403 and 404 land together.
-class CertPdfRefused extends CertPdfResult {
-  const CertPdfRefused(this.status, this.message);
+class DocPdfRefused extends DocPdfResult {
+  const DocPdfRefused(this.status, this.message);
   final int status;
   final String message;
 
@@ -49,8 +49,8 @@ class CertPdfRefused extends CertPdfResult {
 }
 
 /// The server could not render it. Worth asking again.
-class CertPdfUnavailable extends CertPdfResult {
-  const CertPdfUnavailable(this.status, this.message);
+class DocPdfUnavailable extends DocPdfResult {
+  const DocPdfUnavailable(this.status, this.message);
   final int status;
   final String message;
 
@@ -64,20 +64,20 @@ class CertPdfUnavailable extends CertPdfResult {
 /// text/plain or HTML because it is an office route, except a refusal to a
 /// Bearer caller, which is JSON. Both must reach the technician as a
 /// sentence, so a JSON body is unwrapped and anything else is passed through.
-CertPdfResult certPdfResultFromResponse(int status, String body) {
+DocPdfResult docPdfResultFromResponse(int status, String body) {
   final message = _sentenceFrom(body);
 
   return switch (status) {
-    409 => CertPdfNotReady(message),
-    403 || 404 => CertPdfRefused(status, message),
-    >= 500 => CertPdfUnavailable(status, message),
-    _ => CertPdfRefused(status, message),
+    409 => DocPdfNotReady(message),
+    403 || 404 => DocPdfRefused(status, message),
+    >= 500 => DocPdfUnavailable(status, message),
+    _ => DocPdfRefused(status, message),
   };
 }
 
 /// What the server says when asked to email a certificate.
-sealed class CertEmailResult {
-  const CertEmailResult();
+sealed class DocEmailResult {
+  const DocEmailResult();
   bool get isRetryable;
 }
 
@@ -86,9 +86,11 @@ sealed class CertEmailResult {
 /// **A 200 promises the mail was sent and nothing else.** The server answers
 /// 200 even when its own audit write fails afterwards, because answering
 /// "failed" would have the technician send the same certificate twice.
-class CertEmailSent extends CertEmailResult {
-  const CertEmailSent({this.certificate, this.number, this.to = const []});
-  final int? certificate;
+class DocEmailSent extends DocEmailResult {
+  const DocEmailSent({this.id, this.number, this.to = const []});
+
+  /// The certificate's or the work order's id, whichever route answered.
+  final int? id;
   final String? number;
   final List<String> to;
 
@@ -101,8 +103,8 @@ class CertEmailSent extends CertEmailResult {
 /// Park it and show the sentence. The codes are `bad_request`,
 /// `no_recipient`, `bad_address`, `not_found`, `void`, `draft` and
 /// `not_configured`.
-class CertEmailRefused extends CertEmailResult {
-  const CertEmailRefused({
+class DocEmailRefused extends DocEmailResult {
+  const DocEmailRefused({
     required this.reason,
     required this.message,
     this.field,
@@ -119,8 +121,8 @@ class CertEmailRefused extends CertEmailResult {
 
 /// The renderer or the mail host is down — `no_renderer`, `render_failed`,
 /// `send_failed`, `unavailable`. Try again.
-class CertEmailUnavailable extends CertEmailResult {
-  const CertEmailUnavailable(this.reason, this.message);
+class DocEmailUnavailable extends DocEmailResult {
+  const DocEmailUnavailable(this.reason, this.message);
   final String reason;
   final String message;
 
@@ -133,27 +135,27 @@ class CertEmailUnavailable extends CertEmailResult {
 /// Retryability is taken from the status rather than from the reason code:
 /// the codes are a stable vocabulary for telling a person what happened, and
 /// a code this build has never heard of must not silently become retryable.
-CertEmailResult certEmailResultFromResponse(
+DocEmailResult docEmailResultFromResponse(
   int status,
   Map<String, Object?> body,
 ) {
   final reason = (body['reason'] as String?) ?? 'unavailable';
   final message =
-      (body['error'] as String?) ?? 'The certificate could not be emailed.';
+      (body['error'] as String?) ?? 'The document could not be emailed.';
 
   if (status == 200) {
-    return CertEmailSent(
-      certificate: (body['certificate'] as num?)?.toInt(),
+    return DocEmailSent(
+      id: ((body['certificate'] ?? body['work_order']) as num?)?.toInt(),
       number: body['number'] as String?,
       to: [for (final a in (body['to'] as List?) ?? const []) a as String],
     );
   }
 
   if (status >= 500) {
-    return CertEmailUnavailable(reason, message);
+    return DocEmailUnavailable(reason, message);
   }
 
-  return CertEmailRefused(
+  return DocEmailRefused(
     reason: reason,
     message: message,
     field: body['field'] as String?,
@@ -166,8 +168,8 @@ CertEmailResult certEmailResultFromResponse(
 /// That row does not sync, so the server is asked when the box opens —
 /// `GET .../email`. The same three fields the server fills a send with when
 /// the device leaves them out.
-class CertEmailDefaults {
-  const CertEmailDefaults({
+class DocEmailDefaults {
+  const DocEmailDefaults({
     this.cc = '',
     this.replyTo = '',
     this.signature = '',
@@ -187,12 +189,12 @@ class CertEmailDefaults {
 
 /// The defaults, or null when the server did not give them. Null is not an
 /// error: the box opens empty and the send is filled in server-side instead.
-CertEmailDefaults? certEmailDefaultsFromResponse(
+DocEmailDefaults? docEmailDefaultsFromResponse(
   int status,
   Map<String, Object?> body,
 ) {
   if (status != 200) return null;
-  return CertEmailDefaults(
+  return DocEmailDefaults(
     cc: (body['cc'] as String?) ?? '',
     replyTo: (body['reply_to'] as String?) ?? '',
     signature: (body['signature'] as String?) ?? '',
@@ -206,7 +208,7 @@ CertEmailDefaults? certEmailDefaultsFromResponse(
 /// empty empty. So when the defaults were shown, both are sent as they stand —
 /// a CC the technician cleared must not come back. When they never arrived,
 /// an empty box is left out so the server can still sign the mail.
-({String? cc, String? body}) certEmailFields({
+({String? cc, String? body}) docEmailFields({
   required bool defaultsShown,
   required String cc,
   required String body,

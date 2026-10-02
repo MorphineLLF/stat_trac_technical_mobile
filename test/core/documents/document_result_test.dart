@@ -1,31 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stat_trac_technical/features/certification/data/cert_document_result.dart';
+import 'package:stat_trac_technical/core/documents/document_result.dart';
 
 void main() {
   group('the PDF', () {
     test('a draft is not ready rather than broken', () {
-      final r = certPdfResultFromResponse(
+      final r = docPdfResultFromResponse(
         409,
         'A certificate cannot be printed until it has been saved.',
       );
 
-      expect(r, isA<CertPdfNotReady>());
+      expect(r, isA<DocPdfNotReady>());
       expect(r.isRetryable, isFalse);
     });
 
     // Out of the technician's places answers as missing, which is the
     // convention everywhere on that server. Retrying cannot change it.
     test('missing or refused is permanent', () {
-      expect(certPdfResultFromResponse(404, 'not found').isRetryable, isFalse);
-      expect(certPdfResultFromResponse(403, 'no').isRetryable, isFalse);
+      expect(docPdfResultFromResponse(404, 'not found').isRetryable, isFalse);
+      expect(docPdfResultFromResponse(403, 'no').isRetryable, isFalse);
     });
 
     // A dead Chrome on the server relaunches itself with a backoff, so this
     // one really is worth trying again.
     test('a server fault is worth retrying', () {
-      final r = certPdfResultFromResponse(500, 'boom');
+      final r = docPdfResultFromResponse(500, 'boom');
 
-      expect(r, isA<CertPdfUnavailable>());
+      expect(r, isA<DocPdfUnavailable>());
       expect(r.isRetryable, isTrue);
     });
 
@@ -33,13 +33,13 @@ void main() {
     // route, EXCEPT a refusal to a Bearer caller, which is JSON. Both must
     // reach the technician as a sentence rather than as markup.
     test('reads a JSON refusal without showing the technician braces', () {
-      final r = certPdfResultFromResponse(
+      final r = docPdfResultFromResponse(
         403,
         '{"error":"this application is not available to the mobile app"}',
       );
 
       expect(
-        (r as CertPdfRefused).message,
+        (r as DocPdfRefused).message,
         'this application is not '
         'available to the mobile app',
       );
@@ -47,35 +47,58 @@ void main() {
     });
 
     test('keeps a plain-text error as it stands', () {
-      final r = certPdfResultFromResponse(409, 'not saved yet');
-      expect((r as CertPdfNotReady).message, 'not saved yet');
+      final r = docPdfResultFromResponse(409, 'not saved yet');
+      expect((r as DocPdfNotReady).message, 'not saved yet');
     });
   });
 
   group('the email', () {
+    // The work order route names its id `work_order`, the certificate route
+    // `certificate`. One result type reads both.
+    test('a work order send reads its id', () {
+      final r = docEmailResultFromResponse(200, const {
+        'sent': true,
+        'work_order': 7144,
+        'to': ['sister@hospital.example'],
+      });
+
+      expect((r as DocEmailSent).id, 7144);
+    });
+
+    test('a certificate send reads its id', () {
+      final r = docEmailResultFromResponse(200, const {
+        'sent': true,
+        'certificate': 8475,
+        'number': '8475',
+        'to': ['a@b.example'],
+      });
+
+      expect((r as DocEmailSent).id, 8475);
+    });
+
     test('a send reports what went where', () {
-      final r = certEmailResultFromResponse(200, const {
+      final r = docEmailResultFromResponse(200, const {
         'sent': true,
         'certificate': 8475,
         'number': '8475',
         'to': ['sister@hospital.example'],
       });
 
-      expect(r, isA<CertEmailSent>());
-      expect((r as CertEmailSent).to, ['sister@hospital.example']);
+      expect(r, isA<DocEmailSent>());
+      expect((r as DocEmailSent).to, ['sister@hospital.example']);
       expect(r.isRetryable, isFalse);
     });
 
     // Park these: the same request gets the same answer for ever.
     test('a refusal carries its reason and never retries', () {
-      final r = certEmailResultFromResponse(422, const {
+      final r = docEmailResultFromResponse(422, const {
         'reason': 'no_recipient',
         'field': 'to',
         'error': 'an address is needed — the To box is empty',
       });
 
-      expect(r, isA<CertEmailRefused>());
-      final refused = r as CertEmailRefused;
+      expect(r, isA<DocEmailRefused>());
+      final refused = r as DocEmailRefused;
       expect(refused.reason, 'no_recipient');
       expect(refused.field, 'to');
       expect(refused.message, contains('To box is empty'));
@@ -83,7 +106,7 @@ void main() {
     });
 
     test('a malformed request is a refusal, not a retry', () {
-      final r = certEmailResultFromResponse(400, const {
+      final r = docEmailResultFromResponse(400, const {
         'reason': 'bad_request',
         'error': 'the request could not be read',
       });
@@ -92,12 +115,12 @@ void main() {
     });
 
     test('a 503 is retryable — the renderer or the mail host is down', () {
-      final r = certEmailResultFromResponse(503, const {
+      final r = docEmailResultFromResponse(503, const {
         'reason': 'send_failed',
         'error': 'could not reach the mail host',
       });
 
-      expect(r, isA<CertEmailUnavailable>());
+      expect(r, isA<DocEmailUnavailable>());
       expect(r.isRetryable, isTrue);
     });
 
@@ -105,7 +128,7 @@ void main() {
     // answering "failed" would have the technician send the certificate
     // twice. So a 200 means it left, and nothing more is claimed.
     test('a send with no body is still a send', () {
-      expect(certEmailResultFromResponse(200, const {}), isA<CertEmailSent>());
+      expect(docEmailResultFromResponse(200, const {}), isA<DocEmailSent>());
     });
   });
 
@@ -114,7 +137,7 @@ void main() {
   // does not sync, so the server is asked when the box opens.
   group('what the email box opens with', () {
     test("the sender's own CC, reply address and sign-off", () {
-      final d = certEmailDefaultsFromResponse(200, const {
+      final d = docEmailDefaultsFromResponse(200, const {
         'cc': 'records@example.com',
         'reply_to': 'athi@example.com',
         'signature': 'Regards\r\nAthi',
@@ -129,14 +152,14 @@ void main() {
     });
 
     test('no sign-off set opens an empty box', () {
-      expect(certEmailDefaultsFromResponse(200, const {})!.initialBody, '');
+      expect(docEmailDefaultsFromResponse(200, const {})!.initialBody, '');
     });
 
     // The box still opens and the send still works — the server fills in
     // what was left out, as it did before the box showed anything.
     test('a refusal or a fault is no defaults, not an error', () {
-      expect(certEmailDefaultsFromResponse(503, const {}), isNull);
-      expect(certEmailDefaultsFromResponse(404, const {}), isNull);
+      expect(docEmailDefaultsFromResponse(503, const {}), isNull);
+      expect(docEmailDefaultsFromResponse(404, const {}), isNull);
     });
   });
 
@@ -147,20 +170,20 @@ void main() {
   // out so the server still signs it.
   group('what the send carries', () {
     test('defaults shown: the boxes as they stand, even empty', () {
-      final f = certEmailFields(defaultsShown: true, cc: ' ', body: '');
+      final f = docEmailFields(defaultsShown: true, cc: ' ', body: '');
       expect(f.cc, '');
       expect(f.body, '');
     });
 
     test('defaults never arrived: empty boxes are left to the server', () {
-      final f = certEmailFields(defaultsShown: false, cc: '', body: '  ');
+      final f = docEmailFields(defaultsShown: false, cc: '', body: '  ');
       expect(f.cc, isNull);
       expect(f.body, isNull);
     });
 
     test('whatever was typed goes either way', () {
       for (final shown in [true, false]) {
-        final f = certEmailFields(
+        final f = docEmailFields(
           defaultsShown: shown,
           cc: 'boss@example.com',
           body: 'Attached.',
