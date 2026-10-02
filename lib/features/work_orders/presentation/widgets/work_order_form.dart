@@ -74,6 +74,7 @@ class _WorkOrderFormState extends State<WorkOrderForm> {
         note: _note.text,
         clientName: _client.text,
         jobCardNo: _jobCard.text,
+        parts: j.parts,
       ),
     );
   }

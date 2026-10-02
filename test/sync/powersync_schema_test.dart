@@ -51,7 +51,9 @@ void main() {
         expect(
           _columnNames(t).where(
             (c) =>
-                c.contains('Cost') || c.contains('Price') || c.contains('Total'),
+                c.contains('Cost') ||
+                c.contains('Price') ||
+                c.contains('Total'),
           ),
           isEmpty,
           reason: '$t carries a price',

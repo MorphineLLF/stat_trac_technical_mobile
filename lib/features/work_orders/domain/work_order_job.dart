@@ -1,4 +1,7 @@
+import 'part_used.dart';
 import 'work_type.dart';
+
+export 'part_used.dart';
 
 /// What is wrong with a job card, named as the server names it.
 class WorkOrderFieldError {
@@ -28,6 +31,7 @@ class WorkOrderJob {
     this.note = '',
     this.clientName = '',
     this.jobCardNo = '',
+    this.parts = const [],
   });
 
   final int assetId;
@@ -52,6 +56,9 @@ class WorkOrderJob {
   final String note;
   final String clientName;
   final String jobCardNo;
+
+  /// Parts used, in the order the technician added them.
+  final List<PartUsed> parts;
 
   static const maxJobCardNo = 30;
   static const maxClient = 50;
@@ -119,6 +126,35 @@ class WorkOrderJob {
         );
       }
     }
+    for (var i = 0; i < parts.length; i++) {
+      final p = parts[i];
+      if (p.partNo.trim().runes.length > PartUsed.maxPartNo) {
+        return WorkOrderFieldError(
+          'parts[$i].part_no',
+          'The item code is longer than ${PartUsed.maxPartNo} characters',
+        );
+      }
+      if (p.description.trim().runes.length > PartUsed.maxDescription) {
+        return WorkOrderFieldError(
+          'parts[$i].description',
+          'The description is longer than ${PartUsed.maxDescription} characters',
+        );
+      }
+      if (!p.picked &&
+          p.partNo.trim().isEmpty &&
+          p.description.trim().isEmpty) {
+        return WorkOrderFieldError(
+          'parts[$i].description',
+          'A part needs an item code or a description',
+        );
+      }
+      if (p.qty <= 0) {
+        return WorkOrderFieldError(
+          'parts[$i].qty',
+          'A part needs a quantity above nought',
+        );
+      }
+    }
     return null;
   }
 
@@ -137,6 +173,7 @@ class WorkOrderJob {
     'note': note.trim(),
     'client_name': clientName.trim(),
     'job_card_no': jobCardNo.trim(),
+    if (parts.isNotEmpty) 'parts': [for (final p in parts) p.toWire()],
   };
 
   /// Back from a queued payload, for the Worklist and for Fix and resend.
@@ -152,6 +189,10 @@ class WorkOrderJob {
     note: w['note'] as String? ?? '',
     clientName: w['client_name'] as String? ?? '',
     jobCardNo: w['job_card_no'] as String? ?? '',
+    parts: [
+      for (final p in (w['parts'] as List?) ?? const [])
+        PartUsed.fromWire(Map<String, Object?>.from(p as Map)),
+    ],
   );
 
   WorkOrderJob copyWith({
@@ -165,6 +206,7 @@ class WorkOrderJob {
     String? note,
     String? clientName,
     String? jobCardNo,
+    List<PartUsed>? parts,
   }) => WorkOrderJob(
     assetId: assetId,
     workType: workType ?? this.workType,
@@ -177,6 +219,7 @@ class WorkOrderJob {
     note: note ?? this.note,
     clientName: clientName ?? this.clientName,
     jobCardNo: jobCardNo ?? this.jobCardNo,
+    parts: parts ?? this.parts,
   );
 
   static DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
