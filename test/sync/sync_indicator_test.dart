@@ -94,5 +94,51 @@ void main() {
         SyncIndicator.offline,
       );
     });
+
+    // Airplane mode: PowerSync's failed connect is stored as an error, and
+    // "Sync error" in red told a technician with nothing wrong that something
+    // was broken. No network is offline, not a failure.
+    test('no network on the phone is offline, not an error', () {
+      expect(
+        syncIndicatorFor(
+          connected: false,
+          connecting: false,
+          downloading: false,
+          uploading: false,
+          error: Exception('Failed host lookup'),
+          deviceOnline: false,
+        ),
+        SyncIndicator.offline,
+      );
+    });
+
+    test('no network is offline even while PowerSync retries', () {
+      expect(
+        syncIndicatorFor(
+          connected: false,
+          connecting: true,
+          downloading: false,
+          uploading: false,
+          error: null,
+          deviceOnline: false,
+        ),
+        SyncIndicator.offline,
+      );
+    });
+
+    // The connectivity report can lag; live sync state is the better witness.
+    test('a live connection wins over a stale "no network"', () {
+      expect(
+        syncIndicatorFor(
+          connected: true,
+          connecting: false,
+          downloading: false,
+          uploading: false,
+          error: null,
+          deviceOnline: false,
+        ),
+        SyncIndicator.connected,
+      );
+    });
   });
 }

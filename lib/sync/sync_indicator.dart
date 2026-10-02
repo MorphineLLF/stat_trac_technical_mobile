@@ -27,9 +27,14 @@ SyncIndicator syncIndicatorFor({
   required bool downloading,
   required bool uploading,
   required Object? error,
+  bool deviceOnline = true,
 }) {
   if (downloading || uploading) return SyncIndicator.syncing;
   if (connected) return SyncIndicator.connected;
+  // No network on the phone at all — airplane mode, a basement. PowerSync
+  // records its failed connect as an error, but nothing is wrong: the work is
+  // queued and goes when signal returns. Red here told a technician otherwise.
+  if (!deviceOnline) return SyncIndicator.offline;
   if (connecting) return SyncIndicator.connecting;
   if (error != null) return SyncIndicator.error;
   return SyncIndicator.offline;

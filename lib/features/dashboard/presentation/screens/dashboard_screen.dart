@@ -15,6 +15,7 @@ import '../../../work_orders/presentation/screens/work_order_list_screen.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/pm_due_card.dart';
 import '../widgets/sync_summary.dart';
+import '../../../../sync/device_online.dart';
 import '../../../../sync/powersync_providers.dart';
 import '../../../../sync/sync_indicator.dart';
 import '../../../../sync/upload/upload_providers.dart';
@@ -647,6 +648,9 @@ class _PowerSyncStatus extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(syncStatusProvider);
+    // Unknown counts as online: only a phone known to have no network is
+    // "Offline", so a failed check never hides a real error.
+    final deviceOnline = ref.watch(deviceOnlineProvider).asData?.value ?? true;
 
     return status.when(
       loading: () => const _StatusChip(
@@ -667,6 +671,7 @@ class _PowerSyncStatus extends ConsumerWidget {
           downloading: s.downloading,
           uploading: s.uploading,
           error: s.downloadError ?? s.uploadError,
+          deviceOnline: deviceOnline,
         );
         // The last error is kept as a tooltip even when connected, so a
         // recovered blip is still discoverable without being alarming.
