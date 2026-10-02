@@ -33,7 +33,7 @@
 >
 > **Start here next session:** `docs/STATE-2026-10-02.md` — work order email
 > is built and working on `demo`, and the no-signal path was proved on the
-> emulator. Next up: the parts-used plan (Go side already live) and the
+> emulator. Parts used was built the same day. Next up: the
 > empty-fault question on WO 7144. Then `docs/STATE-2026-10-01.md`. Work
 > orders (capture on site) are live on `demo`; the dashboard was reworked to
 > one screen. Then `docs/STATE-2026-09-30.md` and `docs/STATE-2026-09-29.md` /
@@ -148,6 +148,7 @@ Implementation plans live in `docs/superpowers/plans/`. Check this folder at ses
 | `2026-09-05-powersync-schema-sync-rules.md` | ⛔ SUPERSEDED before execution — written against an assumed greenfield schema that does not exist. Do not run. |
 | `2026-10-01-work-orders-capture.md` | ✅ Complete 2026-10-01 — capture on site, Worklist, outbox `WorkOrderUpload`, DB v19. Waits on the Go side (`docs/go-requirements-work-order-capture.md`) |
 | `2026-10-01-dashboard-rework.md` | ✅ Built 2026-10-01 — sync summary header, tiles unchanged, PM tasks due this week; final code review not run yet |
+| `2026-10-02-work-order-parts.md` | ✅ Built 2026-10-02 — parts used on the job card, gate on `capture_parts`, detail list |
 | `2026-10-02-work-order-email.md` | ✅ Built 2026-10-02 — View PDF + Email on a synced work order; Go side done (f08f2ca) |
 
 ## What This Is
@@ -492,6 +493,7 @@ Work in this order. Each phase builds on the previous.
 - Sent only when the server's `enforces` lists `capture_action` and `job_sign_action`; otherwise it waits as "server not ready". Go side: `docs/go-requirements-work-order-capture.md`.
 - Work Order → View (`WorkOrderListScreen`, "Work Orders"; **not** the Worklist tile, which is a separate module and stays disabled): the technician's captured work orders (`RepairTechID`, `RepairDetailType = 3`) from PowerSync, no joins, plus jobs still queued. Set-aside jobs are never deleted except by Discard.
 - Spec: `docs/superpowers/specs/2026-10-01-work-orders-capture-design.md`.
+- **Parts used (2026-10-02)** — job card section, pick from `Part` (parts only) or type; quantity > 0, decimals (a comma counts); no prices. Sent in `capture.parts` (a picked line also sends its number and description), held until `enforces` lists `capture_parts`. Detail screen lists parts from the queue or synced `RepairPart` ("Parts not loaded" if the read fails).
 - **View PDF and Email on a synced work order (2026-10-02)** — `WorkOrderDocumentActions` in the detail app bar; disabled with "Sync first" on a queued job. The PDF is always fetched fresh (a work order can change after printing); the cached copy opens only with no signal. Go side: `workOrderDocPath` + `wo_email_json.go` (commit f08f2ca). The email box and document result types are shared in `lib/core/documents/` (`EmailDocumentDialog`, `Doc*`).
 
 ### Certification module ✅
