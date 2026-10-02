@@ -56,6 +56,10 @@ class WorkOrderUpload implements QueuedUpload {
   final String clientPng;
   final String clientName;
 
+  /// Whether the job carries parts used — sent only to a server that announces
+  /// `capture_parts`.
+  bool get carriesParts => (capture['parts'] as List?)?.isNotEmpty ?? false;
+
   factory WorkOrderUpload.fromJson(Map<String, Object?> j) => WorkOrderUpload(
     mobileId: j['mobile_id']! as String,
     capture: Map<String, Object?>.from(j['capture']! as Map),

@@ -327,6 +327,9 @@ abstract final class SyncUploadGuarantee {
 
   /// `sign` on `Repair` signs the job card.
   static const jobSignAction = 'job_sign_action';
+
+  /// `capture` on `Repair` accepts `parts` and writes them in its transaction.
+  static const captureParts = 'capture_parts';
 }
 
 /// The 422 codes, and what each means for the person holding the device.

@@ -127,10 +127,14 @@ class UploadWorker {
   @visibleForTesting
   static void forgetServer() => _lastEnforces = null;
 
-  static bool _takesWorkOrders(List<String>? enforces) =>
+  /// Whether this server can take [upload]. A job with parts needs
+  /// `capture_parts` too; a job without is unaffected.
+  static bool _takes(WorkOrderUpload upload, List<String>? enforces) =>
       enforces == null ||
       (enforces.contains(SyncUploadGuarantee.captureAction) &&
-          enforces.contains(SyncUploadGuarantee.jobSignAction));
+          enforces.contains(SyncUploadGuarantee.jobSignAction) &&
+          (!upload.carriesParts ||
+              enforces.contains(SyncUploadGuarantee.captureParts)));
 
   /// Sends what is waiting. A call while a run is already going joins that
   /// run and gets its result, rather than sending the same rows again.
@@ -165,7 +169,7 @@ class UploadWorker {
       final upload = entry.upload;
       final cert = upload is CertificateUpload ? upload : null;
       if (upload is WorkOrderUpload) {
-        if (!_takesWorkOrders(_lastEnforces) && probed) {
+        if (!_takes(upload, _lastEnforces) && probed) {
           await _queue.markRetryable(upload.queueKey, serverNotReady);
           waitingForServer++;
           continue;
@@ -287,7 +291,7 @@ class UploadWorker {
           // A server without the work-order actions refuses them with a 400
           // and applies nothing. That is a server not yet updated, not a
           // broken app, and the job waits rather than being parked.
-          if (upload is WorkOrderUpload && !_takesWorkOrders(result.enforces)) {
+          if (upload is WorkOrderUpload && !_takes(upload, result.enforces)) {
             await _queue.markRetryable(upload.queueKey, serverNotReady);
             waitingForServer++;
             break;

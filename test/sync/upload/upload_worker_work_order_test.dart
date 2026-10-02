@@ -322,4 +322,88 @@ void main() {
     expect(left.single.upload.mobileId, 'wo-1');
     expect(left.single.status, UploadStatus.pending);
   });
+
+  group('parts', () {
+    WorkOrderUpload withParts(String id) => WorkOrderUpload(
+      mobileId: id,
+      capture: const {
+        'asset_id': 1234,
+        'work_type': 1,
+        'parts': [
+          {'part_id': 412, 'part_no': 'F', 'description': 'Fuse', 'qty': 1.0},
+        ],
+      },
+      techPng: 'AAAA',
+      clientPng: 'BBBB',
+      clientName: 'Sister Dlamini',
+    );
+
+    test('carriesParts reads the capture', () {
+      expect(withParts('a').carriesParts, isTrue);
+      expect(_wo('b').carriesParts, isFalse);
+    });
+
+    // The server announced it takes work orders but not their parts. The job
+    // with parts waits; the one without goes.
+    test(
+      'a job with parts waits for capture_parts; one without goes',
+      () async {
+        await queue.enqueue(_wo('wo-1'));
+        await queue.enqueue(withParts('wo-2'));
+        answers(
+          const UploadApplied(
+            applied: 0,
+            assigned: {'wo-1': 1801},
+            issued: [],
+            enforces: _ready,
+          ),
+        );
+
+        final r = await worker.drain();
+
+        expect(r.appliedWorkOrders, 1);
+        expect(r.waitingForServer, 1);
+        final left = (await queue.all()).single;
+        expect(left.upload.mobileId, 'wo-2');
+        expect(left.status, UploadStatus.pending);
+        expect(left.lastError, UploadWorker.serverNotReady);
+        expect(sends(), 1);
+      },
+    );
+
+    test('with capture_parts announced, a job with parts goes', () async {
+      await queue.enqueue(withParts('wo-2'));
+      answers(
+        const UploadApplied(
+          applied: 0,
+          assigned: {'wo-2': 1802},
+          issued: [],
+          enforces: [..._ready, 'capture_parts'],
+        ),
+      );
+
+      final r = await worker.drain();
+
+      expect(r.appliedWorkOrders, 1);
+      expect(await queue.count(), 0);
+    });
+
+    // A server that does not know "parts" refuses the batch as a 400 — that is
+    // not ready yet, never parked.
+    test(
+      'a 400 for parts from an older server keeps the job pending',
+      () async {
+        await queue.enqueue(withParts('wo-2'));
+        answers(
+          const UploadClientError('unknown field "parts"', enforces: _ready),
+        );
+
+        final r = await worker.drain();
+
+        expect((await queue.all()).single.status, UploadStatus.pending);
+        expect(r.waitingForServer, 1);
+        expect(r.failed, 0);
+      },
+    );
+  });
 }
