@@ -15,14 +15,21 @@ enum PdfChoice { saveAndOpen, openCached, say }
 ///
 /// **Unlike an issued certificate, a work order can change after it was
 /// printed** — the office adds parts, closes it. So a fresh copy always wins,
-/// and the cached one is only for when the server cannot be reached at all.
-/// A refusal is the server's answer now and is never covered by an old copy.
+/// and the cached one is only for when the server cannot be reached at all
+/// (status 0). A refusal, or a server that answered but could not render, is
+/// the server's answer now and is never covered by an old copy.
 PdfChoice pdfToOpen({required DocPdfResult fetched, required bool cached}) =>
     switch (fetched) {
       DocPdfBytes() => PdfChoice.saveAndOpen,
-      DocPdfUnavailable() when cached => PdfChoice.openCached,
+      DocPdfUnavailable(status: 0) when cached => PdfChoice.openCached,
       _ => PdfChoice.say,
     };
+
+/// What the technician is told as the sheet opens — the saved copy may be
+/// older than the work order, so it never opens without saying so.
+String? pdfNotice(PdfChoice choice) => choice == PdfChoice.openCached
+    ? 'No signal — showing the copy saved earlier.'
+    : null;
 
 /// View PDF and Email, for the app bar of a work order.
 ///
@@ -63,11 +70,12 @@ class _WorkOrderDocumentActionsState
                   trackId: trackId,
                 );
 
-      switch (pdfToOpen(fetched: fetched, cached: file.existsSync())) {
+      final choice = pdfToOpen(fetched: fetched, cached: file.existsSync());
+      switch (choice) {
         case PdfChoice.saveAndOpen:
           await file.writeAsBytes((fetched as DocPdfBytes).bytes);
         case PdfChoice.openCached:
-          break;
+          _say(pdfNotice(choice)!);
         case PdfChoice.say:
           _say(switch (fetched) {
             DocPdfNotReady() =>

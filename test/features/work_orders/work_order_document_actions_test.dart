@@ -63,6 +63,26 @@ void main() {
       expect(pdfToOpen(fetched: offline, cached: false), PdfChoice.say);
     });
 
+    // The server was reached but could not render: the office may have changed
+    // the work order, so the old copy must not stand in for the new one.
+    test('a server fault is said, never covered by the cache', () {
+      expect(
+        pdfToOpen(
+          fetched: const DocPdfUnavailable(503, 'render failed'),
+          cached: true,
+        ),
+        PdfChoice.say,
+      );
+    });
+
+    test('opening the saved copy says it may be out of date', () {
+      expect(
+        pdfNotice(PdfChoice.openCached),
+        'No signal — showing the copy saved earlier.',
+      );
+      expect(pdfNotice(PdfChoice.saveAndOpen), isNull);
+    });
+
     // A refusal is the server's answer about this work order now; an old copy
     // would contradict it.
     test('a refusal is said, never covered by the cache', () {
