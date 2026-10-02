@@ -134,7 +134,9 @@ class UploadWorker {
       (enforces.contains(SyncUploadGuarantee.captureAction) &&
           enforces.contains(SyncUploadGuarantee.jobSignAction) &&
           (!upload.carriesParts ||
-              enforces.contains(SyncUploadGuarantee.captureParts)));
+              enforces.contains(SyncUploadGuarantee.captureParts)) &&
+          (!upload.carriesPartKinds ||
+              enforces.contains(SyncUploadGuarantee.capturePartKind)));
 
   /// Sends what is waiting. A call while a run is already going joins that
   /// run and gets its result, rather than sending the same rows again.

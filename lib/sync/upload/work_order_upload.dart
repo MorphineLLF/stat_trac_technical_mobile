@@ -60,6 +60,12 @@ class WorkOrderUpload implements QueuedUpload {
   /// `capture_parts`.
   bool get carriesParts => (capture['parts'] as List?)?.isNotEmpty ?? false;
 
+  /// Whether any line says what kind it is — a charged rate. Sent only to a
+  /// server that announces `capture_part_kind`.
+  bool get carriesPartKinds => ((capture['parts'] as List?) ?? const []).any(
+    (p) => p is Map && p.containsKey('kind'),
+  );
+
   factory WorkOrderUpload.fromJson(Map<String, Object?> j) => WorkOrderUpload(
     mobileId: j['mobile_id']! as String,
     capture: Map<String, Object?>.from(j['capture']! as Map),

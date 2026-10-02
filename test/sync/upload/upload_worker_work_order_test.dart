@@ -434,6 +434,57 @@ void main() {
       },
     );
 
+    WorkOrderUpload withRate(String id) => WorkOrderUpload(
+      mobileId: id,
+      capture: const {
+        'asset_id': 1234,
+        'work_type': 1,
+        'parts': [
+          {'part_no': '', 'description': 'Travel', 'qty': 1.0, 'kind': 2},
+        ],
+      },
+      techPng: 'AAAA',
+      clientPng: 'BBBB',
+      clientName: 'Sister Dlamini',
+    );
+
+    // A charged rate needs the server to file it by kind; until it says so the
+    // job waits, and a job with plain parts still goes.
+    test('a charged rate waits for capture_part_kind', () async {
+      await queue.enqueue(withParts('wo-1'));
+      await queue.enqueue(withRate('wo-2'));
+      answers(
+        const UploadApplied(
+          applied: 0,
+          assigned: {'wo-1': 1801},
+          issued: [],
+          enforces: [..._ready, 'capture_parts'],
+        ),
+      );
+
+      final r = await worker.drain();
+
+      expect(r.appliedWorkOrders, 1);
+      expect(r.waitingForServer, 1);
+      expect((await queue.all()).single.upload.mobileId, 'wo-2');
+    });
+
+    test('with capture_part_kind, a charged rate goes', () async {
+      await queue.enqueue(withRate('wo-2'));
+      answers(
+        const UploadApplied(
+          applied: 0,
+          assigned: {'wo-2': 1802},
+          issued: [],
+          enforces: [..._ready, 'capture_parts', 'capture_part_kind'],
+        ),
+      );
+
+      await worker.drain();
+
+      expect(await queue.count(), 0);
+    });
+
     // A current server refusing a line is a real refusal and is parked.
     test('a 422 from a server that takes parts is still a refusal', () async {
       await queue.enqueue(withParts('wo-2'));

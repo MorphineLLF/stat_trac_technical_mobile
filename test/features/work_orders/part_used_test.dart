@@ -64,6 +64,46 @@ void main() {
     });
   });
 
+  group('charged rates', () {
+    test('a typed charged rate sends kind 2', () {
+      final w = _job(const [
+        PartUsed(description: 'Travel 40 km', qty: 1, kind: 2),
+      ]).toWire();
+      expect(w['parts'], [
+        {'part_no': '', 'description': 'Travel 40 km', 'qty': 1.0, 'kind': 2},
+      ]);
+    });
+
+    // The register's type wins for a picked line, but the server keeps kind
+    // for a part that has left the register — so a picked rate carries it too.
+    test('a picked charged rate carries its kind; a part sends none', () {
+      final w = _job(const [
+        PartUsed(
+          partId: 9,
+          partNo: 'LAB',
+          description: 'Labour',
+          qty: 2,
+          kind: 2,
+        ),
+        PartUsed(partId: 1, partNo: 'F', description: 'Fuse', qty: 1),
+      ]).toWire();
+      final parts = w['parts']! as List;
+      expect((parts[0] as Map)['kind'], 2);
+      expect((parts[1] as Map).containsKey('kind'), isFalse);
+    });
+
+    test('kind survives Fix and resend', () {
+      final back = WorkOrderJob.fromWire(
+        _job(const [
+          PartUsed(description: 'Travel', qty: 1, kind: 2),
+          PartUsed(description: 'Fuse', qty: 1),
+        ]).toWire(),
+      );
+      expect(back.parts[0].isCharged, isTrue);
+      expect(back.parts[1].isCharged, isFalse);
+    });
+  });
+
   group('validate', () {
     test('a line needs a code or a description', () {
       final e = _job(const [PartUsed(qty: 1)]).validate();

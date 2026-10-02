@@ -330,6 +330,10 @@ abstract final class SyncUploadGuarantee {
 
   /// `capture` on `Repair` accepts `parts` and writes them in its transaction.
   static const captureParts = 'capture_parts';
+
+  /// A line on `capture` may carry `kind` — a typed charged rate is filed
+  /// under it rather than as a part.
+  static const capturePartKind = 'capture_part_kind';
 }
 
 /// The 422 codes, and what each means for the person holding the device.
